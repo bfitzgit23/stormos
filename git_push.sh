@@ -20,8 +20,6 @@ _msg() {
 
 _msg "Checking for newer files online."
 git pull
-cd x86_64
-sh upd_repo.sh
 
 _msg "Backing up everything in project folder."
 git add --all .
