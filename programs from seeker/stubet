@@ -1,0 +1,298 @@
+#!/usr/bin/env python3
+
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QListWidget, QDesktopWidget
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtCore import QUrl, Qt, QTimer
+from PyQt5.QtGui import QIcon
+import yt_dlp
+
+class EnterCaptureLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+            self.returnPressed.emit()
+        else:
+            super().keyPressEvent(event)
+
+class YouTubePlayer(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('StormOS YouTube Player')
+        self.resize(1200, 800)
+
+        # Center the window on the screen
+        qt_rectangle = self.frameGeometry()
+        center_point = QDesktopWidget().availableGeometry().center()
+        qt_rectangle.moveCenter(center_point)
+        self.move(qt_rectangle.topLeft())
+
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        self.layout = QVBoxLayout(self.central_widget)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+
+        self.top_layout = QHBoxLayout()  # Create a QHBoxLayout for URL input, Load button, and control buttons
+
+        self.url_input = EnterCaptureLineEdit()
+        self.url_input.setPlaceholderText('Enter YouTube URL')
+        self.top_layout.addWidget(self.url_input)
+
+        # Connect the Enter key press event to the load_video_from_input function
+        self.url_input.returnPressed.connect(self.load_video_from_input)
+
+        # Add a Clear button to the top row
+        self.clear_button = QPushButton('Clear')
+        self.clear_button.setIcon(QIcon.fromTheme('edit-clear'))
+        self.clear_button.setFixedHeight(30)
+        self.clear_button.clicked.connect(self.clear_url_input)
+        self.top_layout.addWidget(self.clear_button)
+
+        self.load_button = QPushButton('Load Video/Playlist')
+        self.top_layout.addWidget(self.load_button)
+        self.load_button.setIcon(QIcon.fromTheme('media-playback-start'))  # Add an icon to the button
+        self.load_button.setFixedHeight(30)  # Set a fixed height
+        self.load_button.clicked.connect(self.load_video_from_input)
+
+        self.controller_layout = QHBoxLayout()
+
+        self.play_button = QPushButton()
+        self.play_button.setIcon(QIcon.fromTheme('media-playback-start'))
+        self.play_button.setFixedHeight(30)
+        self.controller_layout.addWidget(self.play_button)
+        self.play_button.clicked.connect(self.play_video)
+
+        self.pause_button = QPushButton()
+        self.pause_button.setIcon(QIcon.fromTheme('media-playback-pause'))
+        self.pause_button.setFixedHeight(30)
+        self.controller_layout.addWidget(self.pause_button)
+        self.pause_button.clicked.connect(self.pause_video)
+
+        self.stop_button = QPushButton()
+        self.stop_button.setIcon(QIcon.fromTheme('media-playback-stop'))
+        self.stop_button.setFixedHeight(30)
+        self.controller_layout.addWidget(self.stop_button)
+        self.stop_button.clicked.connect(self.stop_video)
+
+        self.seek_forward_button = QPushButton()
+        self.seek_forward_button.setIcon(QIcon.fromTheme('media-seek-forward'))
+        self.seek_forward_button.setFixedHeight(30)
+        self.controller_layout.addWidget(self.seek_forward_button)
+        self.seek_forward_button.clicked.connect(self.seek_forward)
+
+        self.seek_backward_button = QPushButton()
+        self.seek_backward_button.setIcon(QIcon.fromTheme('media-seek-backward'))
+        self.seek_backward_button.setFixedHeight(30)
+        self.controller_layout.addWidget(self.seek_backward_button)
+        self.seek_backward_button.clicked.connect(self.seek_backward)
+
+        self.top_layout.addLayout(self.controller_layout)
+        self.layout.addLayout(self.top_layout)  # Add the top layout
+
+        self.webview = QWebEngineView()
+        self.layout.addWidget(self.webview, 1)  # Set webview layout to expand
+
+        self.error_label = QLabel('')
+        self.layout.addWidget(self.error_label)
+
+        self.playlist_list_widget = QListWidget()
+        self.playlist_list_widget.itemClicked.connect(self.playlist_item_clicked)
+        self.layout.addWidget(self.playlist_list_widget)
+        self.playlist_list_widget.hide()  # Initially hide the playlist list widget
+
+        self.close_playlist_button = QPushButton('Close Playlist')
+        self.close_playlist_button.setIcon(QIcon.fromTheme('window-close'))
+        self.close_playlist_button.setFixedHeight(30)
+        self.close_playlist_button.clicked.connect(self.close_playlist)
+        self.top_layout.addWidget(self.close_playlist_button)
+        self.close_playlist_button.hide()  # Initially hide the "Close Playlist" button
+
+        self.reopen_playlist_button = QPushButton('Reopen Playlist')
+        self.reopen_playlist_button.setIcon(QIcon.fromTheme('window-new'))
+        self.reopen_playlist_button.setFixedHeight(30)
+        self.reopen_playlist_button.clicked.connect(self.reopen_playlist)
+        self.top_layout.addWidget(self.reopen_playlist_button)
+        self.reopen_playlist_button.hide()  # Initially hide the "Reopen Playlist" button
+
+        self.play_playlist_button = QPushButton('Play Playlist')
+        self.play_playlist_button.setIcon(QIcon.fromTheme('media-playback-start'))
+        self.play_playlist_button.setFixedHeight(30)
+        self.play_playlist_button.clicked.connect(self.play_playlist)
+        self.top_layout.addWidget(self.play_playlist_button)
+        self.play_playlist_button.hide()  # Initially hide the "Play Playlist" button
+
+        self.autoplay_playlist = False  # Flag to track whether the playlist should autoplay
+
+        self.ydl_opts = {
+            'format': 'best',
+            'quiet': True,
+            'extract_flat': True,  # Extract all videos in a playlist
+        }
+
+        self.current_playlist_index = 0  # Initialize the current video index
+        self.current_playlist = []
+
+        self.is_paused = False  # Track whether the video is paused
+        self.is_stopped = False  # Track whether the video is stopped
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.check_video_playing)
+        self.timer.start(1000)  # Check every 1 second
+
+        self.play_playlist_button.show()  # Show the "Play Playlist" button by default
+
+    def get_youtube_video_url(self, video_url):
+        with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+            try:
+                info_dict = ydl.extract_info(video_url, download=False)
+                if 'url' in info_dict:
+                    return QUrl(info_dict['url'])
+            except yt_dlp.utils.DownloadError as e:
+                self.error_label.setText(f'Error: {str(e)}')
+
+    def load_video(self, video_url):
+        if video_url:
+            self.webview.setUrl(video_url)
+
+    def load_playlist(self, playlist_url):
+        with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+            try:
+                info_dict = ydl.extract_info(playlist_url, download=False)
+                if 'entries' in info_dict:
+                    self.current_playlist = info_dict['entries']
+                    self.playlist_list_widget.clear()
+                    for entry in self.current_playlist:
+                        self.playlist_list_widget.addItem(entry['title'])
+                    self.reopen_playlist_button.hide()  # Hide the "Reopen Playlist" button
+                    self.close_playlist_button.show()  # Show the "Close Playlist" button
+                    self.webview.hide()
+
+                    # Automatically show the playlist widget when a playlist URL is detected
+                    self.playlist_list_widget.show()
+
+                    if self.autoplay_playlist:
+                        self.play_playlist_button.hide()  # Hide the "Play Playlist" button
+                        self.play_playlist()  # Autoplay the first video in the playlist
+            except yt_dlp.utils.DownloadError as e:
+                self.error_label.setText(f'Error: {str(e)}')
+
+    def load_video_from_input(self):
+        self.error_label.clear()
+        input_url = self.url_input.text()
+        if input_url:
+            input_url = input_url.strip()
+            if not input_url.startswith('http'):
+                input_url = 'https://' + input_url
+            if "playlist?list=" in input_url:
+                # Load playlist
+                self.load_playlist(input_url)
+            else:
+                # Load single video
+                self.load_video(self.get_youtube_video_url(input_url))
+
+    def play_video(self):
+        if not self.is_stopped:  # Check if the video is not stopped
+            self.is_paused = False
+            self.webview.page().runJavaScript('document.querySelector("video").play();')
+
+    def pause_video(self):
+        if not self.is_stopped:  # Check if the video is not stopped
+            self.is_paused = True
+            self.webview.page().runJavaScript('document.querySelector("video").pause();')
+
+    def stop_video(self):
+        if not self.is_stopped:  # Check if the video is not already stopped
+            self.is_stopped = True
+            self.is_paused = False
+            self.webview.page().runJavaScript('document.querySelector("video").pause(); document.querySelector("video").currentTime = 0;')
+
+    def seek_forward(self):
+        self.webview.page().runJavaScript('document.querySelector("video").currentTime += 10;')
+
+    def seek_backward(self):
+        self.webview.page().runJavaScript('document.querySelector("video").currentTime -= 10;')
+
+    def playlist_item_clicked(self, item):
+        index = self.playlist_list_widget.indexFromItem(item).row()
+        if index >= 0 and index < len(self.current_playlist):
+            video_url = self.current_playlist[index]['url']
+            self.load_video(QUrl(video_url))
+
+    def clear_url_input(self):
+        self.url_input.clear()
+
+    def close_playlist(self):
+        self.playlist_list_widget.hide()
+        self.close_playlist_button.hide()
+        self.reopen_playlist_button.show()
+        self.play_playlist_button.show()
+        self.webview.show()
+
+    def reopen_playlist(self):
+        self.playlist_list_widget.show()
+        self.close_playlist_button.show()
+        self.reopen_playlist_button.hide()
+        self.play_playlist_button.show()
+        self.webview.hide()
+
+    def play_playlist(self):
+        if len(self.current_playlist) > 0 and self.current_playlist_index < len(self.current_playlist):
+            video_url = self.current_playlist[self.current_playlist_index]['url']
+            self.load_video(QUrl(video_url))
+            self.current_playlist_index += 1  # Move to the next video in the playlist
+            self.is_paused = False
+            self.is_stopped = False
+
+            if self.current_playlist_index >= len(self.current_playlist):
+                # Hide the playlist when all videos have been played
+                self.playlist_list_widget.hide()
+                self.close_playlist_button.show()
+                self.reopen_playlist_button.hide()
+            else:
+                # Show the "Close Playlist" button and hide "Reopen Playlist"
+                self.close_playlist_button.show()
+                self.reopen_playlist_button.hide()
+
+            # Hide the "Play Playlist" button after clicking it
+            self.play_playlist_button.hide()
+
+            # Hide the playlist when starting to play from the playlist
+            self.close_playlist()
+
+
+    def check_video_playing(self):
+        # Check if the video is playing
+        self.webview.page().runJavaScript('document.querySelector("video").paused', self.handle_video_paused)
+
+    def handle_video_paused(self, paused):
+        if paused and not self.is_paused and not self.is_stopped:
+            # Video has paused, so it's done playing
+            self.play_next_video()
+
+    def play_next_video(self):
+        if len(self.current_playlist) > 0 and self.current_playlist_index < len(self.current_playlist):
+            video_url = self.current_playlist[self.current_playlist_index]['url']
+            self.load_video(QUrl(video_url))
+            self.current_playlist_index += 1
+            self.is_paused = False
+            self.is_stopped = False
+
+            if self.current_playlist_index >= len(self.current_playlist):
+                self.playlist_list_widget.hide()
+                self.close_playlist_button.show()
+                self.reopen_playlist_button.hide()
+                self.play_playlist_button.hide()
+            else:
+                self.close_playlist_button.show()
+                self.reopen_playlist_button.hide()
+                self.play_playlist_button.hide()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    player = YouTubePlayer()
+    player.show()
+    sys.exit(app.exec_())

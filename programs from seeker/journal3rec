@@ -1,0 +1,322 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import time
+import speech_recognition as sr
+from PyQt5.QtWidgets import QApplication, QMainWindow, QCalendarWidget, QTextEdit, QVBoxLayout, QWidget, QPushButton, QSplitter, QAction, QMessageBox, QLabel, QTabWidget, QShortcut
+from PyQt5.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QPalette, QFont, QTextCursor, QTextCharFormat
+from PyQt5.QtCore import Qt, QRect, pyqtSignal, QThread
+from spellchecker import SpellChecker
+
+
+class DictationThread(QThread):
+    recognition_result = pyqtSignal(str)
+    recording_started = pyqtSignal()
+    recording_stopped = pyqtSignal()
+
+    def run(self):
+        self.recognize_speech()
+
+    def recognize_speech(self):
+        recognizer = sr.Recognizer()
+        microphone = sr.Microphone()
+
+        with microphone as source:
+            recognizer.adjust_for_ambient_noise(source)
+
+            self.recording_started.emit()
+
+            try:
+                audio = recognizer.listen(source)
+                recognized_text = recognizer.recognize_google(audio)
+
+                if recognized_text:
+                    self.recognition_result.emit(recognized_text)
+                else:
+                    self.recognition_result.emit("Could not understand audio.")
+            except sr.WaitTimeoutError:
+                self.recognition_result.emit("Timed out (no speech detected).")
+            except sr.RequestError as e:
+                self.recognition_result.emit(f"Could not request results; {e}")
+            except sr.UnknownValueError:
+                self.recognition_result.emit("Could not understand audio.")
+
+            self.recording_stopped.emit()
+
+
+class RealTimeSpellCheckTextEdit(QTextEdit):
+    def __init__(self, spell_checker):
+        super().__init__()
+        self.spell_checker = spell_checker
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Space or event.key() == Qt.Key_Return:
+            cursor = self.textCursor()
+            cursor.movePosition(QTextCursor.StartOfWord)
+            cursor.select(QTextCursor.WordUnderCursor)
+            selected_word = cursor.selectedText()
+
+            if not self.spell_checker.correction(selected_word.lower()) == selected_word.lower():
+                cursor.removeSelectedText()
+                cursor.insertText(self.spell_checker.correction(selected_word.lower()))
+
+        super().keyPressEvent(event)
+
+
+class SpellCheckHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent, spell_checker):
+        super().__init__(parent)
+        self.spell_checker = spell_checker
+
+    def highlightBlock(self, text):
+        format = QTextCharFormat()
+        format.setUnderlineColor(QColor("red"))
+        format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+
+        words = text.split()
+        for word in words:
+            if not self.spell_checker.correction(word.lower()) == word.lower():
+                self.setFormat(text.index(word), len(word), format)
+
+
+class ReminderWidget(QWidget):
+    def __init__(self, calendar):
+        super().__init__()
+
+        self.calendar = calendar
+
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        self.reminder_text = QTextEdit()
+        self.reminder_text.setFont(QFont("Arial", 14))
+        layout.addWidget(self.reminder_text)
+
+        save_button = QPushButton('Save Reminder')
+        save_button.clicked.connect(self.save_reminder)
+        layout.addWidget(save_button)
+
+        self.save_action = QAction("Save (Ctrl+R)", self)
+        self.save_action.setShortcut(Qt.CTRL + Qt.Key_R)
+        self.save_action.triggered.connect(self.save_reminder)
+        self.addAction(self.save_action)
+
+        self.calendar.clicked.connect(self.load_reminder)
+
+        self.load_reminder(self.calendar.selectedDate())
+
+    def get_documents_path(self):
+        home_dir = os.path.expanduser("~")
+        documents_path = os.path.join(home_dir, "Documents")
+        return documents_path
+
+    def load_reminder(self, selected_date):
+        documents_path = self.get_documents_path()
+        reminders_folder = os.path.join(documents_path, "journal3 reminders")
+        reminder_file = os.path.join(reminders_folder, f"{selected_date.toString('yyyy-MM-dd')}.txt")
+
+        try:
+            with open(reminder_file, "r") as file:
+                reminder_text = file.read()
+            self.reminder_text.setPlainText(reminder_text)
+        except FileNotFoundError:
+            self.reminder_text.clear()
+
+    def save_reminder(self):
+        reminder_text = self.reminder_text.toPlainText().strip()
+        selected_date = self.calendar.selectedDate()
+
+        if reminder_text:
+            documents_path = self.get_documents_path()
+            reminders_folder = os.path.join(documents_path, "journal3 reminders")
+            os.makedirs(reminders_folder, exist_ok=True)
+            reminder_file = os.path.join(reminders_folder, f"{selected_date.toString('yyyy-MM-dd')}.txt")
+
+            with open(reminder_file, "w") as file:
+                file.write(reminder_text)
+
+
+class JournalApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.spell_checker = SpellChecker()
+
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('StormOS Journal App')
+
+        self.center_on_screen()
+
+        self.resize(800, 600)
+
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        self.layout = QVBoxLayout(self.central_widget)
+
+        self.splitter = QSplitter()
+        self.layout.addWidget(self.splitter)
+
+        self.calendar = QCalendarWidget()
+        self.splitter.addWidget(self.calendar)
+
+        self.calendar.setFixedHeight(400)
+
+        self.text_edit = RealTimeSpellCheckTextEdit(self.spell_checker)
+        self.splitter.addWidget(self.text_edit)
+
+        self.text_edit.setFont(QFont("Arial", 14))
+
+        self.recording_label = QLabel("Recording: Not in progress")
+        self.layout.addWidget(self.recording_label)
+
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu('File')
+
+        instructions_action = QAction('Instructions', self)
+        instructions_action.triggered.connect(self.show_instructions_dialog)
+        file_menu.addAction(instructions_action)
+
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(ReminderWidget(self.calendar), "Appointment Reminder")
+        self.layout.addWidget(self.tab_widget)
+
+        palette = QPalette()
+        palette.setColor(QPalette.Window, QColor(240, 240, 240))
+        palette.setColor(QPalette.WindowText, QColor(0, 0, 0))
+        palette.setColor(QPalette.Button, QColor(200, 200, 200))
+        palette.setColor(QPalette.ButtonText, QColor(0, 0, 0))
+        palette.setColor(QPalette.Highlight, QColor(0, 128, 255))
+        palette.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
+        self.setPalette(palette)
+
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        app.setStyle("Fusion")
+
+        self.splitter.setSizes([200, 600])
+
+        self.current_date = self.calendar.selectedDate()
+        self.calendar.clicked.connect(self.load_entry)
+        self.load_entry()
+
+        self.save_action = QAction("Save (Ctrl+S)", self)
+        self.save_action.setShortcut(Qt.CTRL + Qt.Key_S)
+        self.save_action.triggered.connect(self.save_entry)
+        self.addAction(self.save_action)
+
+        self.dictation_action = QAction("Start Dictation (Ctrl+D)", self)
+        self.dictation_action.setShortcut(Qt.CTRL + Qt.Key_D)
+        self.dictation_action.triggered.connect(self.start_dictation)
+        self.addAction(self.dictation_action)
+
+        self.stop_dictation_action = QAction("Stop Dictation (Enter)", self)
+        self.stop_dictation_action.setShortcut(Qt.Key_Return)
+        self.stop_dictation_action.triggered.connect(self.stop_dictation)
+        self.addAction(self.stop_dictation_action)
+
+        self.dictation_thread = DictationThread()
+        self.dictation_thread.recognition_result.connect(self.update_text_edit)
+        self.dictation_thread.recording_started.connect(self.update_recording_status)
+        self.dictation_thread.recording_stopped.connect(self.update_recording_status)
+
+        self.spell_check_highlighter = SpellCheckHighlighter(self.text_edit.document(), self.spell_checker)
+
+    def center_on_screen(self):
+        available_geometry = QApplication.desktop().availableGeometry()
+        self.setGeometry(
+            QRect(
+                (available_geometry.width() - self.width()) // 2,
+                (available_geometry.height() - self.height()) // 2,
+                self.width(),
+                self.height(),
+            )
+        )
+
+    def get_documents_path(self):
+        home_dir = os.path.expanduser("~")
+        documents_path = os.path.join(home_dir, "Documents")
+        return documents_path
+
+    def save_entry(self):
+        selected_date = self.calendar.selectedDate()
+        entry_text = self.text_edit.toPlainText()
+
+        if entry_text.strip() != "":
+            documents_path = self.get_documents_path()
+            filename = os.path.join(documents_path, f"{selected_date.toString('yyyy-MM-dd')}.txt")
+            with open(filename, "w") as file:
+                file.write(entry_text)
+
+    def load_entry(self):
+        selected_date = self.calendar.selectedDate()
+        filename = os.path.join(self.get_documents_path(), f"{selected_date.toString('yyyy-MM-dd')}.txt")
+
+        try:
+            with open(filename, "r") as file:
+                entry_text = file.read()
+            self.text_edit.setPlainText(entry_text)
+        except FileNotFoundError:
+            self.text_edit.setPlainText("")
+
+    def start_dictation(self):
+        if not self.dictation_thread.isRunning():
+            self.text_edit.clear()
+            self.dictation_thread.start()
+        else:
+            self.dictation_thread.terminate()
+            self.update_recording_status()
+
+    def stop_dictation(self):
+        if self.dictation_thread.isRunning():
+            self.dictation_thread.terminate()
+            self.update_recording_status()
+
+    def update_text_edit(self, recognized_text):
+        current_text = self.text_edit.toPlainText()
+        if recognized_text != "Could not understand audio.":
+            corrected_text = self.auto_correct_text(recognized_text)
+            self.text_edit.setPlainText(current_text + " " + corrected_text)
+
+    def update_recording_status(self):
+        if self.dictation_thread.isRunning():
+            self.recording_label.setText("Recording: In progress (Press Enter to stop recording)")
+        else:
+            self.recording_label.setText("Recording: Not in progress")
+
+    def show_instructions_dialog(self):
+        instructions_text = "Welcome to the Journal App!\n\nInstructions:\n- You can write your journal entries in the text area on the right, To Save select Ctrl+S.\n- Use the calendar on the left to select a date and load or save journal entries.\n- In the 'Appointment Reminder' tab, you can save reminders and use the Ctrl+R shortcut to save.\n- Start dictation by pressing Ctrl+D, and press Enter to stop.\n\nEnjoy journaling and dictating!"
+        QMessageBox.information(self, "Instructions", instructions_text)
+
+    def auto_correct_text(self, text):
+        words = text.split()
+        corrected_words = []
+
+        for word in words:
+            if not self.spell_checker.correction(word.lower()) == word.lower():
+                corrected_word = self.spell_checker.correction(word.lower())
+            else:
+                corrected_word = word
+            corrected_words.append(corrected_word)
+
+        corrected_text = ' '.join(corrected_words)
+        return corrected_text
+
+
+def main():
+    app = QApplication(sys.argv)
+
+    window = JournalApp()
+    window.show()
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()

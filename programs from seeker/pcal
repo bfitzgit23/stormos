@@ -1,0 +1,414 @@
+#!/usr/bin/env python3
+import os
+import sys
+import json
+import datetime
+import subprocess
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget,
+                             QCalendarWidget, QPushButton, QDialog, QTextEdit,
+                             QTextBrowser, QHBoxLayout, QLabel, QTimeEdit, 
+                             QCheckBox, QInputDialog)
+from PyQt5.QtCore import Qt, QDate, QDateTime, QTimer
+
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import Qt, QDate, QDateTime, QTimer, QTime
+from PyQt5.QtWidgets import (QMainWindow, QCalendarWidget, QVBoxLayout, 
+                             QWidget, QPushButton, QTextBrowser, QListWidget)
+
+
+class CalendarApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("StormOS Calendar App")
+        self.setGeometry(100, 100, 800, 600)
+
+        self.reminder_timer = QTimer(self)
+        self.reminder_timer.timeout.connect(self.check_for_reminders)
+        self.reminder_timer.start(1000)  # Check every 60,000 milliseconds (1 minute)
+
+
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self.update_date_time_label)
+        self.update_timer.start(1000)  # Update every 60,000 milliseconds (1 minute)
+
+
+
+        self.events = {}  # Initialize as an empty dictionary
+        self.load_events()  # Load events from the file
+
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        self.calendar = QCalendarWidget()
+        self.calendar.clicked[QDate].connect(self.show_events_for_date)
+
+        # Set the current date as the selected date
+        self.calendar.setSelectedDate(QDate.currentDate())
+        
+        layout.addWidget(self.calendar)
+
+        button_layout = QHBoxLayout()
+        self.add_event_btn = QPushButton("Add Event")
+        self.add_event_btn.clicked.connect(self.show_add_event_dialog)
+        button_layout.addWidget(self.add_event_btn)
+
+
+        self.edit_event_btn = QPushButton("Edit Event")
+        self.edit_event_btn.clicked.connect(self.show_edit_event_dialog)
+        button_layout.addWidget(self.edit_event_btn)
+
+        self.show_all_btn = QPushButton("Show All Events")
+        self.show_all_btn.clicked.connect(self.show_all_events)
+        button_layout.addWidget(self.show_all_btn)
+
+        
+        layout.addLayout(button_layout)
+
+        self.event_list = QListWidget()
+        layout.addWidget(self.event_list)
+
+        # Now, display the events for the selected date after `event_list` has been initialized.
+        self.show_events_for_date(QDate.currentDate())
+
+        self.central_widget = QWidget()
+        self.central_widget.setLayout(layout)
+        self.setCentralWidget(self.central_widget)
+
+        # Initialize the date and time label and add to layout
+        self.date_time_label = QLabel()
+        self.update_date_time_label()  # Set the initial date and time
+        layout.addWidget(self.date_time_label)
+
+        self.event_list.itemClicked.connect(self.on_item_clicked)
+
+
+    def on_item_clicked(self, item):
+        selected_event = item.text()
+        
+        # Split the text on spaces to get the date from the format 'yyyy-MM-dd'
+        date_str = selected_event.split()[0]
+        
+        # Convert the string to a QDate
+        date = QDate.fromString(date_str, "yyyy-MM-dd")
+        
+        # Set the calendar's selected date to the date from the item
+        self.calendar.setSelectedDate(date)
+        
+        # Show events for that date
+        self.show_events_for_date(date)
+
+
+
+
+    def show_all_events(self):
+        self.event_list.clear()
+        self.event_list.addItem("All Events:")
+        
+        # Sort the dates
+        sorted_dates = sorted(self.events.keys())
+        
+        for date in sorted_dates:
+            events_for_date = self.events[date]
+            
+            # Sort events by time within the date
+            sorted_events = sorted(events_for_date, key=lambda x: x['time'])
+            
+            for event in sorted_events:
+                reminder = "(Reminder set)" if event.get("reminder") else ""
+                self.event_list.addItem(f"{date} - {event['name']} at {event['time']} {reminder}")
+
+
+
+
+
+
+    def update_date_time_label(self):
+        current_date_time = QDateTime.currentDateTime().toString("dddd, MMMM d, yyyy hh:mm:ss AP")
+        self.date_time_label.setText(current_date_time)
+
+
+
+
+    def load_events(self):
+        events_file_path = os.path.expanduser("~/Documents/events.json")
+        if os.path.exists(events_file_path):
+            with open(events_file_path, "r") as f:
+                self.events = json.load(f)
+
+    def save_events(self):
+        events_file_path = os.path.expanduser("~/Documents/events.json")
+        with open(events_file_path, "w") as f:
+            json.dump(self.events, f)
+
+    def show_events_for_date(self, date):
+        selected_date = date.toString("yyyy-MM-dd")
+        self.event_list.clear()  # Clear any existing items
+        self.event_list.addItem(f"Events for {selected_date}:")  # This displays the date
+
+        events_for_date = self.events.get(selected_date, [])
+        for event in events_for_date:
+            if isinstance(event, dict):  # check if event is a dictionary (to be safe)
+                reminder = "(Reminder set)" if event.get("reminder") else ""
+                self.event_list.addItem(f"- {event['name']} at {event['time']} {reminder}")
+            else:
+                self.event_list.addItem(f"- {event}")  # assuming event is a string if not a dictionary
+
+
+
+
+
+    def show_add_event_dialog(self):
+        selected_date = self.calendar.selectedDate()
+        dialog = AddEventDialog(self.events, self, selected_date)
+        if dialog.exec_() == QDialog.Accepted:
+            self.update_event_list()
+            self.save_events()
+
+    def update_event_list(self):
+        selected_date = self.calendar.selectedDate().toString("yyyy-MM-dd")
+        events = self.events.get(selected_date, [])
+        self.event_list.clear()  # Clear any existing items
+        self.event_list.addItem(f"Events for {selected_date}:")
+        for event in events:
+            reminder = "(Reminder set)" if event["reminder"] else ""
+            self.event_list.addItem(f"- {event['name']} at {event['time']} {reminder}")
+
+
+    def show_edit_event_dialog(self):
+        selected_date = self.calendar.selectedDate().toString("yyyy-MM-dd")
+        events_for_date = self.events.get(selected_date, [])
+        if events_for_date:
+            event_names = [event['name'] for event in events_for_date]
+            selected_event_name, ok = QInputDialog.getItem(self, "Select an event to edit", "Events:", event_names, 0, False)
+            if ok and selected_event_name:
+                selected_event_index = event_names.index(selected_event_name)
+                edit_dialog = EditEventDialog(selected_date, selected_event_index, self.events, self)
+                if edit_dialog.exec_() == QDialog.Accepted:
+                    self.update_event_list()
+                    self.save_events()
+
+
+
+    def check_for_reminders(self):
+        print("Checking reminders...")
+
+        current_time = datetime.datetime.now()
+        current_date = current_time.date().isoformat()
+        current_hour_minute = current_time.time().strftime("%H:%M")
+
+        events_for_today = self.events.get(current_date, [])
+
+        for event in events_for_today:
+            if event.get("reminder") and event["time"][:5] == current_hour_minute:
+                print(f"Triggering reminder for: {event['name']} at {event['time']}")
+
+                # Trigger a message box notification
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+                msg.setWindowTitle("Event Reminder")
+                msg.setText(f"You have an event: {event['name']} at {event['time']}")
+                msg.setStandardButtons(QMessageBox.Ok)
+                msg.exec_()
+
+                # Add a system sound alert (assuming paplay is installed on your system)
+                os.system('paplay /usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga')
+
+                # Disable the reminder for this event
+                event["reminder"] = False
+
+                # After the loop
+                self.save_events()
+
+
+
+
+    def play_audio_reminder(self):
+            subprocess.run(["paplay", "/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"])
+
+
+class AddEventDialog(QDialog):
+    def __init__(self, events, parent=None, selected_date=None):
+        super().__init__(parent)
+        self.events = events
+        self.setWindowTitle("Add Event")
+
+        layout = QVBoxLayout()
+        
+        self.event_name_label = QLabel("Event Name:")
+        self.event_name_edit = QTextEdit()
+        layout.addWidget(self.event_name_label)
+        layout.addWidget(self.event_name_edit)
+
+        self.date_label = QLabel("Date:")
+        self.date_edit = QCalendarWidget()
+        if selected_date:
+            self.date_edit.setSelectedDate(selected_date)
+        layout.addWidget(self.date_label)
+        layout.addWidget(self.date_edit)
+
+        self.time_label = QLabel("Time:")
+        self.time_edit = QTimeEdit()
+        layout.addWidget(self.time_label)
+        layout.addWidget(self.time_edit)
+
+        self.reminder_checkbox = QCheckBox("Set Reminder")
+        layout.addWidget(self.reminder_checkbox)
+
+        self.add_button = QPushButton("Add Event")
+        self.add_button.clicked.connect(self.add_event)
+        layout.addWidget(self.add_button)
+
+        self.setLayout(layout)
+
+    def add_event(self):
+        event_name = self.event_name_edit.toPlainText().strip()
+        event_date = self.date_edit.selectedDate().toString("yyyy-MM-dd")
+        event_time = self.time_edit.time().toString()
+
+        if event_name and event_date:
+            if event_date not in self.events:
+                self.events[event_date] = []
+
+            new_event = {
+                "name": event_name,
+                "time": event_time,
+                "reminder": self.reminder_checkbox.isChecked()
+            }
+
+            self.events[event_date].append(new_event)
+
+            event_datetime = QDateTime(self.date_edit.selectedDate(), self.time_edit.time())
+            current_datetime = QDateTime.currentDateTime()
+            delay = current_datetime.msecsTo(event_datetime)
+            
+            if delay > 0 and self.reminder_checkbox.isChecked():
+                QTimer.singleShot(delay, self.parent().play_audio_reminder)
+
+            self.parent().update_event_list()
+            self.parent().save_events()
+            self.accept()
+
+
+
+class EditEventDialog(QDialog):
+    def __init__(self, selected_date, selected_event_index, events, parent=None):
+        super().__init__(parent)
+        self.selected_date = selected_date
+        self.selected_event_index = selected_event_index
+        self.events = events
+        self.setWindowTitle("Edit Event")
+
+        self.event_name_label = QLabel("Edit Event Name:")  
+        self.event_name_edit = QTextEdit()
+        self.event_name_edit.setPlainText(events[selected_date][selected_event_index]['name'])
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save_event)
+
+        self.delete_button = QPushButton("Delete Event")  
+        self.delete_button.clicked.connect(self.delete_event)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.event_name_label)
+        layout.addWidget(self.event_name_edit)
+        layout.addWidget(self.save_button)
+        layout.addWidget(self.delete_button)  
+
+        self.date_label = QLabel("Date:")
+        self.date_edit = QCalendarWidget()
+        self.date_edit.setSelectedDate(QDate.fromString(self.selected_date, "yyyy-MM-dd"))
+        layout.addWidget(self.date_label)
+        layout.addWidget(self.date_edit)
+
+        self.time_label = QLabel("Time:")
+        self.time_edit = QTimeEdit()
+        self.time_edit.setTime(QTime.fromString(events[selected_date][selected_event_index]['time'], "HH:mm:ss"))
+        layout.addWidget(self.time_label)
+        layout.addWidget(self.time_edit)
+
+        self.reminder_checkbox = QCheckBox("Set Reminder")
+        self.reminder_checkbox.setChecked(events[selected_date][selected_event_index].get('reminder', False))
+        layout.addWidget(self.reminder_checkbox)
+
+
+
+        self.setLayout(layout)
+
+    def edit_event(self):
+        event_name = self.event_name_edit.toPlainText().strip()
+        event_time = self.time_edit.time().toString("HH:mm:ss")
+        
+        if not event_name:
+            return  # Do not save events with no name
+
+        # Update the selected event with new values
+        self.selected_event["name"] = event_name
+        self.selected_event["time"] = event_time
+        self.selected_event["reminder"] = self.reminder_checkbox.isChecked()
+        
+        # Find the event in the list and update it
+        for index, event in enumerate(self.events[self.selected_date]):
+            if event["name"] == self.selected_event["name"]:
+                self.events[self.selected_date][index] = self.selected_event
+                break
+
+        self.accept()
+
+    def delete_event(self):
+        event_list = self.events.get(self.selected_date, [])
+        event_list.pop(self.selected_event_index)
+        self.parent().update_event_list()  
+        self.parent().save_events()  
+        self.accept()  
+
+    def save_event(self):
+        edited_event_name = self.event_name_edit.toPlainText().strip()
+        edited_event_date = self.date_edit.selectedDate().toString("yyyy-MM-dd")
+        edited_event_time = self.time_edit.time().toString("HH:mm:ss")
+        reminder_set = self.reminder_checkbox.isChecked()
+
+        if edited_event_name:
+            # Move event if the date is changed
+            if edited_event_date != self.selected_date:
+                # Remove event from the original date
+                event_list = self.events.get(self.selected_date, [])
+                event_list.pop(self.selected_event_index)
+
+                # Add event to the new date
+                if edited_event_date not in self.events:
+                    self.events[edited_event_date] = []
+
+                self.events[edited_event_date].append({
+                    "name": edited_event_name,
+                    "time": edited_event_time,
+                    "reminder": reminder_set
+                })
+            else:  # If date is unchanged, just update the event details
+                self.events[self.selected_date][self.selected_event_index]['name'] = edited_event_name
+                self.events[self.selected_date][self.selected_event_index]['time'] = edited_event_time
+                self.events[self.selected_date][self.selected_event_index]['reminder'] = reminder_set
+
+            # If the reminder is set and the time is in the future, reset the reminder timer
+            if reminder_set:
+                event_datetime = QDateTime(self.date_edit.selectedDate(), self.time_edit.time())
+                current_datetime = QDateTime.currentDateTime()
+                delay = current_datetime.msecsTo(event_datetime)
+
+                if delay > 0:
+                    QTimer.singleShot(delay, self.parent().play_audio_reminder)
+
+            self.parent().update_event_list()
+            self.parent().save_events()
+            self.accept()
+
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = CalendarApp()
+    window.show()
+    sys.exit(app.exec_())
+
+
