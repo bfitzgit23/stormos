@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Install Archcraft (CLI)
+Comment=Command Line Installer For StormOS
+Exec=xfce4-terminal --title 'StormOS Installer (CLI)' -e sudo /abif-master/abif
+Icon=archcraft-red
+Type=Application
+Categories=System;
+Terminal=true
+GenericName=Install StormOS
