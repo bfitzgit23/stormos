@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import pickle
+import subprocess
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QTabWidget, QTextEdit, QPushButton, QLabel, QLineEdit, QDesktopWidget
+from PyQt5.QtGui import QClipboard
+from PyQt5.QtCore import Qt, QTimer
+import speech_recognition as sr
+from gtts import gTTS
+from translate import Translator
+
+def translate_single(text, source_lang, dest_lang):
+    translator = Translator(to_lang=dest_lang, from_lang=source_lang)
+    return translator.translate(text)
+
+class TranslatorTab(QWidget):
+    def __init__(self, source_lang, dest_lang, app):
+        super().__init__()
+        self.source_lang = source_lang
+        self.dest_lang = dest_lang
+        self.app = app
+        self.translation_cache = {}  # Cache for storing translations
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        self.text_edit = QTextEdit(self)
+        layout.addWidget(self.text_edit)
+
+        self.clear_button = QPushButton("Clear", self)
+        self.clear_button.clicked.connect(self.clear_text)
+        layout.addWidget(self.clear_button)
+
+        self.result_label = QLabel("", self)
+        layout.addWidget(self.result_label)
+
+        self.translation_line_edit = QLineEdit(self)
+        self.translation_line_edit.setReadOnly(True)
+        layout.addWidget(self.translation_line_edit)
+
+        self.copy_button = QPushButton("Copy Translation", self)
+        self.copy_button.clicked.connect(self.copy_translation)
+        layout.addWidget(self.copy_button)
+
+        self.play_button = QPushButton("Play Translation", self)
+        self.play_button.clicked.connect(self.play_translation)
+        layout.addWidget(self.play_button)
+
+        self.listen_button = QPushButton("Listen", self)
+        self.listen_button.clicked.connect(self.listen_and_translate)
+        layout.addWidget(self.listen_button)
+
+        self.voice_recognition_text = QTextEdit(self)
+        self.voice_recognition_text.setReadOnly(True)
+        layout.addWidget(self.voice_recognition_text)
+
+        self.setLayout(layout)
+
+        self.text_edit.textChanged.connect(self.translate_text_while_typing)
+        self.is_typing = False
+
+    def translate_text_while_typing(self):
+        self.is_typing = True
+
+        if hasattr(self, 'type_timer'):
+            self.type_timer.stop()
+        self.type_timer = QTimer(self)
+        self.type_timer.setInterval(1000)
+        self.type_timer.setSingleShot(True)
+        self.type_timer.timeout.connect(self.translate_text)
+        self.type_timer.start()
+
+    def translate_text(self):
+        if self.is_typing:
+            text_to_translate = self.text_edit.toPlainText()
+
+            if text_to_translate in self.translation_cache:
+                translated_text = self.translation_cache[text_to_translate]
+            else:
+                translated_text = self.translate_single(text_to_translate)
+                self.translation_cache[text_to_translate] = translated_text
+
+            self.result_label.setText(f"Translation ({self.dest_lang}): {translated_text}")
+            self.translation_line_edit.setText(translated_text)
+            self.is_typing = False
+
+    def translate_single(self, text):
+        translator = Translator(to_lang=self.dest_lang, from_lang=self.source_lang)
+        return translator.translate(text)
+
+    def copy_translation(self):
+        translation_text = self.translation_line_edit.text()
+        clipboard = QApplication.clipboard()
+        clipboard.setText(translation_text)
+
+    def clear_text(self):
+        self.text_edit.clear()
+        self.result_label.clear()
+        self.translation_line_edit.clear()
+
+    def play_translation(self):
+        translated_text = self.translation_line_edit.text()
+
+        if translated_text:
+            try:
+                tts = gTTS(text=translated_text, lang=self.dest_lang)
+                tts.save("translation.mp3")
+                subprocess.Popen(["mpg123", "translation.mp3"])
+            except Exception as e:
+                print(f"Error while generating or playing TTS: {e}")
+        else:
+            print("No translated text available to play.")
+
+    def listen_and_translate(self):
+        recognizer = sr.Recognizer()
+        microphone = sr.Microphone()
+
+        with microphone as source:
+            recognizer.adjust_for_ambient_noise(source)
+            self.voice_recognition_text.clear()
+            self.voice_recognition_text.append("Listening...")
+
+            try:
+                audio = recognizer.listen(source, timeout=10)
+                self.voice_recognition_text.clear()
+                self.voice_recognition_text.append("Recognizing...")
+                recognized_text = recognizer.recognize_google(audio, language=self.source_lang)
+                self.text_edit.setPlainText(recognized_text)
+                self.translate_text()
+
+                # Play the translation after recognizing voice
+                self.play_translation()
+            except sr.WaitTimeoutError:
+                self.voice_recognition_text.clear()
+                self.voice_recognition_text.append("Timed out (no speech detected).")
+            except sr.RequestError as e:
+                self.voice_recognition_text.clear()
+                self.voice_recognition_text.append(f"Could not request results; {e}")
+            except sr.UnknownValueError:
+                self.voice_recognition_text.clear()
+                self.voice_recognition_text.append("Could not understand audio.")
+
+class TranslatorApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle("StormOS Multi-Language Translator")
+        self.setGeometry(100, 100, 800, 600)
+        self.central_widget = QTabWidget(self)
+        self.setCentralWidget(self.central_widget)
+        self.all_tabs = []
+
+        languages = [
+            ("en", "es", "English to Spanish"),
+            ("en", "zh-TW", "English to Cantonese"),
+            ("en", "it", "English to Italian"),
+            ("en", "fr", "English to French"),
+            ("en", "ru", "English to Russian"),
+            ("es", "en", "Spanish to English"),
+            ("zh-TW", "en", "Cantonese to English"),
+            ("it", "en", "Italian to English"),
+            ("fr", "en", "French to English"),
+            ("ru", "en", "Russian to English"),
+        ]
+
+        for source_lang, dest_lang, tab_name in languages:
+            tab = TranslatorTab(source_lang, dest_lang, self)
+            self.central_widget.addTab(tab, tab_name)
+            self.all_tabs.append(tab)
+
+        self.centerWindow()
+
+        self.load_translation_cache()
+
+    def centerWindow(self):
+        screen = QDesktopWidget().screenGeometry()
+        window_size = self.geometry()
+        center_point = screen.center()
+        self.move(center_point - window_size.center())
+
+    def load_translation_cache(self):
+        if os.path.exists('translation_cache.pkl'):
+            with open('translation_cache.pkl', 'rb') as cache_file:
+                self.all_tabs[0].translation_cache = pickle.load(cache_file)
+
+    def closeEvent(self, event):
+        with open('translation_cache.pkl', 'wb') as cache_file:
+            pickle.dump(self.all_tabs[0].translation_cache, cache_file)
+
+def main():
+    app = QApplication(sys.argv)
+    translator_app = TranslatorApp()
+    translator_app.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()

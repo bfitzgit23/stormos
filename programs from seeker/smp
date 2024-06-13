@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QListWidget, QListWidgetItem, QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtGui import QIcon
+
+class MusicPlayerGUI(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # Initialize the GUI
+        self.initUI()
+
+        # Flags for media playback control
+        self.is_playing = False
+        self.current_music_file = None
+        self.media_player = QMediaPlayer(self)  # Initialize QMediaPlayer instance
+        self.media_player.positionChanged.connect(self.update_position)
+        self.media_player.mediaStatusChanged.connect(self.media_status_changed)
+
+        # Check if command-line arguments were provided
+        if len(sys.argv) > 1:
+            self.load_music_from_command_line()
+
+    def initUI(self):
+        self.setWindowTitle("StormOS Music Player")
+
+        # Create a central widget
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
+
+        # Create a vertical layout for central widget
+        layout = QVBoxLayout(central_widget)
+        layout.setAlignment(Qt.AlignCenter)
+
+        # Create a horizontal layout for the top buttons (row 1)
+        top_button_layout1 = QHBoxLayout()
+
+        # Previous button
+        prev_button = QPushButton("Previous", self)
+        prev_button.setIcon(QIcon.fromTheme('media-skip-backward'))
+        prev_button.clicked.connect(self.prev_track)
+        top_button_layout1.addWidget(prev_button)
+
+        # Seek Backward button
+        seek_backward_button = QPushButton("<<", self)
+        seek_backward_button.clicked.connect(self.seek_backward)
+        top_button_layout1.addWidget(seek_backward_button)
+
+        # Play/Pause button
+        self.play_pause_button = QPushButton("Play", self)
+        self.play_pause_button.setIcon(QIcon.fromTheme('media-playback-start'))
+        self.play_pause_button.clicked.connect(self.toggle_play_pause)
+        top_button_layout1.addWidget(self.play_pause_button)
+
+        # Seek Forward button
+        seek_forward_button = QPushButton(">>", self)
+        seek_forward_button.clicked.connect(self.seek_forward)
+        top_button_layout1.addWidget(seek_forward_button)
+
+        # Next button
+        next_button = QPushButton("Next", self)
+        next_button.setIcon(QIcon.fromTheme('media-skip-forward'))
+        next_button.clicked.connect(self.next_track)
+        top_button_layout1.addWidget(next_button)
+
+        # Create a horizontal layout for the bottom buttons (row 2)
+        top_button_layout2 = QHBoxLayout()
+
+        # Load button
+        load_button = QPushButton("Load", self)
+        load_button.setIcon(QIcon.fromTheme('document-open'))
+        load_button.clicked.connect(self.load_music)
+        top_button_layout2.addWidget(load_button)
+
+        # Stop button
+        stop_button = QPushButton("Stop", self)
+        stop_button.setIcon(QIcon.fromTheme('media-playback-stop'))
+        stop_button.clicked.connect(self.stop_song)
+        top_button_layout2.addWidget(stop_button)
+
+        # Remove button
+        remove_button = QPushButton("Remove", self)
+        remove_button.setIcon(QIcon.fromTheme('edit-delete'))
+        remove_button.clicked.connect(self.remove_selected)
+        top_button_layout2.addWidget(remove_button)
+
+        layout.addLayout(top_button_layout1)
+        layout.addLayout(top_button_layout2)
+
+        # Playlist
+        self.playlist_widget = QListWidget(self)
+        layout.addWidget(self.playlist_widget)
+
+        # Labels to display song time information
+        self.current_time_label = QLabel("0:00", self)
+        layout.addWidget(self.current_time_label)
+
+        self.total_time_label = QLabel("0:00", self)
+        layout.addWidget(self.total_time_label)
+
+        # Initialize time variables
+        self.current_time = 0
+        self.total_time = 0
+
+        # Connect double-click event to the playlist
+        self.playlist_widget.itemDoubleClicked.connect(self.double_click_event_handler)
+
+    def toggle_play_pause(self):
+        if not self.current_music_file:
+            return
+
+        if self.is_playing:
+            self.media_player.pause()
+            self.play_pause_button.setText("Play")
+            self.play_pause_button.setIcon(QIcon.fromTheme('media-playback-start'))
+        else:
+            if self.media_player.state() == QMediaPlayer.PausedState:
+                self.media_player.play()
+            else:
+                media_content = QMediaContent(QUrl.fromLocalFile(self.current_music_file))
+                self.media_player.setMedia(media_content)
+            self.play_pause_button.setText("Pause")
+            self.play_pause_button.setIcon(QIcon.fromTheme('media-playback-pause'))
+        self.is_playing = not self.is_playing
+
+    def stop_song(self):
+        if self.is_playing:
+            self.media_player.stop()
+            self.is_playing = False
+            self.play_pause_button.setText("Play")
+            self.play_pause_button.setIcon(QIcon.fromTheme('media-playback-start'))
+
+    def load_music(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+        file_dialog = QFileDialog(self, options=options)
+        file_dialog.setFileMode(QFileDialog.ExistingFiles | QFileDialog.Directory)
+        file_dialog.setViewMode(QFileDialog.List)
+
+        try:
+            if file_dialog.exec_():
+                selected_files_and_folders = file_dialog.selectedFiles()
+                for item in selected_files_and_folders:
+                    song_path = item
+                    song_title = item.split('/')[-1]
+                    self.add_to_playlist(song_title, song_path)
+        except Exception as e:
+            # Handle the exception (e.g., show an error message)
+            print(f"Error loading music: {e}")
+
+    def update_position(self, position):
+        self.current_time = position / 1000
+        self.total_time = self.media_player.duration() / 1000
+        self.current_time_label.setText(self.format_time(self.current_time))
+        self.total_time_label.setText(self.format_time(self.total_time))
+
+    def media_status_changed(self, status):
+        if status == QMediaPlayer.EndOfMedia:
+            self.next_track()
+
+    def prev_track(self):
+        current_item = self.playlist_widget.currentItem()
+        if current_item is None:
+            current_item = self.playlist_widget.item(0)
+        else:
+            current_index = self.playlist_widget.row(current_item)
+            if current_index > 0:
+                prev_item = self.playlist_widget.item(current_index - 1)
+                self.playlist_widget.setCurrentItem(prev_item)
+                song_path = prev_item.data(Qt.UserRole)
+                self.play_song(song_path)
+
+    def next_track(self):
+        current_item = self.playlist_widget.currentItem()
+        if current_item is None:
+            current_item = self.playlist_widget.item(0)
+        else:
+            current_index = self.playlist_widget.row(current_item)
+            if current_index < self.playlist_widget.count() - 1:
+                next_item = self.playlist_widget.item(current_index + 1)
+                self.playlist_widget.setCurrentItem(next_item)
+                song_path = next_item.data(Qt.UserRole)
+                self.play_song(song_path)
+
+    def seek_forward(self):
+        position = self.media_player.position() + 5000  # Seek 5 seconds forward
+        self.media_player.setPosition(position)
+
+    def seek_backward(self):
+        position = self.media_player.position() - 5000  # Seek 5 seconds backward
+        self.media_player.setPosition(position)
+
+    def double_click_event_handler(self, item):
+        song_path = item.data(Qt.UserRole)
+        self.play_song(song_path)
+
+    def load_music_from_command_line(self):
+        selected_files_and_folders = sys.argv[1:]
+        for item in selected_files_and_folders:
+            song_path = item
+            song_title = item.split('/')[-1]
+            self.add_to_playlist(song_title, song_path)
+
+        # Play the first song in the playlist
+        if not self.current_music_file:
+            first_item = self.playlist_widget.item(0)
+            if first_item:
+                song_path = first_item.data(Qt.UserRole)
+                self.play_song(song_path)
+
+    def play_song(self, song_path):
+        if song_path:
+            media_content = QMediaContent(QUrl.fromLocalFile(song_path))
+            self.media_player.setMedia(media_content)
+            self.current_music_file = song_path
+            self.media_player.play()
+            self.play_pause_button.setText("Pause")
+            self.play_pause_button.setIcon(QIcon.fromTheme('media-playback-pause'))
+            self.is_playing = True
+
+    def add_to_playlist(self, song_title, song_path):
+        item = QListWidgetItem(song_title)
+        item.setData(Qt.UserRole, song_path)
+        self.playlist_widget.addItem(item)
+
+    def format_time(self, seconds):
+        minutes, seconds = divmod(int(seconds), 60)
+        return f"{minutes}:{seconds:02}"
+
+    def remove_selected(self):
+        selected_items = self.playlist_widget.selectedItems()
+        for item in selected_items:
+            row = self.playlist_widget.row(item)
+            self.playlist_widget.takeItem(row)
+            if item.data(Qt.UserRole) == self.current_music_file:
+                self.media_player.stop()
+                self.current_music_file = None
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = MusicPlayerGUI()
+    window.show()
+
+    sys.exit(app.exec_())
+

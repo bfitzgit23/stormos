@@ -1,0 +1,314 @@
+#!/usr/bin/env python3
+import locale
+import openpyxl
+#import qdarkstyle
+from openpyxl.styles.alignment import Alignment
+from openpyxl.styles.numbers import NumberFormat
+from openpyxl.styles import numbers
+from openpyxl.styles import Color, PatternFill, Font, Border
+from openpyxl.formatting.rule import ColorScaleRule
+import sys
+import xlsxwriter
+import datetime
+import os
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox, QDesktopWidget, QShortcut
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtCore import Qt
+import re
+
+
+class ExpenseWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Get the path to the user's documents folder
+        self.documents_dir = os.environ.get("XDG_DOCUMENTS_DIR", "~/Documents")
+        self.documents_dir = os.path.expanduser(self.documents_dir)
+
+
+        # Apply the dark style
+        #app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+
+
+        # Set window properties
+        self.setWindowTitle('StormOS Expenses Calculator')
+        self.setGeometry(100, 100, 500, 500)
+
+        # Create widgets
+        self.budget_label = QLabel('Budget (e.g. 5000.00)')
+        self.budget_input = QLineEdit()
+        self.mortgage_label = QLabel('Mortgage/Rent (e.g. 1500.25)')
+        self.mortgage_input = QLineEdit()
+        self.car1_label = QLabel('Car 1 (e.g. 500.00)')
+        self.car1_input = QLineEdit()
+        self.car2_label = QLabel('Car 2 (e.g. 500.00)')
+        self.car2_input = QLineEdit()
+        self.utilities_label = QLabel('Utilities/Gas/Electricity/Water (e.g. 100.00)')
+        self.utilities_input = QLineEdit()
+        self.entertainment_label = QLabel('Entertainment/Internet (e.g. 50.00)')
+        self.entertainment_input = QLineEdit()
+        self.cell_phone_label = QLabel('Cell Phone (e.g. 80.00)')
+        self.cell_phone_input = QLineEdit()
+        self.add_button = QPushButton('Add Expenses')
+        self.clear_button = QPushButton('Clear')
+        self.close_button = QPushButton('Close')
+        self.balance_label = QLabel('Balance')
+        self.balance_display = QLabel('0.00')
+        self.calculate_button = QPushButton('Calculate')
+        self.total_expenses_display = QLabel('0.00')
+        self.total_expenses_label = QLabel('Total Expenses')
+        
+
+
+        # Create layouts
+        budget_layout = QHBoxLayout()
+        budget_layout.addWidget(self.budget_label)
+        budget_layout.addWidget(self.budget_input)
+        mortgage_layout = QHBoxLayout()
+        mortgage_layout.addWidget(self.mortgage_label)
+        mortgage_layout.addWidget(self.mortgage_input)
+        car1_layout = QHBoxLayout()
+        car1_layout.addWidget(self.car1_label)
+        car1_layout.addWidget(self.car1_input)
+        car2_layout = QHBoxLayout()
+        car2_layout.addWidget(self.car2_label)
+        car2_layout.addWidget(self.car2_input)
+        utilities_layout = QHBoxLayout()
+        utilities_layout.addWidget(self.utilities_label)
+        utilities_layout.addWidget(self.utilities_input)
+        entertainment_layout = QHBoxLayout()
+        entertainment_layout.addWidget(self.entertainment_label)
+        entertainment_layout.addWidget(self.entertainment_input)
+        cell_phone_layout = QHBoxLayout()
+        cell_phone_layout.addWidget(self.cell_phone_label)
+        cell_phone_layout.addWidget(self.cell_phone_input)
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.add_button)
+        button_layout.addWidget(self.clear_button)
+        button_layout.addWidget(self.close_button)
+        balance_layout = QVBoxLayout()  # Create QVBoxLayout for balance display
+        balance_layout.addWidget(self.balance_label)
+        balance_layout.addWidget(self.balance_display)
+        calculate_layout = QHBoxLayout()
+        calculate_layout.addWidget(self.calculate_button)
+
+        total_expenses_layout = QVBoxLayout()  # Create QVBoxLayout for total expenses display
+        total_expenses_layout.addWidget(self.total_expenses_label)
+        total_expenses_layout.addWidget(self.total_expenses_display)
+
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(budget_layout)
+        main_layout.addLayout(mortgage_layout)
+        main_layout.addLayout(car1_layout)
+        main_layout.addLayout(car2_layout)
+        main_layout.addLayout(utilities_layout)
+        main_layout.addLayout(entertainment_layout)
+        main_layout.addLayout(cell_phone_layout)
+        main_layout.addLayout(button_layout)
+        main_layout.addLayout(balance_layout)
+        main_layout.addLayout(total_expenses_layout)
+        main_layout.addLayout(calculate_layout)
+        
+
+
+        # Set layout
+        self.setLayout(main_layout)
+
+        # Connect signals to slots
+        self.add_button.clicked.connect(self.add_expenses)
+        self.clear_button.clicked.connect(self.clear_expenses)
+        self.calculate_button.clicked.connect(self.calculate_balance)
+        self.close_button.clicked.connect(self.close)
+
+        self.calculate_button.setAutoDefault(True)
+        self.calculate_button.setDefault(True)
+
+        # Add Numpad Enter key shortcut
+        enter_shortcut = QShortcut(QKeySequence(Qt.Key_Enter), self.calculate_button)
+        enter_shortcut2 = QShortcut(QKeySequence(Qt.Key_Return), self.calculate_button)
+        enter_shortcut.activated.connect(self.calculate_balance)
+        enter_shortcut2.activated.connect(self.calculate_balance)
+
+
+        # Center the window
+        self.center()
+
+    def center(self):
+        # Get the main screen's geometry
+        screen = QDesktopWidget().screenGeometry()
+
+        # Calculate the center point
+        x = int((screen.width() - self.width()) / 2)
+        y = int((screen.height() - self.height()) / 2)
+
+        # Move the window to the center
+        self.move(x, y)
+
+        documents_dir = os.environ.get("XDG_DOCUMENTS_DIR", "~/Documents")
+        workbook_path = os.path.join(documents_dir, "expenses.xlsx")
+        workbook = xlsxwriter.Workbook(workbook_path)
+
+
+
+    def add_expenses(self):
+            # Get the path to the user's documents folder
+            documents_dir = os.environ.get("XDG_DOCUMENTS_DIR", "~/Documents")
+            documents_dir = os.path.expanduser(documents_dir)
+
+            # Create a workbook and add a worksheet
+            workbook_path = os.path.join(documents_dir, 'expenses.xlsx')
+            workbook = openpyxl.Workbook()
+            worksheet = workbook.active
+
+            # Set up column headings and formatting
+            headings = ['Date', 'Budget', 'Mortgage/Rent', 'Car 1', 'Car 2', 'Utilities', 'Entertainment/Internet', 'Cell Phone', 'Total Expenses', 'Balance']
+            worksheet.append(headings)
+            for col in worksheet.columns:
+                column_letter = col[0].column_letter
+                if column_letter in ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']:
+                    col[0].number_format = '$#,##0.00'
+
+            # Split input strings by '+' or 'and' characters and convert to floats
+            mortgage = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.mortgage_input.text()) if x.strip()]) if self.mortgage_input.text() else 0.0
+            car1 = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.car1_input.text()) if x.strip()]) if self.car1_input.text() else 0.0
+            car2 = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.car2_input.text()) if x.strip()]) if self.car2_input.text() else 0.0
+            utilities = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.utilities_input.text()) if x.strip()]) if self.utilities_input.text() else 0.0
+            entertainment = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.entertainment_input.text()) if x.strip()]) if self.entertainment_input.text() else 0.0
+            cell_phone = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.cell_phone_input.text()) if x.strip()]) if self.cell_phone_input.text() else 0.0
+
+            # Split the budget input string by '+' or 'and' characters and convert to floats
+            budget = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.budget_input.text()) if x.strip()]) if self.budget_input.text() else 0.0
+            
+            # Get current date
+            now = datetime.datetime.now()
+            date_string = now.strftime('%m/%d/%Y')
+            
+            row = [date_string, budget, mortgage, car1, car2, utilities, entertainment, cell_phone]
+
+            # Update total expenses and balance
+            total_expenses = mortgage + car1 + car2 + utilities + entertainment + cell_phone
+            self.total_expenses_display.setText(f'{total_expenses:.2f}')
+            self.calculate_balance()
+
+            # Write data to worksheet
+            row = [date_string, budget, mortgage, car1, car2, utilities, entertainment, cell_phone]
+            total_expenses = sum(row[2:])
+            balance = row[1] - total_expenses
+            row.extend([total_expenses, balance])
+            worksheet.append(row)
+
+            # Apply conditional formatting to total expenses cell
+            max_row = worksheet.max_row
+            max_col = worksheet.max_column
+            total_expenses_cell = worksheet.cell(row=max_row, column=max_col-1)
+            if total_expenses < 0:
+                total_expenses_cell.font = Font(color='FF0000')
+            else:
+                total_expenses_cell.font = Font(color='008000')
+
+            # Apply conditional formatting to balance cell
+            balance_cell = worksheet.cell(row=max_row, column=max_col)
+            if balance < 0:
+                balance_cell.font = Font(color='FF0000')
+            else:
+                balance_cell.font = Font(color='008000')
+
+            # Save the workbook
+            workbook.save(workbook_path)
+
+            # Reset input fields and update balance display
+            self.budget_input.setText('0.00')
+            self.mortgage_input.setText('0.00')
+            self.car1_input.setText('0.00')
+            self.car2_input.setText('0.00')
+            self.utilities_input.setText('0.00')
+            self.entertainment_input.setText('0.00')
+            self.cell_phone_input.setText('0.00')
+            self.balance_display.setText(f'{balance:.2f}')
+            self.total_expenses_display.setText(f'{total_expenses:.2f}')
+            self.total_expenses_label.setStyleSheet('')
+            self.balance_label.setStyleSheet('')
+            self.total_expenses_display.setStyleSheet('')
+            self.balance_display.setStyleSheet('')
+            self.budget_input.setFocus()
+            QMessageBox.information(self, 'Expenses Added', 'Expenses have been added to the workbook.')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def clear_expenses(self):
+        # Clear all input fields and update balance display
+        self.budget_input.setText('')
+        self.mortgage_input.setText('')
+        self.car1_input.setText('')
+        self.car2_input.setText('')
+        self.utilities_input.setText('')
+        self.entertainment_input.setText('')
+        self.cell_phone_input.setText('')
+        self.balance_display.setText('')
+        self.total_expenses_display.setText('')
+        self.total_expenses_label.setStyleSheet('')
+        self.balance_label.setStyleSheet('')
+        self.total_expenses_display.setStyleSheet('')
+        self.balance_display.setStyleSheet('')
+
+
+
+
+    def calculate_balance(self):
+            # Calculate the total expenses and balance remaining
+            try:
+                mortgage = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.mortgage_input.text()) if x.strip()]) if self.mortgage_input.text() else 0.0
+                car1 = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.car1_input.text()) if x.strip()]) if self.car1_input.text() else 0.0
+                car2 = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.car2_input.text()) if x.strip()]) if self.car2_input.text() else 0.0
+                utilities = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.utilities_input.text()) if x.strip()]) if self.utilities_input.text() else 0.0
+                entertainment = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.entertainment_input.text()) if x.strip()]) if self.entertainment_input.text() else 0.0
+                cell_phone = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.cell_phone_input.text()) if x.strip()]) if self.cell_phone_input.text() else 0.0
+                budget = sum([float(x.strip()) for x in re.split(r'[+&]|and', self.budget_input.text()) if x.strip()]) if self.budget_input.text() else 0.0
+
+                total_expenses = float(mortgage) + float(car1) + float(car2) + float(utilities) + float(entertainment) + float(cell_phone)
+
+                # Update total expenses label
+                self.total_expenses_display.setText(f'{total_expenses:.2f}')
+
+                if total_expenses >= budget:
+                    self.total_expenses_display.setStyleSheet('background-color: red; color: white')
+                else:
+                    self.total_expenses_display.setStyleSheet('background-color: green; color: white')
+
+                balance = budget - total_expenses
+
+                # Update balance display and background color
+                self.balance_display.setText(f'{balance:.2f}')
+                if balance >= 0:
+                    self.balance_display.setStyleSheet('background-color: green; color: white')
+                else:
+                    self.balance_display.setStyleSheet('background-color: red; color: white')
+
+            except ValueError:
+                # Display error message if input values are invalid
+                QMessageBox.warning(self, 'Input Error', 'Please enter valid numeric values.')
+
+
+
+
+
+
+
+if __name__ == '__main__':
+    # Start application
+    app = QApplication(sys.argv)
+    expense_widget = ExpenseWidget()
+    expense_widget.show()
+    sys.exit(app.exec_())
