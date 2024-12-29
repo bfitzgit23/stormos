@@ -1524,6 +1524,12 @@ install_root(){
   
 }
 
+#Display Manager
+arch_chroot "systemctl enable lightdm" 2>>/tmp/.errlog
+cp -fr /Inst/lightdm/ ${MOUNTPOINT}/etc/ 2>>/tmp/.errlog
+[[-d ${MOUNTPOINT}/Inst]] && rm -R ${MOUNTPOINT}/Inst &> /dev/null 2>>/tmp/.errlog
+check_for_error
+
 # Install Bootloader
 install_bootloader() {
 
