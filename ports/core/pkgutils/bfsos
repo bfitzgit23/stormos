@@ -1,0 +1,188 @@
+#!/bin/bash
+# bfsos - pacman-oriented front door for BFSOS package management.
+#
+# Provides the familiar pacman command surface for BFSOS systems while
+# delegating the source-build work to bfs-build / bfs-deps. It is the
+# replacement layer for `scratch` / `prt-get` wrappers:
+#
+#   bfsos sync          == pacman -Sy  (repo db refresh; ports -u for git tree)
+#   bfsos install p...  == bfs-deps order + build missing deps + pacman -U
+#   bfsos upgrade       == pacman -Su over the bfsos repo (sysup equivalent)
+#   bfsos remove p...   == pacman -R
+#   bfsos search t      == pacman -Ss t
+#   bfsos list          == pacman -Q
+#   bfsos build p...    == frontend for a one-off bfs-build of port p
+#   bfsos native        == delegate to pacman directly (pass-through)
+#
+# Usage:
+#   bfsos <command> [args...]
+#
+# Exit status mirrors the underlying operation.  Unknown commands exit 2.
+
+set -eu
+
+PACMAN="${PACMAN:-pacman}"
+REPO_NAME="${BFSOS_REPO_NAME:-bfsos}"
+REPO_DIR="${BFSOS_REPO_DIR:-/var/cache/repo/$REPO_NAME}"
+PORTS_DIR="${BFSOS_PORTS_DIR:-/usr/ports}"
+
+die() {
+    printf 'bfsos: ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+require_pacman() { have "$PACMAN" || die "pacman is not installed"; }
+require_repo() {
+    [ -d "$REPO_DIR" ] || die "repository directory missing: $REPO_DIR (run bfsos sync first)"
+}
+
+# ---------------------------------------------------------------------------
+# sync: refresh local repo db; also refresh the git ports tree so bfs-deps
+# sees current Pkgfiles. Best-effort on ports; fatal on pacman db update.
+# ---------------------------------------------------------------------------
+
+cmd_sync() {
+    require_pacman
+    if have ports; then
+        echo "bfsos: synchronizing ports tree (ports -u)..."
+        ports -u || echo "bfsos: WARNING: ports -u failed; Pkgfiles may be stale" >&2
+    fi
+    echo "bfsos: refreshing pacman repositories..."
+    "$PACMAN" -Sy
+}
+
+# ---------------------------------------------------------------------------
+# install: resolve deps, build what is missing from ports, install via pacman.
+# ---------------------------------------------------------------------------
+
+cmd_install() {
+    [ $# -ge 1 ] || die "install: at least one package name required"
+    have bfs-deps || die "bfs-deps is not installed"
+    require_pacman
+    require_repo
+
+    local missing
+    missing="$(bfs-deps missing "$@")"
+    if [ -z "$missing" ]; then
+        echo "bfsos: all requested packages (and their dependencies) are already installed."
+        return 0
+    fi
+
+    echo "bfsos: building and installing missing packages in dependency order:"
+    printf '  %s\n' $missing
+
+    local pkg
+    while IFS= read -r pkg; do
+        [ -n "$pkg" ] || continue
+        cmd_build_one "$pkg"
+    done <<< "$missing"
+
+    echo "bfsos: install complete."
+}
+
+cmd_build_one() {
+    local pkg="$1" col port_dir
+    for col in core opt xorg xfce gnome plasma lxqt compiz contrib compat-32 iso; do
+        if [ -d "$PORTS_DIR/$col/$pkg" ]; then
+            port_dir="$PORTS_DIR/$col/$pkg"
+            break
+        fi
+    done
+    [ -n "${port_dir:-}" ] && [ -r "$port_dir/Pkgfile" ] || die "port not found: $pkg"
+
+    echo "bfsos: building $pkg from $port_dir"
+    (
+        cd "$port_dir"
+        bfs-build -d
+    )
+}
+
+cmd_build() {
+    [ $# -ge 1 ] || die "build: at least one package name required"
+    local pkg
+    for pkg in "$@"; do
+        cmd_build_one "$pkg"
+    done
+}
+
+# ---------------------------------------------------------------------------
+# upgrade: pacman full-system upgrade over the local repo, after a sync.
+# prt-get sysup equivalent.
+# ---------------------------------------------------------------------------
+
+cmd_upgrade() {
+    require_pacman
+    require_repo
+    echo "bfsos: refreshing repositories before upgrade..."
+    "$PACMAN" -Sy >/dev/null
+    echo "bfsos: upgrading installed packages..."
+    "$PACMAN" -Su
+}
+
+cmd_remove() {
+    require_pacman
+    [ $# -ge 1 ] || die "remove: at least one package name required"
+    "$PACMAN" -R "${BFSOS_REMOVE_FLAGS:--R}" "$@"
+}
+
+cmd_search() {
+    require_pacman
+    "$PACMAN" -Ss "$@"
+}
+
+cmd_list() {
+    require_pacman
+    "$PACMAN" -Q "$@"
+}
+
+cmd_info() {
+    require_pacman
+    "$PACMAN" -Qi "$@" 2>/dev/null || "$PACMAN" -Si "$@"
+}
+
+# ---------------------------------------------------------------------------
+# native: run pacman directly (escape hatch, e.g. for -U, -D, -F, hooks).
+# ---------------------------------------------------------------------------
+
+cmd_native() {
+    require_pacman
+    "$PACMAN" "$@"
+}
+
+usage() {
+    cat <<EOF
+usage: bfsos <command> [args...]
+
+  sync              refresh ports tree + pacman dbs (pacman -Sy)
+  install pkgs...   resolve deps, build missing from source, install
+  build   pkgs...   build listed ports into the local repo (no install)
+  upgrade           full system upgrade from the bfsos repo (pacman -Su)
+  remove  pkgs...   pacman -R (pass BFSOS_REMOVE_FLAGS to override flags)
+  search  <term>    pacman -Ss
+  list    [pattern] pacman -Q
+  info    <pkg>     pacman -Qi / -Si
+  native  args...   run pacman verbatim with the given args
+
+Repository: $REPO_DIR (override BFSOS_REPO_DIR / BFSOS_REPO_NAME)
+EOF
+}
+
+cmd="${1:-}"; shift 2>/dev/null || true
+case "$cmd" in
+    sync)    cmd_sync    "$@" ;;
+    install) cmd_install "$@" ;;
+    build)   cmd_build   "$@" ;;
+    upgrade) cmd_upgrade "$@" ;;
+    remove)  cmd_remove  "$@" ;;
+    search)  cmd_search  "$@" ;;
+    list)    cmd_list    "$@" ;;
+    info)    cmd_info    "$@" ;;
+    native)  cmd_native  "$@" ;;
+    -h|--help|help|"") usage; [ -n "$cmd" ] && exit 0; exit 2 ;;
+    *)
+        printf 'bfsos: unknown command: %s\n' "$cmd" >&2
+        usage >&2
+        exit 2 ;;
+esac

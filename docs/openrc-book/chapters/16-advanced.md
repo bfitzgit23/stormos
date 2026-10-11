@@ -289,7 +289,7 @@ start() {
 Desktop applications that use D-Bus user services need a session bus even when systemd is absent. Start the desktop session through the display manager, install the OpenRC desktop dependencies, and use the desktop environment's own portal process or a user-session wrapper:
 
 ```bash
-prt-get install dbus consolekit2 xdg-desktop-portal
+bfsos install dbus consolekit2 xdg-desktop-portal
 rc-update add dbus boot
 rc-update add lightdm default 2>/dev/null || true
 
@@ -307,7 +307,7 @@ OpenRC provides systemd compatibility:
 
 ```bash
 # Install compatibility layer
-prt-get install systemd-shim
+bfsos install systemd-shim
 
 # Use systemctl (limited)
 systemctl start myservice

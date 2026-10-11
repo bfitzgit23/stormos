@@ -1,6 +1,11 @@
-# Chapter 11: Package Management (CRUX/pkgutils)
+# Chapter 11: Package Management (pkgutils + pacman pipeline)
 
-StormFS Linux adopts **CRUX's pkgutils** package management system for its simplicity, source-based approach, and minimal overhead. This chapter covers the tools, port system, and repository management.
+StormFS Linux ships **two cooperating package layers**: the traditional
+CRUX **pkgutils/ports** recipes (`Pkgfile`, `pkgmk`, `pkgadd`, `prt-get`)
+that the bootstrap uses to build the base system, and the newer
+**pacman-format pipeline** (`bfs-build`, `bfs-deps`, `bfsos`, `pacman`)
+that is the supported front end for post-install package management.
+This chapter covers both, and when to use which.
 
 ## 11.1 pkgutils Overview
 
@@ -565,3 +570,157 @@ gpg --verify /var/spool/pkg/nano-9.1-1.pkg.tar.zst.sig
 - [prt-get Man Page](https://crux.nu/man/prt-get)
 - [Chapter 12: System Initialization](chapter-12-system-initialization.md)
 - [Chapter 09: Linux Kernel](chapter-09-linux-kernel.md)
+
+## 11.13 The pacman Pipeline (bfs-build / bfs-deps / bfsos / pacman)
+
+Alongside pkgutils, BFSOS ships a **pacman-format package pipeline**.
+Packages are still built **from source** against the BFSOS toolchain, but
+the artifact, the install database, and the CLI are pacman's: the user
+experience is `pacman` (`bfsos install`, `bfsos upgrade`, `pacman -U`
+for one-off packages), and installed packages are tracked under
+`/var/lib/pacman/` so standard pacman tooling (hooks, `-Ql`, `-Qms`,
+dropped dep resolution) works unchanged.
+
+This pipeline is what the **post-install layer** uses. The bootstrap
+(Chapter 3–5) and the core system build still use pkgmk/pkgadd because
+those must run before pacman itself exists.
+
+### Why pacman, and what it does *not* mean
+
+BFSOS **does not consume Arch's repositories.** Arch packages are built
+against Arch's glibc, systemd wiring, and library ABI; mixing them with
+BFSOS source builds risks subtle runtime breakage with no support path.
+The pipeline brings pacman the **format and tooling**, not Arch's repo.
+
+- Packages are qemitted as `.pkg.tar.zst` with pacman-compatible
+  `.PKGINFO` and `.MTREE` members.
+- The local repository (`bfsos`) lives at `/var/cache/repo/bfsos/` and is
+  signed with `repo-add` + `pacman-key` the same way any local repo is.
+- The `# Depends on:` headers in existing Pkgfiles carry over — they are
+  the dependency contract between both layers.
+
+### bfs-build — pacman-format package builder
+
+`bfs-build` is the drop-in replacement for `pkgmk` in the pacman
+pipeline. It reads the same `Pkgfile` you already know, sources the same
+BFSOS extension shim (multilib env, `pre_build`/`pkg_build`/`post_build`
+hooks, `keep_*` cleanup, KF6 unit relocation), and emits:
+
+```
+<name>-<version>-<release>-<arch>.pkg.tar.zst
+```
+
+with `.PKGINFO` and `.MTREE` members suitable for `pacman -U` and
+`repo-add`. Usage:
+
+```bash
+cd /usr/ports/core/bzip2
+bfs-build -d
+# -> /var/cache/repo/packages/bzip2-1.0.8-1-x86_64.pkg.tar.zst
+# -> published into /var/cache/repo/bfsos/ (when repo-add is present)
+```
+
+Key flags (a subset of the `pkgmk` interface so existing muscle memory
+works): `-d` download sources, `-i` install after building, `-cf FILE`
+read a pkgmk.conf-style config. Environment knobs:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `BFS_PKG_BUILD_WORK` | `tmpfs` | tmpfs or disk-backed work dir |
+| `BFS_PACKAGE_DIR` | `/var/cache/repo/packages` | where built archives land |
+| `BFS_BUILD_REPONAME` | `bfsos` | destination repository name |
+| `BFS_BUILD_REPODIR` | `/var/cache/repo/$BFS_BUILD_REPONAME` | repository path |
+| `BFS_BUILD_ADD_TO_REPO` | `yes` | run `repo-add` after building |
+
+### bfs-deps — dependency closure / install order
+
+`bfs-deps` replaces `prt-get depinst` / `quickdep` for the pacman
+pipeline. It reads `# Depends on:` headers from Pkgfiles and runs on any
+freshly-installed system before a repository sync has happened (this is
+the same offline property `prt-get` had):
+
+```bash
+bfs-deps quickdep firefox      # full dependency closure
+bfs-deps order firefox         # topological install order
+bfs-deps missing firefox       # closure minus installed — what depinst did
+bfs-deps isinst firefox glib   # installed / not installed
+bfs-deps deps firefox          # direct deps of one port
+```
+
+Repositories are searched in `BFS_DEPS_COLLECTIONS` order (defaults:
+`core opt xorg xfce gnome plasma lxqt compiz contrib compat-32 iso`),
+mirroring `prt-get.conf`'s `prtdir` priority semantics.
+
+### bfsos — the pacman front door
+
+`bfsos` is the day-to-day CLI on BFSOS; it wraps pacman plus the source
+build pipeline so "install a package" still works from source without
+separately invoking bfs-deps and bfs-build:
+
+```bash
+bfsos sync                 # ports -u + pacman -Sy
+bfsos install firefox      # resolve missing deps, build each, pacman -U
+bfsos upgrade              # pacman -Su over the local repo (sysup equivalent)
+bfsos remove vim           # pacman -R
+bfsos search editor        # pacman -Ss
+bfsos build nano           # just build a port into the local repo
+bfsos native -Rsc nano     # run pacman verbatim for anything else
+```
+
+### pacman itself
+
+The `core/pacman` port builds pacman against BFSOS `libarchive`,
+`curl`, and `gpgme` and installs the `bfsos`-only repo configuration.
+
+```bash
+# /etc/pacman.conf
+[bfsos]
+SigLevel = Optional TrustAll
+Include = /etc/pacman.d/mirrorlist
+# mirrorlist: Server = file:///var/cache/repo/bfsos
+```
+
+To serve the repo over the network (so several BFSOS machines share one
+build host), publish `/var/cache/repo/bfsos/` with any web server and
+point the mirrorlist at it. **Do not add an [arch]/[extra] section**
+unless you accept the ABI-mixing risk described in "Why pacman, and
+what it does not mean" above.
+
+### When to use which layer
+
+| Situation | Layer |
+|-----------|-------|
+| Bootstrap stages 1–5 (toolchain, base system, archive) | pkgutils (pkgmk/pkgadd) |
+| Post-install daily package management (`install/remove/upgrade`) | pacman pipeline (bfsos) |
+| Port maintenance, ABI-sensitive rebuilds, `compat-32` | either — Pkgfiles are shared |
+| README/documentation references to "prt-get depinst" | read as `bfs-deps missing` + `bfsos install` |
+
+### Relationship to the existing prt-get/pkgutils path
+
+The two layers interoperate:
+
+- Pkgfiles are unchanged — the same `# Depends on:`, `pre_build`,
+  `pkg_build`, `post_build`, and `keep_*` semantics both layers honor.
+- `bfs-deps missing` = `prt-get depinst` with the target pkgs.
+- `prt-get quickdiff` + `prt-get sysup` = `bfsos upgrade`.
+- Any port can be built by either `pkgmk -d` (for pkgadd) or
+  `bfs-build -d` (for repo-add/pacman). Build both when switching.
+
+### Bootstrapping pacman onto an existing BFSOS system
+
+Once the base system exists and you have the `core/pacman` port synced,
+`pacman` is just another pkgutils-built package:
+
+```bash
+# Build/install pacman itself with the legacy layer.
+cd /usr/ports/core/pacman
+pkgmk -d && pkgadd root/usr/ports/core/pacman/pacman-6.1.0-1-x86_64.pkg.tar.zst
+
+# From here the pacman layer is alive.
+bfsos sync
+bfsos install <anything>
+```
+
+On fresh installs the BFSOS installer can set up the pacman pipeline
+alongside (or instead of) the prt-get tooling during the package
+transaction stage.

@@ -16,21 +16,21 @@ Before installing KDE Plasma, ensure the following are configured:
 ### Core Packages
 
 ```bash
-prt-get install plasma-meta plasma-desktop kde-cli-tools
+bfsos install plasma-meta plasma-desktop kde-cli-tools
 ```
 
 ### KDE Applications
 
 ```bash
-prt-get install konsole dolphin kate ark gwenview
-prt-get install spectacle kcalc okular
+bfsos install konsole dolphin kate ark gwenview
+bfsos install spectacle kcalc okular
 ```
 
 ### Recommended Additions
 
 ```bash
-prt-get install plasma-nm plasma-pa sddm
-prt-get install kde-plasma-desktop systemsettings
+bfsos install plasma-nm plasma-pa sddm
+bfsos install kde-plasma-desktop systemsettings
 ```
 
 ## SDDM vs LightDM Integration
@@ -41,7 +41,7 @@ SDDM is the recommended display manager for KDE Plasma.
 
 ```bash
 # Install SDDM
-prt-get install sddm
+bfsos install sddm
 
 # Enable SDDM
 sudo rc-update add sddm default
@@ -74,7 +74,7 @@ LightDM can also be used with KDE Plasma.
 
 ```bash
 # Install LightDM
-prt-get install lightdm lightdm-gtk-greeter
+bfsos install lightdm lightdm-gtk-greeter
 
 # Enable LightDM
 sudo rc-update add lightdm default

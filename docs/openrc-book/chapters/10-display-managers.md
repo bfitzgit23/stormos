@@ -11,7 +11,7 @@ LightDM is a lightweight display manager.
 ### Installation
 
 ```bash
-prt-get install lightdm
+bfsos install lightdm
 ```
 
 ### Configuration
@@ -46,7 +46,7 @@ SDDM is the display manager for KDE Plasma.
 ### Installation
 
 ```bash
-prt-get install sddm
+bfsos install sddm
 ```
 
 ### Configuration
@@ -82,7 +82,7 @@ LXDM is the display manager for LXDE.
 ### Installation
 
 ```bash
-prt-get install lxdm
+bfsos install lxdm
 ```
 
 ### Configuration
@@ -102,7 +102,7 @@ GDM is the GNOME Display Manager.
 ### Installation
 
 ```bash
-prt-get install gdm
+bfsos install gdm
 ```
 
 ### Configuration

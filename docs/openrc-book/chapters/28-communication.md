@@ -17,7 +17,7 @@ Before installing communication applications, ensure the following are configure
 
 ```bash
 # Install Thunderbird
-prt-get install thunderbird
+bfsos install thunderbird
 
 # Launch Thunderbird
 thunderbird
@@ -85,7 +85,7 @@ cp -r ~/thunderbird-backup ~/.thunderbird
 
 ```bash
 # Install Hexchat
-prt-get install hexchat
+bfsos install hexchat
 
 # Launch Hexchat
 hexchat
@@ -143,11 +143,11 @@ EOF
 
 ```bash
 # irssi (terminal-based)
-prt-get install irssi
+bfsos install irssi
 irssi
 
 # Weechat (terminal-based)
-prt-get install weechat
+bfsos install weechat
 weechat
 ```
 
@@ -157,7 +157,7 @@ weechat
 
 ```bash
 # Install Discord
-prt-get install discord
+bfsos install discord
 
 # Launch Discord
 discord
@@ -180,7 +180,7 @@ rm -rf ~/.config/discord/Cache
 
 ```bash
 # Install WebCord (open-source Discord client)
-prt-get install webcord
+bfsos install webcord
 
 # Launch WebCord
 webcord
@@ -190,7 +190,7 @@ webcord
 
 ```bash
 # Install Element
-prt-get install element-desktop
+bfsos install element-desktop
 
 # Launch Element
 element-desktop
@@ -224,15 +224,15 @@ element-desktop
 
 ```bash
 # Telegram Desktop
-prt-get install telegram-desktop
+bfsos install telegram-desktop
 telegram-desktop
 
 # Slack
-prt-get install slack-desktop
+bfsos install slack-desktop
 slack-desktop
 
 # Mattermost
-prt-get install mattermost-desktop
+bfsos install mattermost-desktop
 mattermost-desktop
 ```
 
@@ -245,14 +245,14 @@ mattermost-desktop
 # https://meet.jit.si
 
 # Install Jitsi Meet Desktop (Electron wrapper)
-prt-get install jitsi-meet-desktop
+bfsos install jitsi-meet-desktop
 ```
 
 ### Zoom
 
 ```bash
 # Install Zoom
-prt-get install zoom
+bfsos install zoom
 
 # Launch Zoom
 zoom
@@ -269,7 +269,7 @@ zoom
 
 ```bash
 # Install Teams
-prt-get install teams
+bfsos install teams
 
 # Launch Teams
 teams
@@ -304,7 +304,7 @@ teams
 
 ```bash
 # Install OBS Studio
-prt-get install obs-studio
+bfsos install obs-studio
 
 # Launch OBS Studio
 obs
@@ -330,7 +330,7 @@ obs
 
 ```bash
 # Install XDG Desktop Portal
-prt-get install xdg-desktop-portal xdg-desktop-portal-wlr
+bfsos install xdg-desktop-portal xdg-desktop-portal-wlr
 
 # For Wayland compositors
 # Set environment variable

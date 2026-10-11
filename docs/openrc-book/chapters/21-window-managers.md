@@ -15,7 +15,7 @@ Before installing window managers, ensure the following are configured:
 ### Installation
 
 ```bash
-prt-get install i3 i3status i3lock i3blocks
+bfsos install i3 i3status i3lock i3blocks
 ```
 
 ### Configuration
@@ -136,7 +136,7 @@ chmod +x ~/.config/i3/autostart.sh
 ### Installation
 
 ```bash
-prt-get install openbox obconf lxappearance
+bfsos install openbox obconf lxappearance
 ```
 
 ### Configuration
@@ -211,7 +211,7 @@ chmod +x ~/.config/openbox/autostart
 ### Installation
 
 ```bash
-prt-get install sway swaybg swaylock swayidle
+bfsos install sway swaybg swaylock swayidle
 ```
 
 ### Configuration
@@ -275,7 +275,7 @@ exec swaybg -i /path/to/wallpaper.jpg -m fill -f
 
 ```bash
 # Install waybar
-prt-get install waybar
+bfsos install waybar
 
 # Configure waybar
 cat > ~/.config/waybar/config.json <<'EOF'
@@ -307,7 +307,7 @@ EOF
 ### Installation
 
 ```bash
-prt-get install hyprland hyprpaper hyprlock
+bfsos install hyprland hyprpaper hyprlock
 ```
 
 ### Configuration
@@ -379,7 +379,7 @@ EOF
 
 ```bash
 # Install bspwm and sxhkd
-prt-get install bspwm sxhkd
+bfsos install bspwm sxhkd
 
 # Configuration
 mkdir -p ~/.config/bspwm
@@ -405,7 +405,7 @@ chmod +x ~/.config/bspwm/bspwmrc
 
 ```bash
 # Install dwm (requires compilation)
-prt-get install dwm
+bfsos install dwm
 
 # Configuration requires editing config.def.h and recompiling
 # Consider using dwm-flexipatch for easier configuration
@@ -415,7 +415,7 @@ prt-get install dwm
 
 ```bash
 # Install awesome
-prt-get install awesome
+bfsos install awesome
 
 # Configuration
 mkdir -p ~/.config/awesome
@@ -428,7 +428,7 @@ cp /etc/xdg/awesome/rc.lua ~/.config/awesome/rc.lua
 
 ```bash
 # Install polybar
-prt-get install polybar
+bfsos install polybar
 
 # Configuration
 mkdir -p ~/.config/polybar
@@ -513,7 +513,7 @@ polybar main &
 
 1. Install and configure picom:
    ```bash
-   prt-get install picom
+   bfsos install picom
    picom &
    ```
 

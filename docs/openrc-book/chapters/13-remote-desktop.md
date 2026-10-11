@@ -11,7 +11,7 @@ RustDesk is an open-source remote desktop solution.
 ### Installation
 
 ```bash
-prt-get install rustdesk-bin
+bfsos install rustdesk-bin
 ```
 
 ### Configuration
@@ -43,7 +43,7 @@ AnyDesk is a commercial remote desktop solution.
 ### Installation
 
 ```bash
-prt-get install anydesk
+bfsos install anydesk
 ```
 
 ### Configuration
@@ -73,7 +73,7 @@ TeamViewer is another commercial remote desktop solution.
 ### Installation
 
 ```bash
-prt-get install teamviewer
+bfsos install teamviewer
 ```
 
 ### Configuration
@@ -103,7 +103,7 @@ VNC provides remote access to the desktop.
 ### Installation
 
 ```bash
-prt-get install tigervnc
+bfsos install tigervnc
 ```
 
 ### Configuration

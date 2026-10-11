@@ -16,7 +16,7 @@ Before installing development tools, ensure the following are configured:
 
 ```bash
 # Install Git
-prt-get install git
+bfsos install git
 ```
 
 ### Configuration
@@ -74,10 +74,10 @@ git config --global alias.unstage "reset HEAD --"
 
 ```bash
 # Install VS Code
-prt-get install visual-studio-code
+bfsos install visual-studio-code
 
 # Or open source version
-prt-get install code-oss
+bfsos install code-oss
 ```
 
 ### Configuration
@@ -141,10 +141,10 @@ code --install-extension ms-vscode-remote.vscode-remote-pack
 
 ```bash
 # Install GCC and G++
-prt-get install gcc gcc-g++
+bfsos install gcc gcc-g++
 
 # Additional tools
-prt-get install binutils make autoconf automake
+bfsos install binutils make autoconf automake
 ```
 
 ### Configuration
@@ -173,7 +173,7 @@ gcc -O2 -o output input.c
 
 ```bash
 # Install cross-compilation tools
-prt-get install gcc-cross
+bfsos install gcc-cross
 
 # Cross-compile for different architecture
 gcc -march=armv7-a -mfloat-abi=hard -mfpu=neon -o output input.c
@@ -185,7 +185,7 @@ gcc -march=armv7-a -mfloat-abi=hard -mfpu=neon -o output input.c
 
 ```bash
 # Install Make
-prt-get install make
+bfsos install make
 
 # Use Makefile
 make
@@ -204,7 +204,7 @@ make target
 
 ```bash
 # Install CMake
-prt-get install cmake
+bfsos install cmake
 
 # Create build directory
 mkdir build && cd build
@@ -238,7 +238,7 @@ target_link_libraries(myapp pthread)
 
 ```bash
 # Install GDB
-prt-get install gdb
+bfsos install gdb
 
 # Compile with debug symbols
 gcc -g -o output input.c
@@ -260,7 +260,7 @@ gdb output
 
 ```bash
 # Install strace
-prt-get install strace
+bfsos install strace
 
 # Trace system calls
 strace ./program
@@ -276,7 +276,7 @@ strace -o output.txt ./program
 
 ```bash
 # Install Valgrind
-prt-get install valgrind
+bfsos install valgrind
 
 # Memory check
 valgrind --leak-check=full ./program
@@ -294,7 +294,7 @@ valgrind --tool=callgrind ./program
 
 ```bash
 # Install git-flow
-prt-get install git-flow
+bfsos install git-flow
 
 # Initialize
 git flow init
@@ -316,7 +316,7 @@ git flow release finish 1.0.0
 
 ```bash
 # Install GitHub CLI
-prt-get install github-cli
+bfsos install github-cli
 
 # Login
 gh auth login

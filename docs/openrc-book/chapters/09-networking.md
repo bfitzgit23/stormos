@@ -9,7 +9,7 @@ This chapter covers network configuration with OpenRC. The examples use the Stor
 Start the services common to a desktop or laptop installation:
 
 ```bash
-prt-get install openrc-init-scripts dbus openresolv
+bfsos install openrc-init-scripts dbus openresolv
 rc-update add dbus boot
 rc-update add networking boot 2>/dev/null || true
 rc-status --all
@@ -24,7 +24,7 @@ NetworkManager is the recommended network manager for desktop systems.
 ### Installation
 
 ```bash
-prt-get install networkmanager
+bfsos install networkmanager
 ```
 
 ### Configuration
@@ -57,7 +57,7 @@ dhcpcd is a lightweight DHCP client.
 ### Installation
 
 ```bash
-prt-get install dhcpcd
+bfsos install dhcpcd
 ```
 
 ### Configuration
@@ -87,7 +87,7 @@ wpa_supplicant handles WiFi authentication.
 ### Installation
 
 ```bash
-prt-get install wpa_supplicant
+bfsos install wpa_supplicant
 ```
 
 ### Configuration
@@ -144,7 +144,7 @@ sudo rc-service networking restart
 
 ```bash
 # Install nftables
-prt-get install nftables
+bfsos install nftables
 
 # Enable nftables before the normal network services
 sudo rc-update add nftables boot
@@ -197,7 +197,7 @@ table inet filter {
 
 ```bash
 # Install the StormFS resolver framework
-prt-get install openresolv
+bfsos install openresolv
 
 # Configure DNS servers
 sudo ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf

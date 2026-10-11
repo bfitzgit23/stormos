@@ -16,10 +16,10 @@ Before installing graphics applications, ensure the following are configured:
 
 ```bash
 # Install GIMP
-prt-get install gimp
+bfsos install gimp
 
 # With additional plugins
-prt-get install gimp-gmic
+bfsos install gimp-gmic
 ```
 
 ### Launching GIMP
@@ -71,7 +71,7 @@ gimp -i -b '(gimp-file-load 1 "/path/to/input.png")' \
 # - Liquid Rescale (content-aware scaling)
 
 # Install G'MIC
-prt-get install gimp-gmic
+bfsos install gimp-gmic
 ```
 
 ## Inkscape
@@ -80,7 +80,7 @@ prt-get install gimp-gmic
 
 ```bash
 # Install Inkscape
-prt-get install inkscape
+bfsos install inkscape
 ```
 
 ### Launching Inkscape
@@ -141,7 +141,7 @@ cp /path/to/extension.py ~/.config/inkscape/extensions/
 
 ```bash
 # Install Darktable
-prt-get install darktable
+bfsos install darktable
 ```
 
 ### Launching Darktable
@@ -197,7 +197,7 @@ darktable-cli --core --width 1920 --height 1080 input.raw output.jpg
 
 ```bash
 # Install Blender
-prt-get install blender
+bfsos install blender
 ```
 
 ### Launching Blender
@@ -258,7 +258,7 @@ blender --background --python script.py
 
 ```bash
 # Install Scribus
-prt-get install scribus
+bfsos install scribus
 ```
 
 ### Launching Scribus
@@ -303,7 +303,7 @@ rm -rf ~/.config/scribus/
 
 ```bash
 # Install ImageMagick
-prt-get install imagemagick
+bfsos install imagemagick
 
 # Convert image formats
 convert input.png output.jpg
@@ -322,7 +322,7 @@ montage *.jpg -geometry 200x200+10+10 -tile 3x3 output.jpg
 
 ```bash
 # Install FeatherPad
-prt-get install featherpad
+bfsos install featherpad
 
 # Launch FeatherPad
 featherpad
@@ -332,7 +332,7 @@ featherpad
 
 ```bash
 # Install Viewnior
-prt-get install viewnior
+bfsos install viewnior
 
 # Launch Viewnior
 viewnior /path/to/image.png

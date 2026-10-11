@@ -16,7 +16,7 @@ Before installing multimedia applications, ensure the following are configured:
 
 ```bash
 # Install VLC
-prt-get install vlc
+bfsos install vlc
 
 # Launch VLC
 vlc /path/to/video.mp4
@@ -29,7 +29,7 @@ xdg-mime default vlc.desktop video/mp4
 
 ```bash
 # Install mpv
-prt-get install mpv
+bfsos install mpv
 
 # Launch mpv
 mpv /path/to/video.mp4
@@ -45,7 +45,7 @@ xdg-mime default mpv.desktop video/mp4
 
 ```bash
 # Install Totem
-prt-get install totem
+bfsos install totem
 
 # Launch Totem
 totem /path/to/video.mp4
@@ -83,7 +83,7 @@ EOF
 
 ```bash
 # Install Rhythmbox
-prt-get install rhythmbox
+bfsos install rhythmbox
 
 # Launch Rhythmbox
 rhythmbox
@@ -96,7 +96,7 @@ xdg-mime default rhythmbox.desktop audio/mpeg
 
 ```bash
 # Install Lollypop
-prt-get install lollypop
+bfsos install lollypop
 
 # Launch Lollypop
 lollypop
@@ -109,7 +109,7 @@ xdg-mime default lollypop.desktop audio/mpeg
 
 ```bash
 # Install Clementine
-prt-get install clementine
+bfsos install clementine
 
 # Launch Clementine
 clementine
@@ -137,7 +137,7 @@ mpv --audio-device=pulse/default /path/to/audio.mp3
 
 ```bash
 # Install eog
-prt-get install eog
+bfsos install eog
 
 # Launch eog
 eog /path/to/image.png
@@ -150,7 +150,7 @@ xdg-mime default eog.desktop image/png
 
 ```bash
 # Install Ristretto
-prt-get install ristretto
+bfsos install ristretto
 
 # Launch Ristretto
 ristretto /path/to/image.png
@@ -163,7 +163,7 @@ xdg-mime default ristretto.desktop image/png
 
 ```bash
 # Install sxiv
-prt-get install sxiv
+bfsos install sxiv
 
 # Launch sxiv
 sxiv /path/to/image.png
@@ -191,7 +191,7 @@ gsettings set org.gnome.eog.view use-wheelbar true
 
 ```bash
 # Install Shotcut
-prt-get install shotcut
+bfsos install shotcut
 
 # Launch Shotcut
 shotcut
@@ -201,7 +201,7 @@ shotcut
 
 ```bash
 # Install Kdenlive
-prt-get install kdenlive
+bfsos install kdenlive
 
 # Launch Kdenlive
 kdenlive
@@ -211,7 +211,7 @@ kdenlive
 
 ```bash
 # Install OBS Studio
-prt-get install obs-studio
+bfsos install obs-studio
 
 # Launch OBS Studio
 obs
@@ -236,7 +236,7 @@ obs
 
 ```bash
 # Install Audacity
-prt-get install audacity
+bfsos install audacity
 
 # Launch Audacity
 audacity
@@ -264,7 +264,7 @@ audacity /path/to/audio.wav
 
 ```bash
 # Install FFmpeg
-prt-get install ffmpeg
+bfsos install ffmpeg
 
 # Convert video formats
 ffmpeg -i input.avi -c:v libx264 output.mp4
@@ -280,7 +280,7 @@ ffmpeg -i input.mp4 -vf "fps=10,scale=320:-1" output.gif
 
 ```bash
 # Install GStreamer
-prt-get install gstreamer gst-plugins-base gst-plugins-good
+bfsos install gstreamer gst-plugins-base gst-plugins-good
 
 # Test GStreamer
 gst-launch-1.0 videotestsrc ! autovideosink
@@ -306,7 +306,7 @@ gst-launch-1.0 videotestsrc ! autovideosink
 
 2. Install additional codecs:
    ```bash
-   prt-get install gst-plugins-ugly gst-plugins-bad
+   bfsos install gst-plugins-ugly gst-plugins-bad
    ```
 
 3. Check hardware acceleration:

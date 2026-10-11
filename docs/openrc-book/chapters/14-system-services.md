@@ -45,7 +45,7 @@ Cronie provides cron functionality through the `crond` OpenRC service:
 
 ```bash
 # Install cronie
-prt-get install cronie
+bfsos install cronie
 
 # Enable the service installed by the cronie port
 sudo rc-update add crond boot
@@ -72,7 +72,7 @@ StormFS uses Sysklogd with the `syslog` OpenRC wrapper for the default logging p
 
 ```bash
 # Install the logger and its OpenRC wrapper
-prt-get install sysklogd openrc-init-scripts
+bfsos install sysklogd openrc-init-scripts
 sudo rc-update add syslog boot
 
 # Start syslog
@@ -82,7 +82,7 @@ sudo rc-service syslog start
 An external `syslog-ng` port may be used instead, but do not run two syslog daemons at the same time:
 
 ```bash
-prt-get install syslog-ng
+bfsos install syslog-ng
 sudo rc-update add syslog-ng boot
 sudo rc-service syslog-ng start
 ```
@@ -114,7 +114,7 @@ log { source(s_sys); destination(d_syslog); };
 
 ```bash
 # Install OpenSSH
-prt-get install openssh
+bfsos install openssh
 
 # Enable SSH
 sudo rc-update add sshd default
@@ -142,7 +142,7 @@ acpid handles power management events:
 
 ```bash
 # Install acpid
-prt-get install acpid
+bfsos install acpid
 
 # Enable acpid
 sudo rc-update add acpid boot
@@ -169,7 +169,7 @@ smartd monitors disk health:
 
 ```bash
 # Install smartmontools
-prt-get install smartmontools
+bfsos install smartmontools
 
 # Enable smartd
 sudo rc-update add smartd default
@@ -198,7 +198,7 @@ udisks2 provides disk management:
 
 ```bash
 # Install udisks2
-prt-get install udisks2
+bfsos install udisks2
 
 # Enable udisks2
 sudo rc-update add udisks2 default
@@ -215,7 +215,7 @@ polkitd provides authorization:
 
 ```bash
 # Install polkit
-prt-get install polkit
+bfsos install polkit
 
 # Enable polkitd
 sudo rc-update add polkitd default
@@ -232,7 +232,7 @@ colord manages color profiles:
 
 ```bash
 # Install colord
-prt-get install colord
+bfsos install colord
 
 # Enable colord
 sudo rc-update add colord default
@@ -249,7 +249,7 @@ upowerd monitors power devices:
 
 ```bash
 # Install upower
-prt-get install upower
+bfsos install upower
 
 # Enable upowerd
 sudo rc-update add upowerd default
@@ -266,7 +266,7 @@ accounts-daemon manages user accounts:
 
 ```bash
 # Install AccountsService
-prt-get install accountsservice openrc-init-scripts
+bfsos install accountsservice openrc-init-scripts
 
 # Enable accounts-daemon
 sudo rc-update add accounts-daemon default
@@ -283,7 +283,7 @@ avahi-daemon provides mDNS/DNS-SD:
 
 ```bash
 # Install Avahi and its OpenRC scripts
-prt-get install avahi openrc-init-scripts
+bfsos install avahi openrc-init-scripts
 
 # Enable avahi
 sudo rc-update add avahi-daemon default

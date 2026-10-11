@@ -31,7 +31,7 @@ Most Linux distros (Ubuntu, Fedora, Mint…) hand you pre-built programs that so
 | Programs ("installed apps") | **Packages** | A package is one program plus its files, tracked so it can be updated or removed cleanly. |
 | The Microsoft Store / Mac App Store | **gnome-software** (installed as the `gnome-software` port) | A graphical store. It shows **Flathub** apps (see below) *and* BFSOS native packages in one place. |
 | `.exe` / `.msi` / `.dmg` installers | **Ports** | There is no "installer download". A *port* is a small recipe file (`Pkgfile`) that says where to fetch the source and how to build it. You never run random installers from the internet. |
-| Windows Update / Software Update | `ports -u` + `prt-get sysup` | Two commands update *everything* on the system. (The store's "Updates" button does the same thing graphically.) |
+| Windows Update / Software Update | `bfsos sync` + `bfsos upgrade` | Two commands update *everything* on the system. (The store's "Updates" button does the same thing graphically.) |
 | The Terminal (macOS) / PowerShell | **a terminal** | The black window where you type commands. On Linux it is the *fast, precise* way to do things — and for BFSOS administration it is the normal way. Give it a chance; it is easier than it looks. |
 | Services (`services.msc` / launchd) | **init system + services** | Background programs that start at boot (networking, Bluetooth, sound…). BFSOS lets you choose *which* init system manages them: **systemd**, **OpenRC**, or **SysVinit**. |
 | C: drive / Macintosh HD | `/` (the root filesystem) | Linux mounts everything under one tree starting at `/`. Your second disk might "live" at `/mnt/windows`, for example. |
@@ -51,12 +51,22 @@ Most Linux distros (Ubuntu, Fedora, Mint…) hand you pre-built programs that so
 **Way 2 — the terminal (faster, more precise).** Three commands cover 95% of daily use:
 
 ```sh
-ports -u                 # refresh the ports tree (like "check for updates" for the catalog)
+bfsos sync              # refresh the ports tree + pacman repositories
+bfsos install gimp      # install GIMP and everything it depends on, built from source
+bfsos upgrade           # update every installed package
+```
+
+To remove: `bfsos remove gimp`. To search: `bfsos search photo`. BFSOS packages are pacman packages, just built from source in your local repository rather than pulled from Arch.
+
+```sh
+# The classic pkgutils commands remain available and are what the base
+# system bootstrap itself uses:
+ports -u                 # refresh the ports tree
 prt-get depinst gimp     # install GIMP and everything it depends on
 prt-get sysup            # update every installed package
 ```
 
-To remove: `prt-get rm gimp`. To search: `prt-get search photo`. To see what an update would do before doing it: `prt-get diff`.
+To remove with prt-get: `prt-get rm gimp`. To search: `prt-get search photo`. To see what an update would do before doing it: `prt-get diff`.
 
 ### What is Flatpak and Flathub?
 
@@ -97,11 +107,11 @@ flatpak uninstall com.spotify.Client
 
 ### Your first hour on BFSOS
 
-1. **Update everything** — `ports -u && prt-get sysup`.
+1. **Update everything** — `bfsos sync && bfsos upgrade`.
 2. **Open the store** — install a couple of apps from Flathub and watch them appear in the menu.
 3. **Learn the lay of the land** — your files are in `/home/you`; system files are under `/etc` (settings) and `/usr` (software).
 4. **Don't fear breakage** — worst case you reinstall from the installer ISO; keep personal files in `/home` and they survive reinstalls.
-5. **When stuck, read the man page** — `man prt-get`, `man flatpak`. Every command's manual is one command away.
+5. **When stuck, read the man page** — `man bfsos`, `man pacman`, `man flatpak`. Every command's manual is one command away.
 
 ### Choosing your init system (systemd, OpenRC, or SysVinit)
 
@@ -154,7 +164,7 @@ Most Linux distros (Ubuntu, Fedora, Mint…) hand you pre-built programs that so
 | Programs ("installed apps") | **Packages** | A package is one program plus its files, tracked so it can be updated or removed cleanly. |
 | The Microsoft Store / Mac App Store | **gnome-software** (installed as the `gnome-software` port) | A graphical store. It shows **Flathub** apps (see below) *and* BFSOS native packages in one place. |
 | `.exe` / `.msi` / `.dmg` installers | **Ports** | There is no "installer download". A *port* is a small recipe file (`Pkgfile`) that says where to fetch the source and how to build it. You never run random installers from the internet. |
-| Windows Update / Software Update | `ports -u` + `prt-get sysup` | Two commands update *everything* on the system. (The store's "Updates" button does the same thing graphically.) |
+| Windows Update / Software Update | `bfsos sync` + `bfsos upgrade` | Two commands update *everything* on the system. (The store's "Updates" button does the same thing graphically.) |
 | The Terminal (macOS) / PowerShell | **a terminal** | The black window where you type commands. On Linux it is the *fast, precise* way to do things — and for BFSOS administration it is the normal way. Give it a chance; it is easier than it looks. |
 | Services (`services.msc` / launchd) | **init system + services** | Background programs that start at boot (networking, Bluetooth, sound…). BFSOS lets you choose *which* init system manages them: **systemd**, **OpenRC**, or **SysVinit**. |
 | C: drive / Macintosh HD | `/` (the root filesystem) | Linux mounts everything under one tree starting at `/`. Your second disk might "live" at `/mnt/windows`, for example. |
@@ -174,12 +184,22 @@ Most Linux distros (Ubuntu, Fedora, Mint…) hand you pre-built programs that so
 **Way 2 — the terminal (faster, more precise).** Three commands cover 95% of daily use:
 
 ```sh
-ports -u                 # refresh the ports tree (like "check for updates" for the catalog)
+bfsos sync              # refresh the ports tree + pacman repositories
+bfsos install gimp      # install GIMP and everything it depends on, built from source
+bfsos upgrade           # update every installed package
+```
+
+To remove: `bfsos remove gimp`. To search: `bfsos search photo`. BFSOS packages are pacman packages, just built from source in your local repository rather than pulled from Arch.
+
+```sh
+# The classic pkgutils commands remain available and are what the base
+# system bootstrap itself uses:
+ports -u                 # refresh the ports tree
 prt-get depinst gimp     # install GIMP and everything it depends on
 prt-get sysup            # update every installed package
 ```
 
-To remove: `prt-get rm gimp`. To search: `prt-get search photo`. To see what an update would do before doing it: `prt-get diff`.
+To remove with prt-get: `prt-get rm gimp`. To search: `prt-get search photo`. To see what an update would do before doing it: `prt-get diff`.
 
 ### What is Flatpak and Flathub?
 
@@ -220,11 +240,11 @@ flatpak uninstall com.spotify.Client
 
 ### Your first hour on BFSOS
 
-1. **Update everything** — `ports -u && prt-get sysup`.
+1. **Update everything** — `bfsos sync && bfsos upgrade`.
 2. **Open the store** — install a couple of apps from Flathub and watch them appear in the menu.
 3. **Learn the lay of the land** — your files are in `/home/you`; system files are under `/etc` (settings) and `/usr` (software).
 4. **Don't fear breakage** — worst case you reinstall from the installer ISO; keep personal files in `/home` and they survive reinstalls.
-5. **When stuck, read the man page** — `man prt-get`, `man flatpak`. Every command's manual is one command away.
+5. **When stuck, read the man page** — `man bfsos`, `man pacman`, `man flatpak`. Every command's manual is one command away.
 
 ### Choosing your init system (systemd, OpenRC, or SysVinit)
 
@@ -258,6 +278,7 @@ Each profile pulls in the matching service packages and dependency set automatic
 - Optional final-toolchain rebuild to verify that the base can rebuild itself.
 - CRUX-style ports and `pkgutils`, extended for BFSOS build conventions.
 - `prt-get` dependency management and Git-backed ports synchronization.
+- Post-install **pacman-format pipeline** (`bfs-build`, `bfs-deps`, `bfsos`, `pacman`): the same source-built ports emit pacman-compatible packages into a local repository, and `bfsos install/upgrade` is the supported day-to-day front end.
 - x86_64 multilib support with 32-bit libraries under `/usr/lib32`.
 - Init-system choice per build: **systemd** (default), **OpenRC**, or **SysVinit**.
 - Dracut initramfs generation and GRUB bootloader support.

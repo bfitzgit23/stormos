@@ -7,11 +7,14 @@
 OpenRC is available as a port in the StormFS Linux repository:
 
 ```bash
-# Install OpenRC
-prt-get install openrc
+# Install OpenRC (recommended: the pacman-style front end)
+bfsos install openrc
+
+# Equivalent classic pkgutils invocation
+bfsos install openrc
 
 # Install init scripts for common services
-prt-get install openrc-init-scripts
+bfsos install openrc-init-scripts
 ```
 
 ### Building from Source
@@ -116,7 +119,34 @@ ls /etc/init.d/
 
 # Check runlevels
 ls /etc/runlevels/
+
+# Confirm the package is known to pacman (BFSOS installs packages as
+# pacman-compatible archives when using the bfsos pipeline)
+bfsos native -Qi openrc
 ```
+
+## Pacman and the bfsos pipeline
+
+StormFS packages are *pacman packages built from source*. The `core/pacman`
+port installs the pacman package manager together with a local `bfsos`
+repository configuration (`/etc/pacman.conf` + `/etc/pacman.d/mirrorlist`
+pointing at `file:///var/cache/repo/bfsos` by default). Day-to-day you use
+the `bfsos` wrapper, which resolves dependencies from the ports tree with
+`bfs-deps`, builds missing ports with `bfs-build`, and installs the
+resulting archives through pacman:
+
+```bash
+bfsos sync                # ports -u + pacman -Sy
+bfsos install openrc      # resolve, build from source, install via pacman
+bfsos upgrade             # pacman -Su over the local repository
+```
+
+Prefer pacman directly? Everything pacman does works: `pacman -U` a
+hand-built `*.pkg.tar.*`, `pacman -Qi`/`-Ql` to inspect, `repo-add` to
+publish rebuilt packages for other machines. The only difference from
+Arch: the archives come from *your* source builds in your local repo, not
+from Arch's binary repositories (mixing Arch's ABI with BFSOS source
+builds is unsupported — see the LFS book, chapter 11, § 11.13).
 
 ## Next Steps
 

@@ -16,21 +16,21 @@ Before installing LXQt, ensure the following are configured:
 ### Core Packages
 
 ```bash
-prt-get install lxqt-meta
+bfsos install lxqt-meta
 ```
 
 ### LXQt Components
 
 ```bash
-prt-get install lxqt-panel lxqt-session lxqt-qtplugin
-prt-get install pcmanfm-qt lxterminal qterminal
+bfsos install lxqt-panel lxqt-session lxqt-qtplugin
+bfsos install pcmanfm-qt lxterminal qterminal
 ```
 
 ### Recommended Additions
 
 ```bash
-prt-get install sddm lightdm
-prt-get install arc-icons arc-themes
+bfsos install sddm lightdm
+bfsos install arc-icons arc-themes
 ```
 
 ## SDDM/LightDM Integration
@@ -39,7 +39,7 @@ prt-get install arc-icons arc-themes
 
 ```bash
 # Install SDDM
-prt-get install sddm
+bfsos install sddm
 
 # Enable SDDM
 sudo rc-update add sddm default
@@ -66,7 +66,7 @@ Current=breeze
 
 ```bash
 # Install LightDM
-prt-get install lightdm lightdm-gtk-greeter
+bfsos install lightdm lightdm-gtk-greeter
 
 # Enable LightDM
 sudo rc-update add lightdm default
@@ -183,7 +183,7 @@ xdg-mime default pcmanfm-qt.desktop inode/directory
 
 ```bash
 # Install Openbox
-prt-get install openbox
+bfsos install openbox
 
 # Configure Openbox
 mkdir -p ~/.config/openbox
@@ -194,7 +194,7 @@ cp /etc/xdg/openbox/rc.xml ~/.config/openbox/rc.xml
 
 ```bash
 # Install Fluxbox
-prt-get install fluxbox
+bfsos install fluxbox
 
 # Configure Fluxbox
 mkdir -p ~/.fluxbox

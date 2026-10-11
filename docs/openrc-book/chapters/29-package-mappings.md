@@ -84,7 +84,7 @@ Before installing a package in an OpenRC system:
 
 ```bash
 # Check the port metadata and build options
-prt-get info <package>
+bfsos info <package>
 
 # Inspect systemd references in a recipe
 grep -Rni systemd ports/<repo>/<package>
@@ -100,7 +100,7 @@ rc-depend -v <service>
 For a desktop profile, install and enable the common base first:
 
 ```bash
-prt-get install openrc openrc-init-scripts dbus eudev consolekit2 sysklogd
+bfsos install openrc openrc-init-scripts dbus eudev consolekit2 sysklogd
 rc-update add udev sysinit
 rc-update add udev-postmount sysinit
 rc-update add dbus boot

@@ -1,0 +1,607 @@
+#!/bin/bash
+# bfs-build - Build a BFSOS port into a pacman-format package.
+#
+# Reads the existing BFSOS/CRUX Pkgfile verbatim (no recipe rewrite) and
+# produces a pacman-compatible package:
+#
+#     <name>-<version>-<release>-<arch>.pkg.tar.zst
+#
+# containing the staged payload plus pacman metadata files (.PKGINFO,
+# .MTREE, .INSTALL when hookable). The artifact can be installed directly
+# with `pacman -U` or published into the local bfsos repository via
+# `repo-add`. This is the drop-in replacement for `pkgmk` in the pacman
+# pipeline; recipes do not change.
+#
+# Recipe orchestration is delegated to the BFSOS pkgutils extension
+# (/var/lib/pkgmk/extension), which the port already ships: it sets the
+# multilib env for compat-32, applies patches, runs
+# pre_build()/pkg_build() (or detects a standard build type), post_build(),
+# and performs the standard payload cleanup (strip man pages, drop *.la,
+# keep_static/keep_libtool/keep_doc/keep_locale, KF6 unit relocation).
+# bfs-build only adds a pacman-name squash around that.
+#
+# Usage:
+#   bfs-build [pkgmk-options...]   # run in the port directory (with Pkgfile)
+#
+# Recognized options (subset matching pkgmk today):
+#   -d  download sources
+#   -is ignore signature/checks (accept; no-op for bfs-build)
+#   -if ignore fingerprints  (accept; no-op)
+#   -cf CONFIGFILE       read an /etc/pkgmk.conf-style config (paths honored)
+#   -u  update: skip "already installed" checks (no-op; pacman owns that)
+#   -i  install after build (mapped to pacman -U --noconfirm)
+#
+# Environment:
+#   BFS_PKG_BUILD_WORK=tmpfs|disk     (same as bfs-pkgmk)
+#   BFS_BUILD_REPONAME=bfsos          target repository name
+#   BFS_BUILD_REPODIR=/var/cache/repo/$BFS_BUILD_REPONAME
+#   PKGMK_ARCH=32                     (set automatically in compat-32 dirs)
+#   JOBS="..."
+#
+# Exit status: 0 on success; nonzero on any failure. On failure, any
+# partially-staged package archive is removed.
+
+set -eu
+
+# ---------------------------------------------------------------------------
+# Diagnostics / startup
+# ---------------------------------------------------------------------------
+
+_start_epoch="$(date +%s)"
+_start_stamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+human_elapsed() {
+    total="${1:-0}"; case "$total" in *[!0-9]|'') total=0 ;; esac
+    d=$((total/86400)); h=$(((total%86400)/3600)); m=$(((total%3600)/60)); s=$((total%60))
+    if [ "$d" -gt 0 ]; then printf '%dd %dh %02dm %02ds' "$d" "$h" "$m" "$s"
+    elif [ "$h" -gt 0 ]; then printf '%dh %02dm %02ds' "$h" "$m" "$s"
+    elif [ "$m" -gt 0 ]; then printf '%dm %02ds' "$m" "$s"
+    else printf '%ds' "$s"; fi
+}
+
+die() {
+    printf 'bfs-build: ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+_bfs_like_pkgmk_fail_log() {
+    printf 'bfs-build: failed (%s elapsed). Remove the failed archive and check the log.\n' \
+        "$(human_elapsed "$(( $(date +%s) - _start_epoch ))")" >&2
+}
+
+# ---------------------------------------------------------------------------
+# Argument parsing (subset compatible with bfs-pkgmk/pkgmk invocation style)
+# ---------------------------------------------------------------------------
+
+do_download="${BFS_BUILD_DO_DOWNLOAD:-no}"
+install_after="${BFS_BUILD_DO_INSTALL:-no}"
+pkgmk_config_file=""
+rest_args=()
+
+# Source URL expansion: Pkgfiles use CRUX-style $name/$version in
+# source=() entries. Pre-expand them (the wrapper owns those vars) and
+# treat ${...} and ☁ $(...) forms that recipe authors may have written.
+_expand_source_url() {
+    local url="$1"
+    url="${url//\$name/$pkg_name}"
+    url="${url//\$version/$pkg_version}"
+    url="${url//\$release/$pkg_release}"
+    printf '%s' "$url"
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -d) do_download=yes ; shift ;;
+        -i) install_after=yes ; shift ;;
+        -is|-if|-isif|-u|-ii) shift ;;
+        -cf) [ $# -ge 2 ] || die "-cf requires an argument"
+             pkgmk_config_file="$2"; shift 2 ;;
+        --) shift; rest_args=("$@"); break ;;
+        -*) die "unsupported option: $1" ;;
+        *)  die "unexpected positional argument: $1" ;;
+    esac
+done
+
+[ -r ./Pkgfile ] || die "no Pkgfile in the current directory"
+[ -f ./Pkgfile ] || die "Pkgfile is not a regular file"
+
+# ---------------------------------------------------------------------------
+# ABI (PKGMK_ARCH) detection — mirrors bfs-pkgmk exactly
+# ---------------------------------------------------------------------------
+
+case "$PWD/" in
+    */compat-32/*)
+        export PKGMK_ARCH=32 ;;
+    *)
+        unset PKGMK_ARCH || true ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Build-work backend selection — mirrors bfs-pkgmk exactly
+# ---------------------------------------------------------------------------
+
+if [ -z "${BFS_PKG_BUILD_WORK:-}" ] && [ -r ./Pkgfile ]; then
+    bfs_port_build_work="$(
+        sed -n 's/^[[:space:]]*build_work[[:space:]]*=[[:space:]]*['"'"'"]\{0,1\}\([^'"'"'"[:space:]#]*\).*/\1/p' ./Pkgfile | head -n1
+    )"
+    [ -n "$bfs_port_build_work" ] && BFS_PKG_BUILD_WORK="$bfs_port_build_work"
+fi
+BFS_PKG_BUILD_WORK="${BFS_PKG_BUILD_WORK:-tmpfs}"
+case "$BFS_PKG_BUILD_WORK" in
+    tmpfs|disk) export BFS_PKG_BUILD_WORK ;;
+    *)
+        printf 'bfs-build: invalid build_work backend %s (expected tmpfs or disk)\n' \
+            "$BFS_PKG_BUILD_WORK" >&2
+        exit 2 ;;
+esac
+unset bfs_port_build_work || true
+
+# ---------------------------------------------------------------------------
+# Config: paths. Mirrors the pkgmk.conf keys bfs-pkgmk honors, and accepts
+# pacman-style BFS_BUILD_* overrides.
+# ---------------------------------------------------------------------------
+
+_awk_conf() {
+    # awk-path extraction, same shape bfs-pkgmk uses for pkgmk.conf
+    local key="$1" file="$2" value=""
+    [ -r "$file" ] || return 0
+    value="$(awk -F= -v key="$key" '
+        $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+            value = substr($0, index($0, "=") + 1)
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+            if ((value ~ /^".*"$/) || (value ~ /^\x27.*\x27$/))
+                value = substr(value, 2, length(value) - 2)
+        }
+        END { print value }
+    ' "$file")"
+    printf '%s' "$value"
+}
+
+_apply_config() {
+    local file="$1"
+    [ -r "$file" ] || return 0
+    local v
+    v="$(_awk_conf PKGMK_SOURCE_DIR "$file")"; [ -n "$v" ] && SOURCE_DIR="$v"
+    v="$(_awk_conf PKGMK_PACKAGE_DIR "$file")"; [ -n "$v" ] && PACKAGE_DIR="$v"
+    v="$(_awk_conf PKGMK_WORK_DIR "$file")";   [ -n "$v" ] && WORK_DIR="$v"
+    v="$(_awk_conf COMPRESSION_MODE "$file")"; [ -n "$v" ] && COMPRESSION_MODE="$v"
+    v="$(_awk_conf MAKEFLAGS "$file")";        [ -n "$v" ] && MAKEFLAGS="$v"
+    return 0
+}
+
+SOURCE_DIR="${BFS_SOURCE_DIR:-/var/cache/build/sources}"
+PACKAGE_DIR="${BFS_PACKAGE_DIR:-/var/cache/repo/packages}"
+WORK_DIR="${BFS_WORK_DIR:-/var/cache/build/work}"
+COMPRESSION_MODE="${BFS_BUILD_COMPRESSION:-zst}"
+MAKEFLAGS="${MAKEFLAGS:--j"$(nproc)"}"
+
+if [ -n "$pkgmk_config_file" ]; then
+    _apply_config "$pkgmk_config_file"
+elif [ -r /etc/pkgmk.conf ]; then
+    _apply_config /etc/pkgmk.conf
+fi
+
+# ---------------------------------------------------------------------------
+# Parse Pkgfile metadata (flat keys only; never source it in the wrapper).
+# ---------------------------------------------------------------------------
+
+pkg_name="$(sed -n 's/^name=//p' ./Pkgfile | head -n1 | tr -d '"' || true)"
+pkg_version="$(sed -n 's/^version=//p' ./Pkgfile | head -n1 | tr -d '"' || true)"
+pkg_release="$(sed -n 's/^release=//p' ./Pkgfile | head -n1 | tr -d '"' || true)"
+[ -n "$pkg_name" ] && [ -n "$pkg_version" ] && [ -n "$pkg_release" ] || \
+    die "Pkgfile is missing name/version/release"
+
+# Collection/arch for pacman naming: x86_64 or i686 (compat-32).
+case "${PKGMK_ARCH:-}" in
+    32) pkg_arch="i686" ;;
+    *)  pkg_arch="x86_64" ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Source download. Mirrors pkgmk's PKGMK_DOWNLOAD_PROG handling, with the
+# curl fallback chain the BFSOS ports rely on (this is why bfs-build keeps
+# its own downloader instead of using pacman's fetcher).
+# ---------------------------------------------------------------------------
+
+download_prog="${BFS_BUILD_DOWNLOAD_PROG:-curl}"
+
+curl_opts="${BFS_BUILD_CURL_OPTS:--L}"
+wget_opts="${BFS_BUILD_WGET_OPTS:--q}"
+
+fetch_one() {
+    local url="$1" out="$2"
+    mkdir -p "$(dirname "$out")" 2>/dev/null || true
+    # Source-fallback: try $SOURCE_DIR as a local store first.
+    if [ -s "$out" ]; then
+        return 0
+    fi
+    case "$download_prog" in
+        curl) curl -f "$curl_opts" -o "$out" "$url" ;;
+        wget) wget "$wget_opts" -O "$out" "$url" ;;
+        *) die "unsupported downloader: $download_prog" ;;
+    esac
+}
+
+# Download all sources now (prefetch-friendly; bfs-shell and bootstrap.sh
+# both expect errors at this stage rather than mid-build).
+if [ "${do_download-no}" = yes ]; then
+    # Read the source list from the Pkgfile verbatim. Supports the one-line
+    # `source=(a b c)` and multi-line `source=(\n a\n b\n)` forms, matching
+    # pkgmk's parser behavior for comment lines and continuation lines.
+    bfs_sources="$(awk -F= '
+        /^source=\(/ {
+            sub(/^source=\(/, "", $0)
+            sub(/\)[[:space:]]*$/, "", $0)
+            gsub(/#.*$/, "", $0)
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+            if (length($0) > 0) print $0
+            intsrc = 1
+            next
+        }
+        intsrc {
+            if (/\)/) { sub(/\)[[:space:]]*$/, "", $0); intsrc = 0 }
+            gsub(/#.*$/, "", $0)
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+            if (length($0) > 0) print $0
+        }
+    ' ./Pkgfile)"
+
+    mkdir -p "$SOURCE_DIR/$pkg_name"
+    for src_url in $bfs_sources; do
+        case "$src_url" in
+            http://*|https://*|ftp://*) ;;
+            *)  # Local path in the port directory — keep as-is.
+                continue ;;
+        esac
+        src_url="$(_expand_source_url "$src_url")"
+        fetch_one "$src_url" "$SOURCE_DIR/$pkg_name/${src_url##*/}"
+    done
+    unset bfs_sources
+fi
+
+# ---------------------------------------------------------------------------
+# extraction directory and work-mode setup
+# ---------------------------------------------------------------------------
+
+if [ "$BFS_PKG_BUILD_WORK" = tmpfs ] && [ ! -w "$(dirname "$WORK_DIR")" ] 2>/dev/null; then
+    : # keep default; the wrapper falls back when mkdir fails below
+fi
+
+_bfs_work="$WORK_DIR/$pkg_name-$pkg_version-$pkg_release"
+rm -rf -- "$_bfs_work"
+if ! mkdir -p "$_bfs_work/src" "$_bfs_work/pkg" 2>/dev/null; then
+    # Work dir not writable (e.g. running as a non-root user on a host
+    # without /var/cache/build). Fall back to a temp workspace.
+    WORK_DIR="${TMPDIR:-/tmp}/bfs-build-work"
+    mkdir -p "$WORK_DIR" || die "cannot create work directory $WORK_DIR"
+    _bfs_work="$WORK_DIR/$pkg_name-$pkg_version-$pkg_release"
+    rm -rf -- "$_bfs_work"
+    mkdir -p "$_bfs_work/src" "$_bfs_work/pkg"
+fi
+
+# Copy local sources from $SOURCE_DIR into the work dir for extraction.
+if [ -d "$SOURCE_DIR/$pkg_name" ]; then
+    find "$SOURCE_DIR/$pkg_name" -maxdepth 1 -type f \
+         -exec cp -a {} "$_bfs_work/src/" \; 2>/dev/null || true
+fi
+# Note: file:// and plain-path sources are handled by the extension during
+# unpack (it expects them at $SRC).
+
+# ---------------------------------------------------------------------------
+# Run the recipe. Hand the whole body to the BFSOS extension in a subshell
+# seeded with the CRUX/pkgmk variable names the recipes expect.
+# ---------------------------------------------------------------------------
+
+_recipe_rc_file="$_bfs_work/rc"
+
+run_recipe() {
+    (
+        set -eu
+
+        export PKG="$_bfs_work/pkg"
+        export SRC="$_bfs_work/src"
+        export name="$pkg_name" version="$pkg_version" release="$pkg_release"
+        export JOBS="${JOBS:-$(nproc)}"
+        export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe}"
+        export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+        export MAKEFLAGS="$MAKEFLAGS"
+        export BFS_PKG_BUILD_WORK="$BFS_PKG_BUILD_WORK"
+
+        # Reconstruct the source[] array from the Pkgfile so the extension
+        # shim (and any recipe referencing ${source[@]}) sees the same data
+        # pkgmk provides. Only http(s)/ftp URLs are rewritten; local port
+        # files remain as they appear in the Pkgfile.
+        # shellcheck disable=SC2206
+        source=()
+        bfs_src_file="/tmp/bfs-build-src-list.$$"
+        awk -F= '
+            /^source=\(/ {
+                sub(/^source=\(/, "", $0)
+                if (/\)/) sub(/\)[[:space:]]*$/, "", $0)
+                gsub(/#.*$/, "", $0)
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+                if (length($0) > 0) {
+                    n = split($0, items, /[[:space:]]+/)
+                    for (i = 1; i <= n; i++) print items[i]
+                }
+                intsrc = 1
+                next
+            }
+            intsrc {
+                if (/\)/) { sub(/\)[[:space:]]*$/, "", $0); intsrc = 0 }
+                gsub(/#.*$/, "", $0)
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+                if (length($0) > 0) {
+                    n = split($0, items, /[[:space:]]+/)
+                    for (i = 1; i <= n; i++) print items[i]
+                }
+            }
+        ' ./Pkgfile > "$bfs_src_file" 2>/dev/null || true
+        while IFS= read -r src_entry; do
+            [ -n "$src_entry" ] || continue
+            case "$src_entry" in
+                http://*|https://*|ftp://*)
+                    src_entry="$(_expand_source_url "$src_entry")"
+                    src_entry="${src_entry##*/}"
+                    ;;
+                *)
+                    # Local file in the port directory (patch, config snippet,
+                    # conffile...). pkgmk copies these from the port dir into
+                    # $SRC before the recipe runs; mirror that.
+                    if [ -f "$PWD/$src_entry" ]; then
+                        install -m 0644 "$PWD/$src_entry" "$_bfs_work/src/$src_entry"
+                    fi
+                    ;;
+            esac
+            source+=("$src_entry")
+        done < "$bfs_src_file"
+        rm -f "$bfs_src_file"
+        # CRUX Pkgfiles can also define `renames` and `skip_patch`; the
+        # extension shim dereferences renames[$n] and $skip_patch
+        # unconditionally under set -u, so provide neutral defaults:
+        # an empty rename per source entry ("keep original name") and
+        # no skip_patch.
+        skip_patch=""
+        renames=("")
+        i=0; while [ "$i" -lt "${#source[@]}" ]; do renames+=(""); i=$((i+1)); done
+        unset i
+        export source renames skip_patch
+
+        # Source the BFSOS extension — this is the same shim pkgmk sources,
+        # so pre/post_build, compat-32, keep_* cleanup, KF6 relocation, and
+        # default build-type detection all behave identically.
+        ext="${BFS_PKG_EXTENSION_PATH:-/var/lib/pkgmk/extension}"
+        if [ ! -r "$ext" ] && [ -r /usr/ports/core/pkgutils/extension ]; then
+            mkdir -p /var/lib/pkgmk 2>/dev/null || true
+            ext=/usr/ports/core/pkgutils/extension
+        fi
+        [ -r "$ext" ] || { printf 'bfs-build: extension shim missing: %s\n' "$ext" >&2; exit 1; }
+        # shellcheck disable=SC1090
+        . "$ext"
+
+        # Source the Pkgfile itself: this is where pkg_build/pre_build/
+        # post_build/build and Pkgfile-level variables (build_opt,
+        # configure_out_of_tree, run_tests, ...) get defined. pkgmk does
+        # exactly this; without it 'command -v pkg_build' finds nothing
+        # and the shim falls into default-build detection.
+        # shellcheck disable=SC1091
+        . "$PWD/Pkgfile" || { printf 'bfs-build: sourcing Pkgfile failed\n' >&2; exit 1; }
+
+        cd "$SRC"
+
+        # Apply patches first (matches pkgmk semantics; the extension's
+        # _patch() runs inside build() when the default recipe kicks in,
+        # but custom pkg_build() recipes expect patches pre-applied).
+        src_main="$(find "$SRC" -maxdepth 1 -type f \( -name '*.tar' -o -name '*.tar.gz' -o -name '*.tgz' -o -name '*.tar.bz2' -o -name '*.tbz2' -o -name '*.tar.xz' -o -name '*.txz' -o -name '*.tar.zst' -o -name '*.tzst' \) 2>/dev/null | head -n1)"
+        if [ -n "$src_main" ]; then
+            tar xf "$src_main"
+            srcdir="$pkg_name-$pkg_version"
+            [ -d "$srcdir" ] || srcdir="$(find "$SRC" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | head -n1)"
+            [ -n "$srcdir" ] && [ -d "$SRC/$srcdir" ] && cd "$srcdir"
+        fi
+
+        # Build recipe selection: pkg_build > build > extension default.
+        # bzip2 uses pkg_build; the fallback branch (no explicit recipe) is
+        # the extension's default build with $build_type auto-detection —
+        # which requires building the detected-type shell function to be
+        # reachable. The shim defines `_meson_build`, `_cmake_build`, et al
+        # plus a plain `build`, so just calling build is sufficient.
+        build_type=""
+        if command -v pre_build >/dev/null 2>&1; then
+            pre_build || exit $?
+        fi
+        if command -v pkg_build >/dev/null 2>&1; then
+            pkg_build || exit $?
+        elif command -v bfsos_build >/dev/null 2>&1; then
+            bfsos_build || exit $?
+        elif command -v build >/dev/null 2>&1; then
+            build || exit $?
+        else
+            # Auto-detect and run a standard build (mirrors the shim's own
+            # "$build_type" dispatch when a source is present).
+            detect_buildtype
+            build || exit $?   # the extension's build() dispatches via build_type
+        fi
+        if command -v post_build >/dev/null 2>&1; then
+            post_build || exit $?
+        fi
+        exit 0
+    ) > "$_recipe_rc_file.log" 2>&1
+    return $?
+}
+
+run_recipe
+status=$?
+
+if [ "$status" -ne 0 ]; then
+    echo "bfs-build: recipe failed. Log tail:" >&2
+    tail -n 60 "$_recipe_rc_file.log" >&2 2>/dev/null || true
+    rm -f -- "$PACKAGE_DIR/${pkg_name}-${pkg_version}-${pkg_release}-${pkg_arch}.pkg.tar.${COMPRESSION_MODE}" 2>/dev/null || true
+    _bfs_like_pkgmk_fail_log
+    exit "$status"
+fi
+
+# ---------------------------------------------------------------------------
+# Stage the pacman package: metadata + payload tarball
+# ---------------------------------------------------------------------------
+
+package_dir_pkg="$PACKAGE_DIR"
+if ! mkdir -p "$package_dir_pkg" 2>/dev/null; then
+    package_dir_pkg="${TMPDIR:-/tmp}/bfs-build-packages/$pkg_name"
+    mkdir -p "$package_dir_pkg" || die "cannot create package directory $package_dir_pkg"
+fi
+
+pkginfo_file="$_bfs_work/.PKGINFO"
+mtime="$(date -u +%s)"
+formatted="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+cat > "$pkginfo_file" <<EOF
+pkgname = $pkg_name
+pkgver = $pkg_version-$pkg_release
+pkgarch = $pkg_arch
+packager = BFSOS (bfs-build)
+builddate = $mtime
+buildtime = $formatted
+EOF
+# pacman expects .PKGINFO and .MTREE at archive ROOT, which is pkg/ here.
+cp -f "$pkginfo_file" "$_bfs_work/pkg/.PKGINFO" 2>/dev/null || true
+
+# Emit depends from the "# Depends on:" header line, verbatim per-port.
+bfs_dep_line="$(sed -nE 's/^#[[:space:]]*[Dd]epends([[:space:]]+[Oo]n)?:[[:space:]]*//p' ./Pkgfile | head -n1)"
+if [ -n "$bfs_dep_line" ]; then
+    for dep in $bfs_dep_line; do printf 'depend = %s\n' "$dep" >> "$pkginfo_file"; done
+fi
+unset bfs_dep_line
+
+# Emit the optdepends from "# Optional:" the same way.
+bfs_opt_line="$(sed -nE 's/^#[[:space:]]*[Oo]ptional:[[:space:]]*//p' ./Pkgfile | head -n1)"
+if [ -n "$bfs_opt_line" ]; then
+    for dep in $bfs_opt_line; do printf 'optdepend = %s\n' "$dep" >> "$pkginfo_file"; done
+fi
+unset bfs_opt_line
+
+mmtree_file="$_bfs_work/.MTREE"
+( cd "$_bfs_work/pkg" &&
+  # bsdtar's mtree generator is what pacman uses internally; we delegate.
+  # bsdtar may be absent on minimal hosts; the archive is still valid
+  # without .MTREE, pacman just cannot do size/integrity pre-checks.
+  bsdtar --format mtree -czf "$mmtree_file" . 2>/dev/null || true
+)
+# Ensure the .MTREE file is inside the payload root before packing.
+cp -f "$mmtree_file" "$_bfs_work/pkg/.MTREE" 2>/dev/null || true
+
+package_file="$package_dir_pkg/${pkg_name}-${pkg_version}-${pkg_release}-${pkg_arch}.pkg.tar.${COMPRESSION_MODE}"
+rm -f -- "$package_file" "$package_file.sig" 2>/dev/null || true
+
+case "$COMPRESSION_MODE" in
+    zst)
+        if command -v zstd >/dev/null 2>&1; then
+            tarflags=("--zstd")
+            suffix="zst"
+        else
+            # No zstd compressor available; fall back to xz (pacman reads
+            # both transparently). Only downgrade when xz exists too;
+            # if neither exists, fall all the way to gzip.
+            if command -v xz >/dev/null 2>&1; then
+                tarflags=("--xz")
+                suffix="xz"
+            else
+                tarflags=("--gzip")
+                suffix="gz"
+            fi
+            COMPRESSION_MODE="$suffix"
+        fi
+        ;;
+    xz)  tarflags=("--xz"); suffix="xz" ;;
+    gz)  tarflags=("--gzip"); suffix="gz" ;;
+    bz2) tarflags=("--bzip2"); suffix="bz2" ;;
+    *)   tarflags=("--gzip"); COMPRESSION_MODE="gz"; suffix="gz" ;;
+esac
+package_file="$package_dir_pkg/${pkg_name}-${pkg_version}-${pkg_release}-${pkg_arch}.pkg.tar.$suffix"
+
+# Payload: package contents plus pacman metadata files (at archive root).
+# GNU tar supports the merged --zstd/--xz/--gzip/--bzip2 flags since 1.31
+# (BFSOS base tar does; a fallback pipe strategy handles older tar too).
+pack_probe_file="$_bfs_work/probe.tar"
+if ! tar "${tarflags[@]}" -cf "$pack_probe_file" -C "$_bfs_work/pkg" .PKGINFO 2>/dev/null; then
+    # tar does not support ${tarflags[0]}: pipe through the right binary.
+    case "${tarflags[0]}" in
+        --xz)    ( cd "$_bfs_work/pkg" && tar -cf - .PKGINFO .MTREE . 2>/dev/null | xz -T0 > "$package_file" ) ;;
+        --gzip)  ( cd "$_bfs_work/pkg" && tar -czf "$package_file" .PKGINFO .MTREE . 2>/dev/null ) ;;
+        --bzip2) ( cd "$_bfs_work/pkg" && tar -cf - .PKGINFO .MTREE . 2>/dev/null | bzip2 > "$package_file" ) ;;
+        --zstd)  ( cd "$_bfs_work/pkg" && tar -cf - .PKGINFO .MTREE . 2>/dev/null | zstd -q > "$package_file" ) ;;
+    esac
+else
+    ( cd "$_bfs_work/pkg" && tar "${tarflags[@]}" -cf "$package_file" \
+        .PKGINFO .MTREE . 2>/dev/null )
+fi
+rm -f -- "$pack_probe_file" 2>/dev/null || true
+
+# Reject directory-only archives (same precondition bfs-pkgmk enforces).
+if command -v bsdtar >/dev/null 2>&1; then
+    archive_lister=(bsdtar -tf)
+else
+    archive_lister=(tar -tf)
+fi
+list_cmd="${archive_lister[@]}"
+if ! $list_cmd "$package_file" 2>/dev/null | awk 'substr($0, length($0), 1) != "/" { found=1; exit } END { exit !found }'; then
+    printf 'bfs-build: rejecting directory-only package archive: %s\n' "$package_file" >&2
+    rm -f -- "$package_file" 2>/dev/null || true
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Repository publish (repo-add). Target repo is BFS_BUILD_REPODIR; falls
+# back to the standard pacman local repo path.
+# ---------------------------------------------------------------------------
+
+reponame="${BFS_BUILD_REPONAME:-bfsos}"
+repodir="${BFS_BUILD_REPODIR:-/var/cache/repo/$reponame}"
+repodb="$repodir/$reponame.db.tar.gz"
+
+if [ "${BFS_BUILD_ADD_TO_REPO:-yes}" = yes ]; then
+    [ -d "$repodir" ] || mkdir -p "$repodir"
+    if command -v repo-add >/dev/null 2>&1; then
+        cp -f -- "$package_file" "$repodir/"
+        ( set +e; repo-add "$repodb" "$repodir/$(basename "$package_file")"; )
+        status=$?
+        if [ "$status" -ne 0 ]; then
+            printf 'bfs-build: repo-add returned status %s (package kept, db update failed)\n' "$status" >&2
+            exit "$status"
+        fi
+    else
+        printf 'bfs-build: repo-add not available; package built but not published into the repo\n' >&2
+    fi
+fi
+
+end_epoch="$(date +%s)"
+elapsed=$((end_epoch - _start_epoch))
+
+history_dir="/var/lib/pkgmk"
+history_file="$history_dir/build-times.log"
+if ! mkdir -p "$history_dir" 2>/dev/null; then
+    history_file="/tmp/bfs-build-times.log"
+fi
+line="$(printf '%s\tbfs-build\t%s\t%s\t%s\tstatus=0\telapsed_seconds=%s\n' \
+    "$_start_stamp" "$pkg_name" "$pkg_version" "$pkg_release" "$elapsed")"
+if [ -w "$history_file" ] || { [ ! -e "$history_file" ] && [ -w "$(dirname "$history_file")" ]; }; then
+    printf '%s' "$line" >> "$history_file" 2>/dev/null || true
+fi
+
+printf 'bfs-build: %s-%s-%s-%s built in %s\n' \
+    "$pkg_name" "$pkg_version" "$pkg_release" "$pkg_arch" \
+    "$(human_elapsed "$elapsed")"
+printf 'bfs-build: %s\n' "$package_file"
+
+# Optional install (mirrors pkgmk -i semantics through pacman).
+if [ "$install_after" = yes ]; then
+    if command -v pacman >/dev/null 2>&1; then
+        pacman -U --noconfirm "$package_file"
+    else
+        printf 'bfs-build: -i requested but pacman is unavailable; skipping install\n' >&2
+    fi
+fi
+
+rm -rf -- "$_bfs_work" 2>/dev/null || true
+rm -f -- "$_recipe_rc_file" 2>/dev/null || true
+exit 0

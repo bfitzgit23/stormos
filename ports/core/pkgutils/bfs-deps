@@ -1,0 +1,317 @@
+#!/bin/bash
+# bfs-deps - BFSOS dependency resolver and ordering tool.
+#
+# Reads `# Depends on:` headers from Pkgfiles across the BFSOS ports tree
+# and computes:
+#
+#   - the dependency closure of a set of target packages
+#   - which packages in that closure are already installed (per pacman)
+#   - a topological build/install order for the missing ones
+#
+# This is the replacement layer for `prt-get depinst` / `prt-get quickdep`
+# in the pacman pipeline. Resolution is offline: ports.xml/dependency info
+# comes straight from the synced ports tree at /usr/ports (or whatever
+# BFS_DEPS_PORTSDIR points at), not from a binary-repo database — so the
+# tool keeps working on a freshly-installed system before the first sync,
+# exactly like prt-get did.
+#
+# Usage:
+#   bfs-deps quickdep  pkgs...        # print full closure, space-separated
+#   bfs-deps order     pkgs...        # print topological install order,
+#                                     # one name per line
+#   bfs-deps missing   pkgs...        # print only the not-installed subset,
+#                                     # in install order (what depinst did)
+#   bfs-deps isinst    pkgs...        # "installed <pkg>" / "not installed <pkg>"
+#   bfs-deps deps      <pkg>          # direct depends of one port
+#   bfs-deps check [<pkgs>...]        # report unknown or unsatisfiable deps
+#
+# Environment:
+#   BFS_DEPS_PORTSDIR   (default /usr/ports)
+#   BFS_DEPS_COLLECTIONS (default "core opt xorg xfce gnome plasma lxqt
+#                         compiz contrib compat-32 iso") — searched in
+#                         order, first hit wins, matching prt-get.conf.
+#   PACMAN              (default pacman) — used only by isinst/missing.
+
+set -eu
+
+PORTSDIR="${BFS_DEPS_PORTSDIR:-/usr/ports}"
+COLLECTIONS="${BFS_DEPS_COLLECTIONS:-core opt xorg xfce gnome plasma lxqt compiz contrib compat-32 iso}"
+PACMAN="${PACMAN:-pacman}"
+
+port_path() {
+    # echo the directory of the first collection containing <name>
+    local pkg="$1" col
+    for col in $COLLECTIONS; do
+        [ -f "$PORTSDIR/$col/$pkg/Pkgfile" ] && { printf '%s\n' "$PORTSDIR/$col/$pkg"; return 0; }
+    done
+    # compat-32 special case: <name>-32 lives in compat-32 but native names
+    # may also be referred to with the suffix stripped by the caller.
+    printf '' >&2
+    return 1
+}
+
+read_depends() {
+    # echo the direct deps of the port at $1 (one per line). Accepts the
+    # three spellings actually used in the ports tree:
+    #   "# Depends on:"  "# Depends On:"  "# Depends"
+    local port="$1" line
+    [ -r "$port/Pkgfile" ] || return 0
+    line="$(sed -nE 's/^#[[:space:]]*[Dd]epends([[:space:]]+[Oo]n)?:[[:space:]]*//p' "$port/Pkgfile" | head -n1)"
+    [ -n "$line" ] || return 0
+    # shellcheck disable=SC2086
+    printf '%s\n' $line
+}
+
+is_installed() {
+    [ -x "$(command -v "$PACMAN")" ] || return 1
+    "$PACMAN" -Qi "$1" >/dev/null 2>&1
+}
+
+# ---------------------------------------------------------------------------
+# Closure computation (iterative DFS; cycle-safe via "visiting" marks)
+# ---------------------------------------------------------------------------
+
+compute_closure() {
+    # Given target names on argv or stdin, compute and echo the closure.
+    local -a stack=()
+    local -A seen=()
+    local -A visiting=()
+
+    local input=()
+    if [ $# -gt 0 ]; then
+        input=("$@")
+    else
+        read -r -a input <<< "$(cat | tr '\n' ' ')"
+    fi
+
+    local i pkg port dep
+    for i in "${input[@]}"; do
+        [ -n "$i" ] && stack+=("$i")
+    done
+
+    while [ ${#stack[@]} -gt 0 ]; do
+        pkg="${stack[${#stack[@]}-1]}"
+        unset "stack[${#stack[@]}-1]"
+        stack=("${stack[@]}")
+
+        [ -n "${seen[$pkg]+x}" ] && continue
+
+        if ! port="$(port_path "$pkg")" || [ ! -r "$port/Pkgfile" ]; then
+            [ -n "${seen[$pkg]+x}" ] || seen[$pkg]=""    # remember it's unknown
+            continue
+        fi
+
+        visiting[$pkg]=1
+        seen[$pkg]=""
+
+        while IFS= read -r dep; do
+            [ -n "$dep" ] || continue
+            case "$dep" in
+                /*) continue ;;   # file deps — not modeled
+            esac
+            [ -n "${visiting[$dep]+x}" ] && {
+                printf 'bfs-deps: dependency cycle detected involving %s\n' "$dep" >&2
+                continue
+            }
+            [ -n "${seen[$dep]+x}" ] || stack+=("$dep")
+        done < <(read_depends "$port")
+
+        unset "visiting[$pkg]"
+    done
+
+    # Echo closure in insertion order.
+    for pkg in "${!seen[@]}"; do
+        [ -r "$PORTSDIR/$( dirname "$(port_path "$pkg" 2>/dev/null)" )/Pkgfile" ] 2>/dev/null || \
+            port_path "$pkg" >/dev/null 2>&1 || true
+        printf '%s\n' "$pkg"
+    done | sort
+}
+
+compute_order() {
+    # Topological order: dependencies before dependents. Kahn's algorithm
+    # over the closure graph. Inputs: closure names on argv/stdin.
+    local -a nodes=()
+    local -A deps_of=()      # pkg -> space-separated immediate deps
+
+    local input=()
+    if [ $# -gt 0 ]; then
+        input=("$@")
+    else
+        read -r -a input <<< "$(cat | tr '\n' ' ')"
+    fi
+
+    # The closure set (argv) bounds graph edges: only deps inside it matter.
+    local -A in_closure=()
+    local pkg dep port
+    for pkg in "${input[@]}"; do
+        [ -n "$pkg" ] || continue
+        [ -n "${in_closure[$pkg]+x}" ] && continue
+        in_closure[$pkg]=1
+        nodes+=("$pkg")
+    done
+
+    for pkg in "${nodes[@]}"; do
+        port="$(port_path "$pkg" 2>/dev/null || true)"
+        deps_of["$pkg"]=""
+        if [ -n "$port" ] && [ -r "$port/Pkgfile" ]; then
+            while IFS= read -r dep; do
+                [ -n "$dep" ] || continue
+                [ -n "${in_closure[$dep]+x}" ] || continue
+                deps_of["$pkg"]="${deps_of[$pkg]} $dep"
+            done < <(read_depends "$port")
+        fi
+    done
+
+    # Now compute out-degrees. Since pacman installation order should be
+    # "leaf dependencies first", emit nodes whose deps are all emitted.
+    local -A emitted=()
+    local -a ready=()
+    local d
+
+    # Nodes with no in-closure deps are ready first.
+    local ready_n d
+    for pkg in "${nodes[@]}"; do
+        ready_n=0
+        for d in ${deps_of[$pkg]-}; do
+            [ -n "${emitted[$d]+x}" ] || { ready_n=1; break; }
+        done
+        [ "$ready_n" -eq 0 ] && ready+=("$pkg")
+    done
+
+    while [ ${#ready[@]} -gt 0 ]; do
+        pkg="${ready[0]}"
+        ready=("${ready[@]:1}")
+        [ -n "${emitted[$pkg]+x}" ] && continue
+        emitted[$pkg]=1
+        printf '%s\n' "$pkg"
+
+        # Any node whose deps are all emitted becomes ready. For BFSOS
+        # sizes a full rescan per emission is O(n^2) but fine (n < few
+        # hundred in the worst case).
+        local p d2 all_done
+        for p in "${nodes[@]}"; do
+            [ -n "${emitted[$p]+x}" ] && continue
+            all_done=1
+            for d2 in ${deps_of[$p]-}; do
+                [ -n "${emitted[$d2]+x}" ] || { all_done=0; break; }
+            done
+            if [ "$all_done" -eq 1 ]; then
+                ready+=("$p")
+            fi
+        done
+    done
+
+    # Any node never emitted — unreachable due to a cycle — echo at the end
+    # with a warning so the caller can see it rather than silently dropping it.
+    for pkg in "${nodes[@]}"; do
+        [ -n "${emitted[$pkg]+x}" ] || {
+            printf 'bfs-deps: warning: %s remained after ordering (dependency cycle?)\n' "$pkg" >&2
+            printf '%s\n' "$pkg"
+        }
+    done
+}
+
+filter_missing() {
+    local pkg
+    while IFS= read -r pkg; do
+        [ -n "$pkg" ] || continue
+        is_installed "$pkg" || printf '%s\n' "$pkg"
+    done
+}
+
+isinst_report() {
+    local pkg status
+    for pkg in "$@"; do
+        if is_installed "$pkg"; then
+            printf 'installed %s\n' "$pkg"
+        else
+            printf 'not installed %s\n' "$pkg"
+        fi
+    done
+}
+
+check_deps() {
+    # Report names that do not resolve to any port (typo or missing port).
+    local bad=0 pkg port
+    if [ $# -eq 0 ]; then
+        while IFS= read -r pkg; do
+            [ -n "$pkg" ] || continue
+            if ! port="$(port_path "$pkg")" || [ ! -r "$port/Pkgfile" ]; then
+                printf 'unknown: %s\n' "$pkg" >&2
+                bad=1
+            fi
+        done
+    else
+        for pkg in "$@"; do
+            if ! port="$(port_path "$pkg")" || [ ! -r "$port/Pkgfile" ]; then
+                printf 'unknown: %s\n' "$pkg" >&2
+                bad=1
+            fi
+        done
+    fi
+    return "$bad"
+}
+
+usage() {
+    cat <<'EOF'
+usage: bfs-deps <command> [pkgs...]
+
+  quickdep pkgs...    full dependency closure, space-separated
+  order    pkgs...    topological install order, one per line
+  missing  pkgs...    closure minus installed, in install order
+  isinst   pkgs...    "installed <n>" / "not installed <n>"
+  deps     <pkg>      direct dependencies of one port
+  check    pkgs...    fail if any named port or dep is unknown
+
+Environment:
+  BFS_DEPS_PORTSDIR     ports root        (default /usr/ports)
+  BFS_DEPS_COLLECTIONS  search order      (core opt xorg ... compat-32)
+  PACMAN                install checker   (default pacman)
+EOF
+}
+
+cmd="${1:-}"; shift 2>/dev/null || true
+case "$cmd" in
+    quickdep)
+        [ $# -ge 1 ] || { usage >&2; exit 2; }
+        # shellcheck disable=SC2046
+        printf '%s\n' "$(compute_closure "$@" | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+        ;;
+    order)
+        [ $# -ge 1 ] || { usage >&2; exit 2; }
+        closure="$(compute_closure "$@")"
+        # shellcheck disable=SC2086
+        compute_order $closure
+        ;;
+    missing)
+        [ $# -ge 1 ] || { usage >&2; exit 2; }
+        closure="$(compute_closure "$@")"
+        # shellcheck disable=SC2086
+        compute_order $closure | filter_missing
+        ;;
+    isinst)
+        [ $# -ge 1 ] || { usage >&2; exit 2; }
+        isinst_report "$@"
+        ;;
+    deps)
+        [ $# -eq 1 ] || { usage >&2; exit 2; }
+        if ! port="$(port_path "$1")" || [ ! -r "$port/Pkgfile" ]; then
+            printf 'bfs-deps: unknown port: %s\n' "$1" >&2
+            exit 1
+        fi
+        read_depends "$port"
+        ;;
+    check)
+        check_deps "$@"
+        ;;
+    -h|--help|help|"")
+        usage
+        [ -n "$cmd" ] && exit 0
+        exit 2
+        ;;
+    *)
+        printf 'bfs-deps: unknown command: %s\n' "$cmd" >&2
+        usage >&2
+        exit 2
+        ;;
+esac

@@ -11,7 +11,7 @@ ALSA provides basic audio support.
 ### Installation
 
 ```bash
-prt-get install alsa-utils
+bfsos install alsa-utils
 ```
 
 ### Configuration
@@ -57,7 +57,7 @@ PulseAudio provides advanced audio features. For a desktop, prefer per-user Puls
 ### Installation
 
 ```bash
-prt-get install pulseaudio
+bfsos install pulseaudio
 ```
 
 ### System-Wide Mode
@@ -100,8 +100,8 @@ PipeWire is a modern multimedia server. Its OpenRC wrapper requires D-Bus and sh
 ### Installation
 
 ```bash
-prt-get install pipewire
-prt-get install wireplumber
+bfsos install pipewire
+bfsos install wireplumber
 ```
 
 ### System-Wide Configuration

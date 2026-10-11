@@ -16,10 +16,10 @@ Before installing web browsers, ensure the following are configured:
 
 ```bash
 # Install Firefox
-prt-get install firefox
+bfsos install firefox
 
 # Or binary version (faster updates)
-prt-get install firefox-bin
+bfsos install firefox-bin
 ```
 
 ### OpenRC Service
@@ -108,10 +108,10 @@ media.eme.enabled = true;
 
 ```bash
 # Install Chromium
-prt-get install chromium
+bfsos install chromium
 
 # Or binary version
-prt-get install chromium-bin
+bfsos install chromium-bin
 ```
 
 ### Configuration
@@ -184,7 +184,7 @@ EOF
 
 ```bash
 # Install Brave
-prt-get install brave-browser
+bfsos install brave-browser
 
 # Configuration
 ~/.config/BraveSoftware/Brave-Browser/
@@ -194,7 +194,7 @@ prt-get install brave-browser
 
 ```bash
 # Install Vivaldi
-prt-get install vivaldi
+bfsos install vivaldi
 
 # Configuration
 ~/.config/vivaldi/
@@ -204,7 +204,7 @@ prt-get install vivaldi
 
 ```bash
 # Install Qutebrowser
-prt-get install qutebrowser
+bfsos install qutebrowser
 
 # Configuration
 mkdir -p ~/.config/qutebrowser

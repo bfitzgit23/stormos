@@ -16,22 +16,22 @@ Before installing XFCE, ensure the following are configured:
 ### Core Packages
 
 ```bash
-prt-get install xfce4 xfce4-terminal thunar
+bfsos install xfce4 xfce4-terminal thunar
 ```
 
 ### Recommended Additions
 
 ```bash
-prt-get install xfce4-whiskermenu-plugin xfce4-clipman-plugin
-prt-get install xfce4-screenshooter-plugin xfce4-taskmanager
-prt-get install ristretto mousepad parole
+bfsos install xfce4-whiskermenu-plugin xfce4-clipman-plugin
+bfsos install xfce4-screenshooter-plugin xfce4-taskmanager
+bfsos install ristretto mousepad parole
 ```
 
 ### Notifications and Theming
 
 ```bash
-prt-get install xfce4-notifyd xfce4-power-manager
-prt-get install arc-icons arc-themes gtk-engine-murrine
+bfsos install xfce4-notifyd xfce4-power-manager
+bfsos install arc-icons arc-themes gtk-engine-murrine
 ```
 
 ## OpenRC Integration

@@ -11,7 +11,7 @@ BlueZ is the official Linux Bluetooth stack.
 ### Installation
 
 ```bash
-prt-get install bluez
+bfsos install bluez
 ```
 
 ### Configuration

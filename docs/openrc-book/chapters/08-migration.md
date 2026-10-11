@@ -24,7 +24,7 @@ This chapter covers migrating a system from systemd to OpenRC. The systemd comma
 ### Install the OpenRC Runtime
 
 ```bash
-prt-get install openrc openrc-init-scripts eudev dbus sysklogd chrony openresolv consolekit2
+bfsos install openrc openrc-init-scripts eudev dbus sysklogd chrony openresolv consolekit2
 mkdir -p /etc/runlevels/{sysinit,boot,default,nonetwork,shutdown}
 
 rc-update add udev sysinit
@@ -61,7 +61,7 @@ tail -f /var/log/messages
 OpenRC does not implement systemd timer units. Convert `OnCalendar=daily` jobs to cron files:
 
 ```bash
-prt-get install cronie
+bfsos install cronie
 rc-update add crond boot 2>/dev/null || true
 cat > /etc/cron.d/stormfs-cleanup << 'EOF'
 17 3 * * * root /usr/local/bin/stormfs-cleanup.sh
@@ -96,10 +96,10 @@ systemctl list-units --type=service --state=running
 
 ```bash
 # Install OpenRC
-prt-get install openrc
+bfsos install openrc
 
 # Install init scripts
-prt-get install openrc-init-scripts
+bfsos install openrc-init-scripts
 ```
 
 ### Step 2: Create Runlevel Directories
@@ -161,10 +161,10 @@ sudo rc-update add sshd default
 
 ```bash
 # Remove systemd (careful!)
-prt-get remove systemd
+bfsos remove systemd
 
 # Remove systemd-related packages
-prt-get remove systemd-libs
+bfsos remove systemd-libs
 ```
 
 ## Common Issues
@@ -174,7 +174,8 @@ prt-get remove systemd-libs
 Some packages may depend on systemd. Check with:
 
 ```bash
-prt-get depends <package>
+bfsos native -Qi <package>    # pacman metadata + depends of an installed port
+bfs-deps deps <package>       # its declared Pkgfile dependencies
 ```
 
 ### Issue 2: D-Bus Services
@@ -182,7 +183,7 @@ prt-get depends <package>
 D-Bus services may need a session/seat provider but do not require systemd. Use the ConsoleKit2 port in this repository:
 
 ```bash
-prt-get install consolekit2
+bfsos install consolekit2
 # ConsoleKit2 is activated through the D-Bus system bus.
 rc-update add dbus boot 2>/dev/null || true
 ```
@@ -192,7 +193,7 @@ rc-update add dbus boot 2>/dev/null || true
 Systemd uses journald. Switch to syslog:
 
 ```bash
-prt-get install sysklogd openrc-init-scripts
+bfsos install sysklogd openrc-init-scripts
 sudo rc-update add syslog boot
 ```
 
@@ -206,7 +207,7 @@ mkdir /tmp/test-system
 # ... setup chroot ...
 
 # Install OpenRC in chroot
-chroot /tmp/test-system prt-get install openrc
+chroot /tmp/test-system bfsos install openrc
 
 # Test services
 chroot /tmp/test-system rc-update add networkmanager default

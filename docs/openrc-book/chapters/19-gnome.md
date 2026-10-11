@@ -16,21 +16,21 @@ Before installing GNOME, ensure the following are configured:
 ### Core Packages
 
 ```bash
-prt-get install gnome gnome-apps-meta
+bfsos install gnome gnome-apps-meta
 ```
 
 ### GNOME Core Components
 
 ```bash
-prt-get install gnome-shell gnome-terminal nautilus
-prt-get install gedit eog evince totem
+bfsos install gnome-shell gnome-terminal nautilus
+bfsos install gedit eog evince totem
 ```
 
 ### Recommended Additions
 
 ```bash
-prt-get install gnome-tweaks gnome-shell-extensions
-prt-get install gnome-control-center gdm
+bfsos install gnome-tweaks gnome-shell-extensions
+bfsos install gnome-control-center gdm
 ```
 
 ## GDM Integration
@@ -38,7 +38,7 @@ prt-get install gnome-control-center gdm
 ### Installation
 
 ```bash
-prt-get install gdm
+bfsos install gdm
 ```
 
 ### OpenRC Service
@@ -126,7 +126,7 @@ gnome-control-center sound
 
 ```bash
 # Install and launch GNOME Tweaks
-prt-get install gnome-tweaks
+bfsos install gnome-tweaks
 gnome-tweaks
 ```
 
@@ -152,7 +152,7 @@ gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita'
 
 ```bash
 # Install GNOME Extensions
-prt-get install gnome-shell-extensions
+bfsos install gnome-shell-extensions
 
 # Enable extensions
 gnome-extensions enable dash-to-dock@dash-to-shell.gnome.org

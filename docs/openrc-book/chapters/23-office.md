@@ -16,10 +16,10 @@ Before installing office suites, ensure the following are configured:
 
 ```bash
 # Install LibreOffice
-prt-get install libreoffice-bin
+bfsos install libreoffice-bin
 
 # Or with additional languages
-prt-get install libreoffice-bin-l10n-en-us
+bfsos install libreoffice-bin-l10n-en-us
 ```
 
 ### LibreOffice Components
@@ -107,7 +107,7 @@ libreoffice --options
 
 ```bash
 # Install OnlyOffice
-prt-get install onlyoffice-desktopeditors
+bfsos install onlyoffice-desktopeditors
 ```
 
 ### Configuration
@@ -145,7 +145,7 @@ xdg-mime default onlyoffice-desktopeditors.desktop application/vnd.openxmlformat
 
 ```bash
 # Install Evince
-prt-get install evince
+bfsos install evince
 
 # Launch Evince
 evince /path/to/document.pdf
@@ -158,7 +158,7 @@ xdg-mime default evince.desktop application/pdf
 
 ```bash
 # Install Okular
-prt-get install okular
+bfsos install okular
 
 # Launch Okular
 okular /path/to/document.pdf
@@ -183,7 +183,7 @@ gsettings set org.gnome.Evince.Default auto-reload true
 
 ```bash
 # Install AbiWord
-prt-get install abiword
+bfsos install abiword
 
 # Launch AbiWord
 abiword /path/to/document.odt
@@ -193,7 +193,7 @@ abiword /path/to/document.odt
 
 ```bash
 # Install Gnumeric
-prt-get install gnumeric
+bfsos install gnumeric
 
 # Launch Gnumeric
 gnumeric /path/to/spreadsheet.ods
@@ -203,7 +203,7 @@ gnumeric /path/to/spreadsheet.ods
 
 ```bash
 # Install Pandoc
-prt-get install pandoc
+bfsos install pandoc
 
 # Convert document formats
 pandoc input.docx -o output.odt
@@ -243,9 +243,9 @@ pandoc input.html -o output.docx
 
 1. Install additional fonts:
    ```bash
-   prt-get install ttf-liberation
-   prt-get install ttf-dejavu
-   prt-get install noto-fonts
+   bfsos install ttf-liberation
+   bfsos install ttf-dejavu
+   bfsos install noto-fonts
    ```
 
 2. Clear font cache:

@@ -1,4 +1,4 @@
-# Description: CRUX package management utilities with BFSOS pkgmk extensions
+# Description: CRUX package management utilities with BFSOS pkgmk extensions and pacman pipeline tools
 # URL: https://crux.nu/
 # Maintainer: Brian Madonna <bmadonnaster@gmail.com>
 # Depends on: zstd
@@ -11,6 +11,9 @@ source=(https://crux.nu/files/$name-$version.tar.xz
         pkgmk.conf
         extension
         bfs-pkgmk
+        bfs-build
+        bfs-deps
+        bfsos
         pkgutils_source-fallbacks.patch
         pkgutils_numeric-owner-extract.patch)
 
@@ -209,6 +212,9 @@ unset _bfs_utf8_locale _bfs_locale _bfs_locale_cmd _bfs_pkgmk_path' "$PKG/usr/bi
         install -dm755 -o 0 -g 0 "$PKG/var/lib/pkgmk"
         install -m644 -o 0 -g 0 "$SRC/extension" "$PKG/var/lib/pkgmk/extension"
         install -Dm755 "$SRC/bfs-pkgmk" "$PKG/usr/bin/bfs-pkgmk"
+        install -Dm755 "$SRC/bfs-build" "$PKG/usr/bin/bfs-build"
+        install -Dm755 "$SRC/bfs-deps" "$PKG/usr/bin/bfs-deps"
+        install -Dm755 "$SRC/bfsos" "$PKG/usr/bin/bfsos"
         install -m664 -o 82 -g 82 /dev/null "$PKG/var/lib/pkgmk/build-times.log"
 
         # A pkgutils archive without its dispatcher would make every migrated

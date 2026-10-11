@@ -16,7 +16,7 @@ Before installing system utilities, ensure the following are configured:
 
 ```bash
 # Install Thunar
-prt-get install thunar thunar-archive-plugin thunar-volman
+bfsos install thunar thunar-archive-plugin thunar-volman
 
 # Launch Thunar
 thunar
@@ -42,7 +42,7 @@ xdg-mime default thunar.desktop inode/directory
 
 ```bash
 # Install Dolphin
-prt-get install dolphin dolphin-plugins
+bfsos install dolphin dolphin-plugins
 
 # Launch Dolphin
 dolphin
@@ -55,7 +55,7 @@ xdg-mime default dolphin.desktop inode/directory
 
 ```bash
 # Install Nautilus
-prt-get install nautilus nautilus-sendto
+bfsos install nautilus nautilus-sendto
 
 # Launch Nautilus
 nautilus
@@ -68,7 +68,7 @@ xdg-mime default org.gnome.Nautilus.desktop inode/directory
 
 ```bash
 # Install PCManFM
-prt-get install pcmanfm pcmanfm-qt
+bfsos install pcmanfm pcmanfm-qt
 
 # Launch PCManFM
 pcmanfm
@@ -81,7 +81,7 @@ xdg-mime default pcmanfm-qt.desktop inode/directory
 
 ```bash
 # Install Double Commander
-prt-get install doublecmd-gtk2
+bfsos install doublecmd-gtk2
 
 # Launch Double Commander
 doublecmd
@@ -93,7 +93,7 @@ doublecmd
 
 ```bash
 # Install file-roller
-prt-get install file-roller
+bfsos install file-roller
 
 # Launch file-roller
 file-roller
@@ -106,7 +106,7 @@ file-roller --extract-here /path/to/archive.tar.gz
 
 ```bash
 # Install Xarchiver
-prt-get install xarchiver
+bfsos install xarchiver
 
 # Launch Xarchiver
 xarchiver
@@ -119,7 +119,7 @@ xarchiver --extract /path/to/archive.tar.gz
 
 ```bash
 # Install Ark
-prt-get install ark
+bfsos install ark
 
 # Launch Ark
 ark
@@ -150,7 +150,7 @@ unzip archive.zip
 
 ```bash
 # Install GParted
-prt-get install gparted
+bfsos install gparted
 
 # Launch GParted (requires root)
 sudo gparted
@@ -160,7 +160,7 @@ sudo gparted
 
 ```bash
 # Install GNOME Disk Utility
-prt-get install gnome-disk-utility
+bfsos install gnome-disk-utility
 
 # Launch GNOME Disk Utility
 gnome-disks
@@ -170,7 +170,7 @@ gnome-disks
 
 ```bash
 # Install GSmartControl
-prt-get install gsmartcontrol
+bfsos install gsmartcontrol
 
 # Launch GSmartControl
 sudo gsmartcontrol
@@ -204,7 +204,7 @@ sudo mkfs.ext4 /dev/sda1
 
 ```bash
 # Install htop
-prt-get install htop
+bfsos install htop
 
 # Launch htop
 htop
@@ -220,7 +220,7 @@ htop -t
 
 ```bash
 # Install btop
-prt-get install btop
+bfsos install btop
 
 # Launch btop
 btop
@@ -230,7 +230,7 @@ btop
 
 ```bash
 # Install glances
-prt-get install glances
+bfsos install glances
 
 # Launch glances
 glances
@@ -243,7 +243,7 @@ glances -w
 
 ```bash
 # Install bashtop
-prt-get install bashtop
+bfsos install bashtop
 
 # Launch bashtop
 bashtop
@@ -274,7 +274,7 @@ pstree
 
 ```bash
 # Install kitty
-prt-get install kitty
+bfsos install kitty
 
 # Launch kitty
 kitty
@@ -315,7 +315,7 @@ EOF
 
 ```bash
 # Install Alacritty
-prt-get install alacritty
+bfsos install alacritty
 
 # Launch Alacritty
 alacritty
@@ -356,7 +356,7 @@ EOF
 
 ```bash
 # Install foot
-prt-get install foot
+bfsos install foot
 
 # Launch foot
 foot
@@ -390,19 +390,19 @@ EOF
 
 ```bash
 # XFCE Terminal
-prt-get install xfce4-terminal
+bfsos install xfce4-terminal
 xfce4-terminal
 
 # Konsole (KDE)
-prt-get install konsole
+bfsos install konsole
 konsole
 
 # GNOME Terminal
-prt-get install gnome-terminal
+bfsos install gnome-terminal
 gnome-terminal
 
 # Terminator (multi-pane)
-prt-get install terminator
+bfsos install terminator
 terminator
 ```
 
@@ -412,9 +412,9 @@ terminator
 
 ```bash
 # Install clipboard manager
-prt-get install clipmenu
+bfsos install clipmenu
 # or
-prt-get install parcellite
+bfsos install parcellite
 
 # Launch clipboard manager
 clipmenud
@@ -424,9 +424,9 @@ clipmenud
 
 ```bash
 # Install screenshot tool
-prt-get install xfce4-screenshooter
+bfsos install xfce4-screenshooter
 # or
-prt-get install flameshot
+bfsos install flameshot
 
 # Take screenshot
 xfce4-screenshooter
@@ -437,7 +437,7 @@ flameshot gui
 
 ```bash
 # Install system information tools
-prt-get install neofetch screenfetch
+bfsos install neofetch screenfetch
 
 # Display system info
 neofetch
@@ -448,7 +448,7 @@ screenfetch
 
 ```bash
 # Install archive managers
-prt-get install atool
+bfsos install atool
 
 # List archive contents
 atool --list archive.tar.gz
