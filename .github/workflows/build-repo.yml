@@ -1,0 +1,105 @@
+name: Build BFSOS pacman repository
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [stormfs]
+    paths:
+      - 'ports/**'
+      - 'packages/**'
+      - '.github/workflows/build-repo.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-repo:
+    name: Build packages + bfsos.db
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref == 'stormfs' && 'stormfs' || 'stormfs' }}
+          fetch-depth: 0
+
+      - name: Cache source tarballs
+        uses: actions/cache@v4
+        with:
+          path: sources
+          key: bfs-sources-${{ runner.os }}-${{ hashFiles('ports/core/*/Pkgfile') }}
+          restore-keys: |
+            bfs-sources-${{ runner.os }}-
+
+      - name: Install host prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            curl xz-utils zstd gzip tar bsdmainutils libarchive-tools bsdtar || true
+          # bsdtar may not be present; libarchive-tools provides bsdtar.
+          command -v bsdtar >/dev/null 2>&1 || sudo apt-get install -y --no-install-recommends libarchive-tools || true
+          command -v zstd >/dev/null 2>&1 || {
+            # need a zstd (not all runners ship one)
+            sudo apt-get install -y --no-install-recommends zstd
+          }
+          zstd --version
+          xz --version
+
+      - name: Stage ports tree
+        run: |
+          set -euo pipefail
+          sudo mkdir -p /usr/ports
+          sudo cp -a ports/. /usr/ports/
+          sudo mkdir -p /var/cache/build/sources /var/cache/repo/packages /var/cache/repo/bfsos
+          # Make the tools available on PATH for bfs-build-all / bfs-repo-add.
+          sudo install -m 0755 ports/core/pkgutils/bfs-build   /usr/bin/bfs-build
+          sudo install -m 0755 ports/core/pkgutils/bfs-deps    /usr/bin/bfs-deps
+          sudo install -m 0755 ports/core/pkgutils/bfsos       /usr/bin/bfsos
+          sudo install -m 0755 ports/core/pkgutils/bfs-repo-add /usr/bin/bfs-repo-add
+          sudo install -m 0755 ports/core/pkgutils/bfs-build-all /usr/bin/bfs-build-all
+
+      - name: Run bfs-build-all (core collection, no-compiler ports)
+        env:
+          BFS_DEPS_PORTSDIR: /usr/ports
+          BFS_SOURCE_DIR: /var/cache/build/sources
+          BFS_PACKAGE_DIR: /var/cache/repo/packages
+          BFS_BUILD_REPODIR: /var/cache/repo/bfsos
+          BFS_REBUILD_EXISTING: yes
+          # on the runner there is no BFSOS toolchain; compiler ports are skipped
+          BFS_SKIP_COMPILER: yes
+        run: bfs-build-all core
+
+      - name: Collect artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p packages/x86_64
+          cp -a /var/cache/repo/packages/*.pkg.tar.* packages/x86_64/ 2>/dev/null || true
+          cp -a /var/cache/repo/bfsos/bfsos.db packages/x86_64/bfsos.db.empty.db 2>/dev/null || true
+          ls -lh packages/x86_64/ | head -40
+
+      - name: Commit updated repo artifacts
+        run: |
+          set -euo pipefail
+          git config user.name  "bfs-build-all bot"
+          git config user.email "actions@github.com"
+          # force-add (packages/* is ignored on the main branch layout)
+          for f in packages/x86_64/*.pkg.tar.* packages/x86_64/bfsos.db; do
+            [ -f "$f" ] || continue
+            git add -f "$f" 2>/dev/null || true
+          done
+          if ! git diff --cached --quiet; then
+            git commit -m "bfs-build-all: refresh packages/ + bfsos.db (CI)"
+            git push origin HEAD:stormfs
+          else
+            echo "No changes to commit."
+          fi
+
+      - name: Upload artifacts for download
+        uses: actions/upload-artifact@v4
+        with:
+          name: bfsos-repo-snapshot
+          path: |
+            packages/x86_64/*.pkg.tar.*
+            packages/x86_64/bfsos.db
+          if-no-files-found: warn

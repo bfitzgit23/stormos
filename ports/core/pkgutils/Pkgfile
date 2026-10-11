@@ -14,6 +14,8 @@ source=(https://crux.nu/files/$name-$version.tar.xz
         bfs-build
         bfs-deps
         bfsos
+        bfs-repo-add
+        bfs-build-all
         pkgutils_source-fallbacks.patch
         pkgutils_numeric-owner-extract.patch)
 
@@ -215,6 +217,8 @@ unset _bfs_utf8_locale _bfs_locale _bfs_locale_cmd _bfs_pkgmk_path' "$PKG/usr/bi
         install -Dm755 "$SRC/bfs-build" "$PKG/usr/bin/bfs-build"
         install -Dm755 "$SRC/bfs-deps" "$PKG/usr/bin/bfs-deps"
         install -Dm755 "$SRC/bfsos" "$PKG/usr/bin/bfsos"
+        install -Dm755 "$SRC/bfs-repo-add" "$PKG/usr/bin/bfs-repo-add"
+        install -Dm755 "$SRC/bfs-build-all" "$PKG/usr/bin/bfs-build-all"
         install -m664 -o 82 -g 82 /dev/null "$PKG/var/lib/pkgmk/build-times.log"
 
         # A pkgutils archive without its dispatcher would make every migrated

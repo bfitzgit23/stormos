@@ -667,10 +667,35 @@ bfsos build nano           # just build a port into the local repo
 bfsos native -Rsc nano     # run pacman verbatim for anything else
 ```
 
+### bfs-repo-add — a repo database builder that works before pacman exists
+
+`repo-add` ships with pacman, but on a fresh BFSOS system the repository
+has to exist before pacman can be used. `bfs-repo-add` writes the same
+`<repo>.db` tarball in the exact layout repo-add produces (one
+`<pkgname>-<pkgver>/desc` and `files` entry per package), so the
+bootstrap/installer can build the initial `bfsos` repository from
+already-built packages and both `pacman` and `repo-add` consume it
+unchanged afterwards. Entries for the same pkgname/pkgver are replaced,
+so repo-add and bfs-repo-add can be intermixed when maintaining the
+repository.
+
+### bfs-build-all — batch builds for CI and mirrors
+
+`bfs-build-all` walks a set of collections, builds every port whose
+recipe invokes no compiler (BFSOS_SKIP_COMPILER=yes), publishes the
+archives with `bfs-build`, and refreshes the `bfsos.db` with
+`bfs-repo-add`. This is what the CI workflow in
+`.github/workflows/build-repo.yml` uses to keep this repository's
+`packages/` directory (and its `bfsos.db`) refreshed; nothing stops you
+from running it locally with the full BFSOS toolchain.
+
 ### pacman itself
 
 The `core/pacman` port builds pacman against BFSOS `libarchive`,
 `curl`, and `gpgme` and installs the `bfsos`-only repo configuration.
+The BFSOS installer builds and installs it automatically (`BFS_INSTALL_PACMAN=yes`, now the default) and then seeds the `bfsos`
+repository with bfs-repo-add so `bfsos install/upgrade` works on first
+boot.
 
 ```bash
 # /etc/pacman.conf

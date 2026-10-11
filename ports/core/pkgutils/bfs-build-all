@@ -1,0 +1,93 @@
+#!/bin/bash
+# bfs-build-all - Build every BFSOS port in dependency order and publish
+# into a pacman repository.
+#
+# Used by CI (.github/workflows/build-repo.yml) to keep the stormfs branch's
+# packages/ directory up to date with a real bfsos.db for pacman, and by
+# admins on a ready BFSOS system with:
+#   sudo bfs-build-all core            # build the core collection only
+#   sudo BFS_REBUILD_EXISTING=yes bfs-build-all   # force rebuild
+#
+# Only ports whose recipes contain no compiler invocation are built on a
+# plain ubuntu-latest runner. When a full toolchain is available (BFSOS
+# system or a custom container), BFSOS_COLLECTIONS can be set wider, and
+# BFS_DEPS_COLLECTIONS governs the search order. Anything that needs a
+# compiler is skipped with a note instead of failing the run, because
+# no-compiler Go/Rust builds do not exist in this repo yet.
+#
+# Usage:
+#   bfs-build-all [collections...]
+#
+# Environment:
+#   BFS_DEPS_PORTSDIR      (default /usr/ports)
+#   BFS_SOURCE_DIR         (default /var/cache/build/sources)
+#   BFS_PACKAGE_DIR        (default /var/cache/repo/packages)
+#   BFS_BUILD_REPODIR      (default /var/cache/repo/bfsos)
+#   BFS_REBUILD_EXISTING   yes to rebuild packages already in packages/
+#   BFS_SKIP_COMPILER=yes  skip ports that invoke a compiler (default)
+
+set -eu
+
+PORTSDIR="${BFS_DEPS_PORTSDIR:-/usr/ports}"
+COLLECTIONS="${*:-core}"
+SKIP_COMPILER="${BFS_SKIP_COMPILER:-yes}"
+REBUILD="${BFS_REBUILD_EXISTING:-no}"
+
+PACKAGE_DIR="${BFS_PACKAGE_DIR:-/var/cache/repo/packages}"
+REPO_DIR="${BFS_BUILD_REPODIR:-/var/cache/repo/bfsos}"
+
+mkdir -p "$PACKAGE_DIR" "$REPO_DIR"
+
+echo "bfs-build-all: scanning collections: $COLLECTIONS"
+
+built=0
+skipped_compiler=0
+failed=0
+
+for col in $COLLECTIONS; do
+    [ -d "$PORTSDIR/$col" ] || { printf 'bfs-build-all: no collection %s in %s\n' "$col" "$PORTSDIR" >&2; continue; }
+
+    for port_dir in "$PORTSDIR/$col"/*/; do
+        [ -r "$port_dir/Pkgfile" ] || continue
+        port="$port_dir"
+        pkg="${port%/}"; pkg="$(basename "$pkg")"
+
+        case "$SKIP_COMPILER" in
+            yes)
+                if grep -qE '(^|[[:space:]&;])(make|gcc|g\+\+|cc|clang|cmake|meson|ninja|go[[:space:]]build|cargo[[:space:]]build|python3?(3)?[[:space:]]+setup)([[:space:]]|$)' "$port/Pkgfile"; then
+                    skipped_compiler=$((skipped_compiler + 1))
+                    continue
+                fi
+                ;;
+        esac
+
+        # Already-built check
+        if [ "$REBUILD" != yes ]; then
+            existing="$(find "$PACKAGE_DIR" -maxdepth 1 -type f -name "${pkg}-*.pkg.tar.*" 2>/dev/null | head -n1 || true)"
+            if [ -n "$existing" ]; then
+                echo "bfs-build-all: $pkg already built ($existing); skipping"
+                continue
+            fi
+        fi
+
+        echo "bfs-build-all: building $col/$pkg"
+        if (cd "$port" && bfs-build -d); then
+            built=$((built + 1))
+        else
+            echo "bfs-build-all: FAILED to build $col/$pkg (continuing)" >&2
+            failed=$((failed + 1))
+        fi
+    done
+done
+
+echo "bfs-build-all: built=$built skipped_compiler=$skipped_compiler failed=$failed"
+
+# Build/refresh the repo db over all packages in both PACKAGE_DIR and REPO_DIR.
+# bfs-repo-add handles replacing existing entries per package.
+echo "bfs-build-all: refreshing repository database"
+find "$PACKAGE_DIR" "$REPO_DIR" -maxdepth 1 -type f -name '*.pkg.tar.*' 2>/dev/null > /tmp/bfs-build-all-pkgs
+bfs-repo-add --repo bfsos --dbdir "$REPO_DIR" $(cat /tmp/bfs-build-all-pkgs 2>/dev/null)
+rm -f /tmp/bfs-build-all-pkgs
+
+printf 'bfs-build-all: done. Repository: %s\n' "$REPO_DIR/bfsos.db"
+[ "$failed" -eq 0 ]

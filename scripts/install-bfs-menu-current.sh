@@ -8129,6 +8129,47 @@ else
         log "Package transaction checkpoint already complete; skipping ports/sysup/depinst"
 fi
 
+# --------------------------------------------------------------------------
+# Pacman pipeline bootstrap (--bfsos-pacman, default yes). Installs the
+# core/pacman port through the same pkgutils transaction the installer just
+# finished using, then builds/installs the first batch of bfsos repository
+# packages with the new bfs-build/bfs-deps pipeline, so the installed system
+# boots straight into pacman-based package management.
+# --------------------------------------------------------------------------
+INSTALL_PACMAN_PIPE="${BFS_INSTALL_PACMAN:-yes}"
+if [[ "$INSTALL_PACMAN_PIPE" == yes ]]; then
+        if [[ -d "$PROJECT_DIR/ports/core/pacman" && -f "$PROJECT_DIR/ports/core/pacman/Pkgfile" ]]; then
+                log "Pacman pipeline requested; building and installing core/pacman"
+                if prt-get isinst pacman >/dev/null 2>&1; then
+                        log "pacman is already installed; skipping"
+                else
+                        run_package_operation "pacman pipeline installation" \
+                                prt-get depinst pacman
+                fi
+                if command -v pacman >/dev/null 2>&1; then
+                        # Publish the packages the installer just built from
+                        # source into the pacman-compatible bfsos repository.
+                        # Starting the repo makes bfsos install/upgrade work
+                        # on the first boot. Failures here are not fatal:
+                        # admins can rebuild the repository any time with
+                        # bfs-repo-add.
+                        repo_dir="/var/cache/repo/bfsos"
+                        mkdir -p "$TARGET$repo_dir" 2>/dev/null || true
+                        if command -v bfs-repo-add >/dev/null 2>&1; then
+                                log "Publishing pacman repository database"
+                                bfs-repo-add --repo bfsos --dbdir "$TARGET$repo_dir" \
+                                        "$TARGET"/var/cache/pkg/packages/*.pkg.tar.* 2>/dev/null || \
+                                        log "WARNING: bfs-repo-add could not populate the repository; rebuild later with bfs-repo-add"
+                        fi
+                        log "Pacman pipeline ready: bfsos install/upgrade available after reboot"
+                else
+                        log "WARNING: pacman was requested but is not available after installation"
+                fi
+        else
+                log "Pacman pipeline requested but the core/pacman port is missing; skipping"
+        fi
+fi
+
 if [[ "$INSTALL_GPM_VALUE" == yes ]]; then
         if [[ -f /usr/lib/systemd/system/gpm.service || -f /etc/systemd/system/gpm.service ]]; then
                 offline_systemctl enable gpm.service 2>/dev/null ||

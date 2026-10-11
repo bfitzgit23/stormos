@@ -1,0 +1,169 @@
+#!/bin/bash
+# bfs-repo-add - Build/extend a pacman repository database without repo-add.
+#
+# Hand-rolls the pacman repo-db tarball in the exact layout repo-add
+# (pacman >= 4) produces:
+#
+#     <repo>.db.tar.<ext>
+#     <pkgname>-<pkgver>-<arch>/desc
+#
+# so pacman can consume it directly as the bfsos repository database.
+# This lets BFSOS bootstrap its own repository before pacman is installed,
+# then hand the pipeline over to real repo-add going forward.
+#
+# Usage:
+#   bfs-repo-add <dbpath> <repoext> ...  (internal; see bfs-build)
+#   bfs-repo-add [--repo NAME] [--dbdir DIR] [package files...]
+#
+# Examples:
+#   bfs-repo-add --repo bfsos --dbdir /var/cache/repo/bfsos pkg1.tar.zst ...
+#   ls *.pkg.tar.* | bfs-repo-add --repo bfsos --dbdir /var/cache/repo/bfsos
+#
+# Environment:
+#   BFS_REPO_NAME      (default bfsos)
+#   BFS_REPO_DIR       (default /var/cache/repo/bfsos)
+
+set -eu
+
+REPO_NAME="${BFS_REPO_NAME:-bfsos}"
+REPO_DIR="${BFS_REPO_DIR:-/var/cache/repo/$REPO_NAME}"
+
+_foreach_pkg() {
+    # emit candidate package files from either args or stdin
+    if [ $# -gt 0 ]; then
+        for f in "$@"; do printf '%s\n' "$f"; done
+    else
+        while IFS= read -r f; do [ -n "$f" ] && printf '%s\n' "$f"; done
+    fi
+}
+
+usage() {
+    cat <<EOF
+usage: bfs-repo-add [--repo NAME] [--dbdir DIR] PACKAGE_FILES...
+       ... | bfs-repo-add --repo NAME --dbdir DIR
+
+Builds/extends a pacman repository database (\$dbdir/\$repo.db) from the
+given pacman-format package archives (.pkg.tar.*), writing one desc
+file per package in the standard repo-add layout and packing them as
+\$repo.db (population uses gzip; pacman historically accepts gz, xz, or
+zst). Existing desc entries for the same pkgname/pkgver are replaced.
+EOF
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --repo)  REPO_NAME="$2"; shift 2 ;;
+        --dbdir) REPO_DIR="$2"; shift 2 ;;
+        -h|--help|help) usage; exit 0 ;;
+        --) shift; break ;;
+        -*) printf 'bfs-repo-add: unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+        *)  break ;;
+    esac
+done
+
+dbpath="$REPO_DIR/$REPO_NAME.db"
+
+work="$(mktemp -d /tmp/bfs-repo-add.XXXXXX)"
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$REPO_DIR" "$work"
+
+added=0
+
+# Start from an existing db if present (so repo-add and bfs-repo-add
+# interoperate — both read/write the same tarball).
+if [ -s "$dbpath" ]; then
+    tar -xf "$dbpath" -C "$work" 2>/dev/null || true
+fi
+
+sha256_file="$work/.sha256"
+: > "$sha256_file"
+
+for pkg in $(_foreach_pkg "$@"); do
+    [ -f "$pkg" ] || { printf 'bfs-repo-add: skipping missing file: %s\n' "$pkg" >&2; continue; }
+
+    pkgbase="$(basename "$pkg")"
+    case "$pkgbase" in
+        *.pkg.tar.zst) stem="${pkgbase%.pkg.tar.zst}" ;;
+        *.pkg.tar.xz)  stem="${pkgbase%.pkg.tar.xz}" ;;
+        *.pkg.tar.gz)  stem="${pkgbase%.pkg.tar.gz}" ;;
+        *.pkg.tar.bz2) stem="${pkgbase%.pkg.tar.bz2}" ;;
+        *.pkg.tar)     stem="${pkgbase%.pkg.tar}" ;;
+        *)
+            printf 'bfs-repo-add: not a pacman package: %s\n' "$pkg" >&2
+            continue
+            ;;
+    esac
+
+    # Read .PKGINFO from inside the archive.
+    pinfo="$(tar -xOf "$pkg" .PKGINFO 2>/dev/null || true)"
+    [ -n "$pinfo" ] || { printf 'bfs-repo-add: no .PKGINFO in %s, skipping\n' "$pkg" >&2; continue; }
+
+    get_info() {
+        printf '%s\n' "$pinfo" | sed -n "s/^$1 = //p" | head -n1
+    }
+
+    name="$(get_info pkgname)"
+    ver="$(get_info pkgver)"
+    arch="$(get_info pkgarch)"
+    [ -n "$name" ] && [ -n "$ver" ] || {
+        printf 'bfs-repo-add: bad .PKGINFO in %s, skipping\n' "$pkg" >&2
+        continue
+    }
+
+    builddate="$(get_info builddate)"
+    pkgdesc="$(get_info pkgdesc)"
+    packager="$(get_info packager)"
+    size="$(stat -c '%s' "$pkg" 2>/dev/null || wc -c < "$pkg" | tr -d '[:space:]')"
+    csize="$size"
+    isize=""
+
+    desc_dir="$work/$name-$ver"
+    mkdir -p "$desc_dir"
+    desc="$desc_dir/desc"
+
+    {
+        printf '%%FILENAME%%\n%s\n\n' "$pkgbase"
+        printf '%%NAME%%\n%s\n\n' "$name"
+        printf '%%BASE%%\n%s\n\n' "$name"
+        printf '%%VERSION%%\n%s\n\n' "$ver"
+        printf '%%ARCH%%\n%s\n\n' "$arch"
+        [ -n "$pkgdesc" ]  && printf '%%DESC%%\n%s\n\n' "$pkgdesc"
+        [ -n "$builddate" ] && printf '%%BUILDDATE%%\n%s\n\n' "$builddate"
+        [ -n "$packager" ] && printf '%%PACKAGER%%\n%s\n\n' "$packager"
+        printf '%%SIZE%%\n%s\n\n' "$size"
+        [ -n "$isize" ]    && printf '%%ISIZE%%\n%s\n\n' "$isize"
+        # depends= from the Pkgfile-header-derived .PKGINFO entries.
+        printf '%s\n' "$pinfo" | sed -n 's/^depend = //p' | while IFS= read -r dep; do
+            printf '%%DEPENDS%%\n%s\n\n' "$dep"
+        done
+        printf '%s\n' "$pinfo" | sed -n 's/^optdepend = //p' | while IFS= read -r dep; do
+            printf '%%OPTDEPENDS%%\n%s\n\n' "$dep"
+        done
+        # csizex/size + msum: pacman requires a checksum; sha256 is fine.
+        msum="$(sha256sum "$pkg" | awk '{print $1}')"
+        printf '%%SHA256SUM%%\n%s\n\n' "$msum"
+    } > "$desc"
+
+    # Always ship the repo 'files' entry too — pacman -Ss/pacman -Fy works
+    # out of the box when this is present.
+    files_dir="$work/$name-$ver"
+    files="$files_dir/files"
+    {
+        printf '%%FILES%%\n'
+        tar -tf "$pkg" 2>/dev/null | sed 's#^\.##' | sort -u
+        printf '\n'
+    } > "$files" || true
+
+    added=$((added + 1))
+done
+
+[ "$added" -gt 0 ] || { printf 'bfs-repo-add: nothing added\n' >&2; exit 1; }
+
+# Pack: pacman reads .db as a plain gzipped tarball of one directory per
+# package. Use tar -czf to keep it exactly compatible with repo-add's
+# historical output.
+( cd "$work" && find . -mindepth 1 -maxdepth 1 ! -name .sha256 -print0 \
+  | LC_ALL=C sort -z | xargs -0 tar -czf "$dbpath" )
+
+printf 'bfs-repo-add: +%-4s %s -> %s\n' "$added" "$REPO_NAME" "$dbpath"
+exit 0

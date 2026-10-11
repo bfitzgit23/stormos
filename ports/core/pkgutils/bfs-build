@@ -561,16 +561,27 @@ repodb="$repodir/$reponame.db.tar.gz"
 
 if [ "${BFS_BUILD_ADD_TO_REPO:-yes}" = yes ]; then
     [ -d "$repodir" ] || mkdir -p "$repodir"
+    cp -f -- "$package_file" "$repodir/" 2>/dev/null || {
+        printf 'bfs-build: could not copy %s into %s (skipping repo publish)\n' "$package_file" "$repodir" >&2
+    }
     if command -v repo-add >/dev/null 2>&1; then
-        cp -f -- "$package_file" "$repodir/"
         ( set +e; repo-add "$repodb" "$repodir/$(basename "$package_file")"; )
         status=$?
         if [ "$status" -ne 0 ]; then
             printf 'bfs-build: repo-add returned status %s (package kept, db update failed)\n' "$status" >&2
             exit "$status"
         fi
+    elif command -v bfs-repo-add >/dev/null 2>&1; then
+        # Fall back to the BFSOS hand-rolled repo-add (uses the same repo
+        # db layout as repo-add, can run before pacman exists).
+        ( set +e; BFS_REPO_NAME="$reponame" BFS_REPO_DIR="$repodir" \
+            bfs-repo-add "$repodir/$(basename "$package_file")"; )
+        status=$?
+        if [ "$status" -ne 0 ]; then
+            printf 'bfs-build: bfs-repo-add returned status %s (package kept, db update failed)\n' "$status" >&2
+        fi
     else
-        printf 'bfs-build: repo-add not available; package built but not published into the repo\n' >&2
+        printf 'bfs-build: neither repo-add nor bfs-repo-add available; package built but not published into the repo db\n' >&2
     fi
 fi
 
