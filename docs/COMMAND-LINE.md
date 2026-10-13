@@ -35,6 +35,21 @@ scripts/bfs-build-iso.sh --git-ref main
 
 By default the builder prefers a verified current-release base from the maintained local archive area. Explicit SourceForge mode is useful for release-mirror validation. `--refresh-base` forces a new remote download.
 
+## Rootfs archives (stage3)
+
+The bootstrap creates `bfs-rootfs-<version>-<date>.tar.zst` during stage 5. To produce the same kind of archive on demand from an existing root filesystem — a snapshot before an upgrade, a clone of a tuned system, or a rootfs built by any other means:
+
+```text
+scripts/bfs-mkstage3.sh                          pack / -> ./bfs-stage3-<version>-<date>-<arch>.tar.zst
+scripts/bfs-mkstage3.sh -o /var/tmp/bfs-stage3.tar.zst
+scripts/bfs-mkstage3.sh -r /mnt/stormfs          pack a mounted target or chroot
+scripts/bfs-mkstage3.sh -C xz -l 6                xz instead of zstd
+scripts/bfs-mkstage3.sh -x './opt/*/src'          extra exclude, repeatable
+scripts/bfs-mkstage3.sh --dry-run                 print the tar command, write nothing
+```
+
+Pseudo-filesystems (`/proc`, `/sys`, `/dev`, `/run`, `/tmp`, `/mnt`, `/media`), package caches, and ports work directories are always excluded; the finished archive is re-read to verify it, and the source root is never modified. Restore with `sudo tar --numeric-owner -xpf <archive> -C <target>`.
+
 ## Installer
 
 ```text
