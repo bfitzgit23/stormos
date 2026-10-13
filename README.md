@@ -1,8 +1,8 @@
 # BFSOS
 
-**BFSOS** is a do-it-yourself Linux operating system: you build it from source code on your own machine, so every package is compiled for *your* hardware. It uses an LFS/MLFS-style bootstrap, CRUX `pkgutils`/ports for package builds, and `prt-get` for dependency-aware package management, with a choice of **systemd**, **OpenRC**, or **SysVinit** as the init system.
+**BFSOS** is a do-it-yourself, x86_64 source-built Linux distribution: you build it from source code on your own machine, so every package is compiled for *your* hardware. It uses an LFS/MLFS-style bootstrap, CRUX `pkgutils`/ports for package builds, and `prt-get` for dependency-aware package management, with a choice of **systemd**, **OpenRC**, or **SysVinit** as the init system. Dracut initramfs generation, GRUB, and a Dialog-based installer with simple and layered storage layouts are included.
 
-BFSOS is an x86_64 source-built Linux distribution maintained by Brian Madonna. This repository (StormFS-Linux) carries the BFSOS baseline plus the StormFS ports, the init-selection layer, and documentation; the packaging baseline is imported from <https://codeberg.org/bmadonnaster/BFSOS>. Dracut initramfs generation, GRUB, and a Dialog-based installer with simple and layered storage layouts are included.
+BFSOS is maintained by Brian Madonna. This working tree (StormFS-Linux) carries the BFSOS baseline plus the StormFS ports, the init-selection layer, and documentation; the packaging baseline is imported from <https://codeberg.org/bmadonnaster/BFSOS>.
 
 > **Current release:** 0.9.0. BFSOS is usable for development and testing, but the 1.0 release line is still under active validation. Keep backups when testing installer/storage changes on important systems.
 
@@ -140,7 +140,7 @@ Each profile pulls in the matching service packages and dependency set automatic
 
 ## Core design
 
-BFSOS builds a temporary toolchain, uses it to build the base system, and can then rebuild that base with its own final toolchain as a self-hosting check. Package recipes follow the CRUX ports layout (`ports/<collection>/<name>/Pkgfile`), are consumed by `pkgutils`, and are resolved by `prt-get`; the same recipes additionally emit pacman-format packages into a local `bfsos` repository through the `bfs-build`/`bfs-deps`/`bfsos` pipeline. Init-system integration is selected per build rather than hard-coded, and every stage is reproducible from the tree with `bootstrap.sh`.
+BFSOS builds a temporary toolchain, uses it to build the base system, and can then rebuild that base with its own final toolchain as a self-hosting check. Package recipes follow the CRUX ports layout (`ports/<collection>/<name>/Pkgfile`, or `.spkgbuild` on the `scratchpkg` branch), are consumed by `pkgutils`, and are resolved by `prt-get`; the same recipes additionally emit pacman-format packages into a local `bfsos` repository through the `bfs-build`/`bfs-deps`/`bfsos` pipeline. Init-system integration is selected per build rather than hard-coded, and every stage is reproducible from the tree with `bootstrap.sh`.
 
 ## Highlights
 
@@ -166,14 +166,13 @@ BFSOS builds a temporary toolchain, uses it to build the base system, and can th
 - `bootstrap.sh` — authoritative BFSOS bootstrap menu, direct stage commands, full bootstrap, and ISO/installer handoff.
 - `ports/` — package recipes. `ports/core` is the release-critical base collection; other collections (`opt`, `gnome`, `xorg`, `plasma`, `lxqt`, `xfce`, `compiz`, `contrib`, `compat-32`, `iso`) are broader and may receive cleanup independently of the 1.0 core release.
 - `profiles/init/` — per-init-system package manifests, audit data, and generated ports overlays.
-- `scripts/install-bfs-menu-*.sh` — installer revisions; use the newest validated revision.
-- `scripts/bfs-build-iso.sh` — canonical live ISO builder.
-- `scripts/bfs-publish-sourceforge.sh` — canonical SourceForge publisher.
-- `scripts/bfs-mkstage3.sh` — stage3 rootfs archive builder (see *Stage3 rootfs archive*).
-- `scripts/bfs-spkgbuild-all.sh` — whole-tree build for the scratchpkg variant.
-- `scripts/bfs-ports-to-spkgbuild.py` — the CRUX→scratchpkg port converter and validator.
-- `scripts/tests/` — source/regression checks.
-- `scripts/` — maintenance, migration, ports, and repository helpers.
+- `scripts/` — maintenance, migration, ports, and repository helpers:
+  - `install-bfs-menu-*.sh` — installer revisions; use the newest validated revision;
+  - `bfs-build-iso.sh` — canonical live ISO builder;
+  - `bfs-publish-sourceforge.sh` — canonical SourceForge publisher;
+  - `bfs-mkstage3.sh` — stage3 rootfs archive builder (see *Stage3 rootfs archive*);
+  - `bfs-spkgbuild-all.sh` / `bfs-ports-to-spkgbuild.py` — whole-tree builds and the CRUX→scratchpkg port converter for the scratchpkg variant;
+  - `tests/` — source/regression checks.
 - `docs/` — installation, audit, tracker, maintenance, and reference documentation, including the LFS and OpenRC/BLFS books under `docs/`.
 - `files/` — shared BFSOS build/runtime support files.
 - `archives/` — generated toolchain/base archives when present locally (normally not tracked).
@@ -286,30 +285,6 @@ sudo tar --one-file-system --numeric-owner \
   -I 'zstd -19 -T0' -cpf bfs-stage3.tar.zst -C / .
 ```
 
-## The scratchpkg variant
-
-Everything above describes the CRUX `pkgutils` main line. A second copy of the
-ports tree, adapted for **scratchpkg** (Venom Linux's `scratch`/`pkgbuild`),
-lives on the `scratchpkg` branch of this repository. There every port is a
-`.spkgbuild` recipe, port names are lowercase, and the CRUX build conventions
-(source-directory entry, automatic patch application, default autotools/meson/
-cmake/make builds) come from a shared library the recipes source:
-
-```sh
-# build and install a port with its dependencies
-scratch install bzip2
-
-# build a whole collection
-sudo scripts/bfs-spkgbuild-all.sh -c core -j4
-
-# validate the converted tree
-python3 scripts/bfs-ports-to-spkgbuild.py --check
-```
-
-See `docs/SCRATCHPKG-VARIANT.md` for the recipe format, the conversion tooling,
-the `/etc/scratchpkg.conf`/`/etc/scratchpkg.repo` layout, and what is
-intentionally left on the `pkgutils` side (the base bootstrap and installer).
-
 ## Installer and storage
 
 The installer can build simple layouts or layered storage such as:
@@ -343,7 +318,7 @@ Build a single port manually the way pkgutils does it:
 cd /usr/ports/opt/flatpak && pkgmk -d && pkgadd flatpak#*.pkg.tar.zst
 ```
 
-BFSOS uses `python3` as the Python 3 package name; Python module ports use the `python3-*` naming convention.
+BFSOS uses `python3` as the Python 3 package name; Python module ports use the `python3-*` naming convention. On the `scratchpkg` branch the same tree is driven by `scratch install <port>`, `scratch upgrade`, `scratch search <pattern>` and `portsync` — see *The scratchpkg variant* below.
 
 ### Package-management roles
 
@@ -360,6 +335,30 @@ BFSOS-maintained collections use the Git-backed monorepo definition `/etc/ports/
 - Install **`gnome-software`** (`prt-get depinst gnome-software`) for a graphical store covering both native BFSOS packages and Flatpak applications.
 - The **`flathub`** port registers the Flathub remote automatically (`flatpak remote-add --if-not-exists`); it is idempotent and safe across upgrades.
 - After installing native packages that ship desktop apps, refresh the store's native catalog with `bfsos-appstream` (installed by the `gnome-software` port).
+
+## The scratchpkg variant
+
+Everything above describes the CRUX `pkgutils` main line. A second copy of the
+ports tree, adapted for **scratchpkg** (Venom Linux's `scratch`/`pkgbuild`),
+lives on the `scratchpkg` branch of this repository. There every port is a
+`.spkgbuild` recipe, port names are lowercase, and the CRUX build conventions
+(source-directory entry, automatic patch application, default autotools/meson/
+cmake/make builds) come from a shared library the recipes source:
+
+```sh
+# build and install a port with its dependencies
+scratch install bzip2
+
+# build a whole collection
+sudo scripts/bfs-spkgbuild-all.sh -c core -j4
+
+# validate the converted tree
+python3 scripts/bfs-ports-to-spkgbuild.py --check
+```
+
+See `docs/SCRATCHPKG-VARIANT.md` for the recipe format, the conversion tooling,
+the `/etc/scratchpkg.conf`/`/etc/scratchpkg.repo` layout, and what is
+intentionally left on the `pkgutils` side (the base bootstrap and installer).
 
 ## Init profiles
 
@@ -393,8 +392,7 @@ When reporting a problem, include the failing stage/package, relevant log, stora
 
 - BFSOS remains under active 1.0 RC validation; not every hardware/storage combination has been tested.
 - Non-core ports can lag or need repair independently of the release-critical base. The non-core collections may contain stale or broken recipes even when the core system is release-ready.
-- Reusable installer profiles intentionally do not persist passwords or LUKS passphrases.
-- Installer configuration-profile support is partial; secrets such as passwords and LUKS passphrases are never stored.
+- Installer profiles do not persist secrets and their support is partial: passwords and LUKS passphrases are never stored in a reusable profile.
 - GRUB is the currently validated bootloader path; alternative bootloaders such as Limine remain future work.
 - The gnome-software native-package integration is catalog-based (AppStream XML generated from the ports tree); deep PackageKit-style transactional native package management from the GUI is future work.
 - The scratchpkg variant keeps the bootstrapped base on `pkgutils`: `scratch`/`pkgbuild` currently build the ports tree, they do not yet drive the base-system bootstrap.
