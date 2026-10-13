@@ -1,0 +1,31 @@
+# description : Tools and library to manipulate EFI variables
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : popt
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mandoc
+version=1.14.6
+release=1
+source="https://mandoc.bsd.lv/snapshots/mandoc-1.14.6.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+		./configure &&
+		make mandoc
+
+	    	./configure &&
+	make mandoc
+	mkdir -p $PKG/usr/bin
+	install -vm755 mandoc   $PKG/usr/bin &&
+	mkdir -p $PKG/usr/share/man/man1
+	install -vm644 mandoc.1 $PKG/usr/share/man/man1
+}

@@ -1,0 +1,32 @@
+# description : library that handles input devices for display servers
+# homepage    : https://www.freedesktop.org/wiki/Software/libinput/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : systemd mtdev libevdev
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libinput
+version=1.31.3
+release=2
+source="https://gitlab.freedesktop.org/libinput/libinput/-/archive/$version/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		mkdir build &&
+		cd    build &&
+
+	meson setup --prefix=$XORG_PREFIX    \
+	            --buildtype=release      \
+	            -Ddebug-gui=false        \
+	            -Dtests=false            \
+	            -Dlibwacom=false         \
+	            -Dudev-dir=/usr/lib/udev \
+	            ..                      &&
+		ninja
+		DESTDIR=$PKG ninja install
+}

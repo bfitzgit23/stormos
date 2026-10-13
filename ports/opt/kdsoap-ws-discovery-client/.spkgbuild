@@ -1,0 +1,30 @@
+# description : Qt 6 WS-Discovery client library based on KDSoap
+# homepage    : https://invent.kde.org/libraries/kdsoap-ws-discovery-client
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : extra-cmake-modules kdsoap qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=kdsoap-ws-discovery-client
+version=0.4.0
+release=2
+source="https://deb.debian.org/debian/pool/main/k/$name/${name}_${version}.orig.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -B build -S . \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_PREFIX_PATH="/opt/qt6;/opt/kf6" \
+	    -DQT_MAJOR_VERSION=6 \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DBUILD_TESTING=OFF \
+	    -Wno-author || return 1
+
+	cmake --build build -j${JOBS:-1} || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}

@@ -1,8 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: python3-attrs
-
-name=libei
-version=1.6.0
-release=1
-source=(https://gitlab.freedesktop.org/libinput/${name}/-/archive/${version}/${name}-${version}.tar.gz)
-build_opt="--prefix=/usr --buildtype=release -D tests=disabled"

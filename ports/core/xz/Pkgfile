@@ -1,6 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-name=xz
-version=5.8.4
-release=1
-source=(https://github.com/tukaani-project/xz/releases/download/v$version/xz-$version.tar.xz)
-keep_static=1

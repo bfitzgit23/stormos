@@ -1,0 +1,44 @@
+# description : Programs for manipulating text files
+# homepage    : https://www.gnu.org/software/gawk/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gawk
+version=5.4.1
+release=1
+source="https://ftp.gnu.org/gnu/gawk/gawk-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+    sed -i 's/extras//' Makefile.in
+}
+
+post_build() {
+    local man_dir="$PKG/usr/share/man/man1"
+
+    if [ -f "$man_dir/gawk.1.gz" ]; then
+        rm -f "$man_dir/awk.1" "$man_dir/awk.1.gz"
+        ln -s gawk.1.gz "$man_dir/awk.1.gz"
+    elif [ -f "$man_dir/gawk.1" ]; then
+        rm -f "$man_dir/awk.1" "$man_dir/awk.1.gz"
+        ln -s gawk.1 "$man_dir/awk.1"
+    else
+        echo "gawk: installed gawk.1 man page was not found" >&2
+        return 1
+    fi
+}

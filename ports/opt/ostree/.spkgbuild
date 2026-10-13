@@ -1,0 +1,42 @@
+# description : Operating system and container binary deployment and upgrades
+# homepage    : https://ostreedev.github.io/ostree/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib e2fsprogs fuse2 curl gpgme libxslt
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=ostree
+version=2026.4
+release=1
+source="https://github.com/ostreedev/ostree/releases/download/v${version}/libostree-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd "libostree-$version" || return 1
+
+	./configure \
+	    --prefix=/usr \
+	    --sysconfdir=/etc \
+	    --localstatedir=/var \
+	    --disable-static \
+	    --disable-gtk-doc \
+	    --disable-man \
+	    --with-curl \
+	    --with-soup=no \
+	    --without-systemdsystemunitdir \
+	    || return 1
+
+	make -j "${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" install || return 1
+
+	# OSTree ships systemd units and tmpfiles entries; on BFSOS they are
+	# integration artifacts owned by the init profiles, not this package.
+	rm -rf "$PKG/usr/lib/systemd" "$PKG/lib/systemd" "$PKG/usr/lib/tmpfiles.d"
+
+	find "$PKG" -name '*.la' -delete
+}

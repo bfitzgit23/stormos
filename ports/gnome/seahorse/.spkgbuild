@@ -1,0 +1,29 @@
+# description : seahorse
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gcr4 gnupg gpgme itstool libhandy libpwquality libsecret vala libsoup3 p11-kit openssh avahi gnome-keyring
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=seahorse
+version=47.0.1
+release=3
+source="https://download.gnome.org/sources/$name/47/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	    sed -i "/GPGME_EVENT_NEXT_TRUSTITEM/d" pgp/seahorse-gpgme.c || return 1
+	sed -i -r 's:"(/apps):"/org/gnome\1:' data/*.xml &&
+
+	mkdir build &&
+	cd    build &&
+
+	meson setup --prefix=/usr --buildtype=release .. &&
+	ninja || return 1
+	ninja install || return 1
+}

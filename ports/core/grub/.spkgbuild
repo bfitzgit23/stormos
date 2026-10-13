@@ -1,0 +1,64 @@
+# description : grub
+# homepage    : https://www.gnu.org/software/grub/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : freetype fuse2
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=grub
+version=2.14
+release=3
+build_opt="
+    --prefix=/usr
+    --bindir=/usr/bin
+    --sbindir=/usr/sbin
+    --libdir=/usr/lib
+    --libexecdir=/usr/lib
+    --sysconfdir=/etc
+    --disable-efiemu
+    --enable-grub-mount
+    --enable-grub-mkfont
+    --enable-device-mapper
+    --with-platform=pc
+    --target=i386
+    --disable-werror
+"
+source="https://ftp.gnu.org/gnu/grub/grub-$version.tar.xz extra_deps.lst"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+    #
+    # GRUB supplies target-specific compiler flags and is known to
+    # reject or miscompile with some globally inherited optimization
+    # and architecture flags.
+    #
+    unset CFLAGS
+    unset CXXFLAGS
+
+    #
+    # GRUB 2.14 i386-pc regression: --image-base can produce a
+    # kernel.img starting at 0x9074 instead of the required 0x9000.
+    #
+    export ax_cv_check_ldflags___Wl___image_base_0x400000=no
+
+    install -m 0644 \
+        "$SRC/extra_deps.lst" \
+        grub-core/extra_deps.lst
+}
+
+post_build() {
+    rm -rf "$PKG/usr/share/bash-completion/completions"
+}

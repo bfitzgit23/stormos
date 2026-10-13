@@ -1,0 +1,32 @@
+# description : The libmusicbrainz package contains a library which allows you to access the data held on the MusicBrainz server. This is useful for adding MusicBrainz lookup capabilities to other applications. MusicBrainz is a community music metadatabase that attempts to create a comprehensive music information site. You can use the MusicBrainz data either by browsing the web site, or you can access the data from a client program — for example, a CD player program can use MusicBrainz to identify CDs and provide information about the CD, about the artist or other related information.
+# homepage    : http://ftp.musicbrainz.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : neon cmake libxml2
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libmusicbrainz
+version=5.1.0
+release=2
+source="https://github.com/metabrainz/$name/releases/download/release-$version/$name-$version.tar.gz https://www.linuxfromscratch.org/patches/blfs/svn/$name-$version-cmake_fixes-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	sed -e 's/xmlErrorPtr /const xmlError */'     \
+	    -i src/xmlParser.cc
+
+	mkdir build &&
+	cd    build &&
+
+	cmake -D CMAKE_INSTALL_PREFIX=/usr -D CMAKE_BUILD_TYPE=Release -D CMAKE_POLICY_VERSION_MINIMUM=3.5 .. || return 1 &&
+	make
+
+		make -j${JOBS:-1} || return 1
+	make DESTDIR="$PKG" install || return 1
+}

@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: desktop-file-utils geoclue geocode-glib  gjs libadwaita libportal libshumate libgweather librest
-
-name=gnome-maps
-version=51.0
-release=1
-source=(https://download.gnome.org/sources/${name}/${version%.*}/${name}-${version}.tar.xz)

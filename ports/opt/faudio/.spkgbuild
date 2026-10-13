@@ -1,0 +1,29 @@
+# description : XAudio2 reimplementation
+# homepage    : https://github.com/FNA-XNA/FAudio/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : sdl2 gst-libav
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=faudio
+version=26.09
+release=1
+source="https://github.com/FNA-XNA/FAudio/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S FAudio-$version -B build -G Ninja \
+	  -D CMAKE_INSTALL_PREFIX=/usr \
+	  -D CMAKE_INSTALL_LIBDIR=lib \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+	  -Wno-dev
+
+	cmake --build build
+	DESTDIR=$PKG cmake --install build
+}

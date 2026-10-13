@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: libgudev libpcap vala
-
-name=umockdev
-version=0.19.8
-release=1
-source=(https://github.com/martinpitt/${name}/releases/download/${version}/${name}-${version}.tar.xz)

@@ -1,0 +1,23 @@
+# description : A portable subtitle renderer for the ASS/SSA (Advanced Substation Alpha/Substation Alpha) subtitle format.
+# homepage    : https://github.com/libass/libass
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : fribidi harfbuzz freetype nasm
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libass
+version=0.17.5
+release=2
+source="https://github.com/$name/$name/releases/download/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	 	./configure --prefix=/usr --disable-static &&
+	make
+	 make DESTDIR=$PKG install
+}

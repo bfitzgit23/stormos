@@ -1,0 +1,31 @@
+# description : XSL Transformations library
+# homepage    : https://gitlab.gnome.org/GNOME/libxslt/-/wikis/home
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxml2 python3-setuptools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libxslt
+version=1.1.45
+release=3
+source="https://download.gnome.org/sources/libxslt/${version:0:3}/libxslt-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	  prt-get isinst libgcrypt || PKGMK_LIBXSLT+=' --without-crypto'
+
+	  ./configure --prefix=/usr                          \
+	            --disable-static                       \
+	            --docdir=/usr/share/doc/libxslt-1.1.38 \
+	            PYTHON=/usr/bin/python3 &&
+	make
+	  make DESTDIR=$PKG install
+
+
+}

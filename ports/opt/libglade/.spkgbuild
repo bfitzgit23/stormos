@@ -1,0 +1,25 @@
+# description : The libglade package contains libglade libraries. These are useful for loading Glade interface files in a program at runtime.
+# homepage    : https://gnome.org/sources/libglade/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxml2 gtk
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libglade
+version=2.6.4
+release=1
+source="https://download.gnome.org/sources/$name/2.6/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		sed -i '/DG_DISABLE_DEPRECATED/d' glade/Makefile.in &&
+	./configure --prefix=/usr --disable-static &&
+	make
+		make DESTDIR=$PKG install
+}

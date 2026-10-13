@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		cat > /etc/pam.d/xscreensaver << "EOF"
+# Begin /etc/pam.d/xscreensaver
+
+auth    include system-auth
+account include system-account
+
+# End /etc/pam.d/xscreensaver
+EOF
+		;;
+esac

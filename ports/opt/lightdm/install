@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		if ! getent group lightdm >/dev/null 2>&1; then
+		    groupadd -g 65 lightdm || exit 1
+		fi
+
+		if ! id lightdm >/dev/null 2>&1; then
+		    useradd \
+		        -c "LightDM Daemon" \
+		        -d /var/lib/lightdm \
+		        -u 65 \
+		        -g lightdm \
+		        -s /bin/false \
+		        lightdm || exit 1
+		fi
+
+		install -d -m755 -o lightdm -g lightdm /var/lib/lightdm
+		install -d -m755 -o lightdm -g lightdm /var/lib/lightdm-data
+		install -d -m755 -o lightdm -g lightdm /var/cache/lightdm
+		install -d -m770 -o lightdm -g lightdm /var/log/lightdm
+
+		exit 0
+		;;
+esac

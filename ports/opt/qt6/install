@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		set -eu
+		# Canonical /opt environment is owned by aaa_filesystem.
+		exit 0
+		;;
+	post-install)
+		set -eu
+		# Refresh the loader after the package-owned /etc/ld.so.conf.d/qt6.conf lands.
+		command -v ldconfig >/dev/null 2>&1 && ldconfig
+		;;
+esac

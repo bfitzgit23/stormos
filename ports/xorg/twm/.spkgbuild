@@ -1,0 +1,24 @@
+# description : The twm package contains a very minimal window manager.
+# homepage    : https://www.x.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xorg-libs
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=twm
+version=1.0.13.1
+release=1
+source="https://mirror.freedif.org/pub/blfs/conglomeration/Xorg/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i -e '/^rcdir =/s,^\(rcdir = \).*,\1/etc/X11/app-defaults,' src/Makefile.in || return $?
+	./configure $XORG_CONFIG || return $?
+	make -j "${JOBS:-1}" || return $?
+	make DESTDIR="$PKG" install || return $?
+}

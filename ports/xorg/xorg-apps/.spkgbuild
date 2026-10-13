@@ -1,0 +1,23 @@
+# description : Standard X.Org applications plus BFSOS basic X test/session clients.
+# homepage    : https://www.x.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libpng mesa xbitmaps xcb-util iceauth luit mkfontscale sessreg setxkbmap smproxy x11perf xauth xbacklight xcmsdb xcursorgen xdpyinfo xdriinfo xev xgamma xhost xinput xkbcomp xkbevd xkbutils xkill xlsatoms xlsclients xmessage xmodmap xpr xprop xrandr xrdb xrefresh xset xsetroot xvinfo xwd xwininfo xwud bdftopcf twm xclock xterm
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xorg-apps
+version=7x
+release=3
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	mkdir -p "$PKG/usr/share/bfsos/meta-packages"
+	printf '%s
+' 'BFSOS xorg-apps meta package' \
+	    > "$PKG/usr/share/bfsos/meta-packages/xorg-apps"
+}

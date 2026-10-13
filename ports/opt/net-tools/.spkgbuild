@@ -1,0 +1,32 @@
+# description : net-tools
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=net-tools
+version=2.10
+release=1
+source="https://downloads.sourceforge.net/project/${name}/${name}-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	 export BINDIR='/usr/bin' SBINDIR='/usr/bin' &&
+	yes "" | make -j1                           &&
+
+	make DESTDIR=$PKG/install -j1 install       &&
+	rm -rf   $PKG/install/usr/bin/{nis,yp}domainname    &&
+	rm -rf   $PKG/install/usr/bin/{hostname,dnsdomainname,domainname,ifconfig} &&
+	rm -rf  $PKG/install/usr/share/man/man1            &&
+	rm -rf   $PKG/install/usr/share/man/man8/ifconfig.8 &&
+	unset BINDIR SBINDIR
+	chown -R root:root $PKG/install &&
+	cp -a $PKG/install/* $PKG/
+	rm -rf $PKG/install
+}

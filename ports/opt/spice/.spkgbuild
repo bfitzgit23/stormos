@@ -1,0 +1,32 @@
+# description : SPICE remote display server library
+# homepage    : https://www.spice-space.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cyrus-sasl glib libjpeg-turbo lz4 openssl opus pixman python3-pyparsing spice-protocol zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=spice
+version=0.16.0
+release=1
+build_opt=(
+    -Dgstreamer=no
+    -Dlz4=true
+    -Dsasl=true
+    -Dopus=enabled
+    -Dsmartcard=disabled
+    -Dmanual=false
+    -Dtests=false
+)
+source="https://www.spice-space.org/download/releases/spice-server/spice-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

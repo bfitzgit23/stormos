@@ -1,0 +1,25 @@
+# description : Gparted is the Gnome Partition Editor, a Gtk 3 GUI for other command line tools that can create, reorganise or delete disk partitions.
+# homepage    : https://downloads.sourceforge.net/gparted/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gtkmm3 parted glib itstool polkit
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gparted
+version=1.8.1
+release=1
+source="https://downloads.sourceforge.net/gparted/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	./configure --prefix=/usr    \
+	           --disable-doc    \
+	           --disable-static &&
+	make DESTDIR=$PKG install
+}

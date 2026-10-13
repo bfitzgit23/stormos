@@ -1,0 +1,32 @@
+# description : Network-related giomodules for glib
+# homepage    : https://git.gnome.org/browse/glib-networking/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gnutls gsettings-desktop-schemas
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=glib-networking
+version=2.80.1
+release=2
+source="https://download.gnome.org/sources/$name/2.80/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	mkdir build &&
+	cd    build &&
+
+	meson setup            \
+	   --prefix=/usr       \
+	   --buildtype=release \
+	   -Dlibproxy=disabled \
+	   .. &&
+	ninja
+
+	  DESTDIR=$PKG ninja install
+}

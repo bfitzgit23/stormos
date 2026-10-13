@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: libnotify pulseaudio xfce4-panel libxfce4windowing keybinder-3.0 libcanberra pavucontrol
-
-name=xfce4-pulseaudio-plugin
-version=0.5.1
-release=1
-source=(https://archive.xfce.org/src/panel-plugins/${name}/${version%.*}/${name}-${version}.tar.xz)

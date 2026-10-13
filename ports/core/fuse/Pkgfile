@@ -1,9 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-name=fuse
-version=3.18.3
-release=1
-source=(https://github.com/lib$name/lib$name/releases/download/$name-$version/$name-$version.tar.gz)
-
-post_build() {
-	rm $PKG/dev/fuse
-}

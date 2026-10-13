@@ -1,0 +1,46 @@
+# description : The Libxcrypt package contains a modern library for one-way hashing of passwords.
+# homepage    : https://github.com/besser82/libxcrypt/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libxcrypt
+version=4.5.2
+release=1
+build_opt="--enable-hashes=strong,glibc --enable-obsolete-api=no --disable-failure-tokens"
+source="https://github.com/besser82/libxcrypt/releases/download/v$version/libxcrypt-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# bootstrap.sh calls bootstrap_build() with TOOLS pointing at the
+	# toolchain root; a package build stages into $PKG instead.
+	TOOLS="${TOOLS:-$PKG}"
+	pre_build || return 1
+	bootstrap_build || return 1
+	post_build || return 1
+}
+
+pre_build() {
+sed -i '/strchr/s/const//' lib/crypt-{sm3,gost}-yescrypt.c
+}
+
+post_build() {
+	rm -f $PKG/usr/share/man/man3/crypt.3 $PKG/usr/share/man/man3/crypt_r.3
+}
+
+bootstrap_build() {
+sed -i '/strchr/s/const//' lib/crypt-{sm3,gost}-yescrypt.c
+./configure --prefix=$TOOLS                \
+            --enable-hashes=strong,glibc \
+            --enable-obsolete-api=no     \
+            --disable-static             \
+            --disable-failure-tokens
+make
+make install
+}

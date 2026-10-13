@@ -1,0 +1,26 @@
+# description : Current BLFS GNOME applications meta package
+# homepage    : https://www.gnome.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : baobab brasero evince evolution file-roller gnome-calculator gnome-color-manager gnome-connections gnome-disk-utility gnome-logs gnome-maps gnome-nettool gnome-power-manager gnome-system-monitor gnome-terminal gnome-weather gucharmap loupe seahorse showtime snapshot
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gnome-apps-meta
+version=51.0
+release=2
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	install -d "$PKG/usr/share/doc/$name"
+	cat > "$PKG/usr/share/doc/$name/README" <<'EOT'
+This meta package tracks the BFSOS GNOME 51 application set.
+Applications with GNOME 51 final releases are aligned to that cycle; independent
+or not-yet-51 applications remain at their current stable upstream versions.
+Legacy EOG and gnome-screenshot remain available as standalone BFSOS ports.
+EOT
+}

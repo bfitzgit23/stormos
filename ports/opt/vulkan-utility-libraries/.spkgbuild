@@ -1,0 +1,29 @@
+# description : Utility libraries for Vulkan developers
+# homepage    : https://www.khronos.org/vulkan/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : vulkan-headers
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=vulkan-utility-libraries
+version=1.4.357.0
+release=1
+_commit=5a88b6042edb8f03eefc8de73bd73a899989373f
+source="https://github.com/KhronosGroup/Vulkan-Utility-Libraries/archive/$_commit/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S Vulkan-Utility-Libraries-$_commit -B build -G Ninja \
+	  -D CMAKE_INSTALL_PREFIX=/usr \
+	  -D CMAKE_INSTALL_LIBDIR=lib \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+	  -Wno-dev
+	cmake --build build
+	DESTDIR=$PKG cmake --install build
+}

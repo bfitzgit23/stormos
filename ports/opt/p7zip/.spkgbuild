@@ -1,0 +1,40 @@
+# description : p7zip is the Unix command-line port of 7-Zip, a file archiver that archives with high compression ratios. It handles 7z, ZIP, GZIP, Brotli, BZIP2, XZ, TAR, APM, ARJ, CAB, CHM, CPIO, CramFS, DEB, DMG, FAT, HFS, ISO, Lizard, LZ5, LZFSE, LZH, LZMA, LZMA2, MBR, MSI, MSLZ, NSIS, NTFS, RAR, RPM, SquashFS, UDF, VHD, WIM, XAR, Z, and Zstd formats.
+# homepage    : https://github.com/p7zip-project/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=p7zip
+version=17.06
+release=1
+source="https://github.com/$name-project/$name/archive/v$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed '/^gzip/d' -i install.sh
+	sed -i '160a if(_buffer == nullptr || _size == _pos) return E_FAIL;' CPP/7zip/Common/StreamObjects.cpp
+
+		make all3
+	  mkdir -p $PKG/usr/bin $PKG/usr/share/man $PKG/usr/lib/$name
+	  install -m 0755 bin/{7za,7zr} $PKG/usr/bin
+	  install -m 0755 bin/{7z,7z.so,7zCon.sfx} $PKG/usr/lib/$name
+	  cp -r bin/Codecs $PKG/usr/lib/$name
+	  cp -r man1 $PKG/usr/share/man
+
+	  # Shared library fails to load when placed in /usr/lib/$name.
+	  # A wrapper script is more robust than -rpath or patchelf.
+	  cat >$PKG/usr/bin/7z <<\EOF
+#!/bin/sh
+
+exec /usr/lib/p7zip/7z "$@"
+EOF
+
+  chmod 0755 $PKG/usr/bin/7z
+
+}

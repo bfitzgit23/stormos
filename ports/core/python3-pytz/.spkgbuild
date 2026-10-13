@@ -1,0 +1,25 @@
+# description : World timezone definitions, modern and historical
+# homepage    : https://pythonhosted.org/pytz/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-setuptools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-pytz
+version=2026.3.post1
+release=1
+source="https://pypi.io/packages/source/p/pytz/pytz-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	/usr/bin/python3 setup.py build
+	/usr/bin/python3 setup.py install --root=$PKG \
+	  --optimize=1 \
+	  --skip-build
+}

@@ -1,0 +1,21 @@
+# description : Complete BFSOS Xfce desktop meta package
+# homepage    : https://xfce.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xfce4-session xfce4-settings xfce4-panel xfdesktop xfwm4 xfce4-appfinder thunar thunar-volman tumbler xfce4-power-manager xfce4-apps-meta lightdm-gtk-greeter pipewire wireplumber alsa-utils rtkit samba cifs-utils nfs-utils
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xfce4-meta
+version=4.20.0
+release=4
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	install -d "$PKG/usr/share/bfsos/meta-packages" || return 1
+	printf '%s\n' 'BFSOS complete Xfce 4.20 desktop meta-package.' > "$PKG/usr/share/bfsos/meta-packages/$name"
+}

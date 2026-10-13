@@ -1,0 +1,44 @@
+# description : Qt for Python 6 system bindings (PySide6 + Shiboken6 module/generator)
+# homepage    : https://doc.qt.io/qtforpython-6/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake git llvm ninja python3 qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=pyside6
+version=6.11.2
+release=2
+source="https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-$version-src/pyside-setup-everywhere-src-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# Qt recommends the CMake-only path for distribution packaging.
+	# Use BFSOS's system Qt and LLVM/libclang; never download a bundled
+	# prebuilt libclang or create a private Qt copy.
+	export LLVM_INSTALL_DIR=/usr
+
+	cmake -S . -B _build -G Ninja \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_PREFIX_PATH=/opt/qt6 \
+	    -DPython_EXECUTABLE=/usr/bin/python3 \
+	    -DPYSIDE_TREAT_QT_INCLUDE_DIRS_AS_NON_SYSTEM=ON \
+	-DBUILD_TESTS=OFF || return 1
+
+	export PYTHONPATH="$PWD/_build/sources${PYTHONPATH:+:$PYTHONPATH}"
+	cmake --build _build --parallel "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" cmake --install _build || return 1
+
+	# Downstream KF6 consumers use CMake find_package(Shiboken6).
+	find "$PKG" -type f \
+	    \( -name 'Shiboken6Config.cmake' -o -name 'Shiboken6ToolsConfig.cmake' \) \
+	    -print -quit | grep -q . || {
+	        echo "pyside6: Shiboken6 CMake package metadata was not staged" >&2
+	        return 1
+	    }
+}

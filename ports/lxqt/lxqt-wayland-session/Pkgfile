@@ -1,9 +1,0 @@
-# Description: Lxqt Wayland Session for LXQt
-# URL: https://github.com/lxqt/lxqt-wayland-session
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: layer-shell-qt lxqt-session qtxdg-tools qt6
-
-name=lxqt-wayland-session
-version=0.4.1
-release=1
-source=(https://github.com/lxqt/${name}/releases/download/${version}/${name}-${version}.tar.xz)

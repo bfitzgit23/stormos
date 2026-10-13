@@ -1,0 +1,34 @@
+# description : An open source JPEG 2000 codec.
+# homepage    : https://github.com/uclouvain/openjpeg
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : lcms2
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=openjpeg2
+version=2.5.4
+release=1
+source="https://github.com/uclouvain/openjpeg/archive/v$version/openjpeg-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir -v build &&
+	cd       build &&
+
+	cmake -DCMAKE_BUILD_TYPE=Release \
+	      -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DBUILD_STATIC_LIBS=OFF .. &&
+	make
+	make DESTDIR=$PKG  install &&
+
+	pushd ../doc &&
+	  for man in man/man?/* ; do
+	      install -v -D -m 644 $man $PKG/usr/share/$man
+	  done
+	popd
+}

@@ -1,0 +1,45 @@
+# description : python3-html5lib
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-six python3-webencodings python3-packaging
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-html5lib
+version=1.1
+release=5
+source="https://files.pythonhosted.org/packages/source/h/html5lib/html5lib-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# html5lib 1.1 compatibility with modern setuptools.
+	sed -i \
+	    's/from pkg_resources import/from packaging.version import parse as/' \
+	    setup.py || return 1
+
+	sed -i \
+	    's/^import pkg_resources$/pkg_resources = None/' \
+	    setup.py || return 1
+
+	# Python 3.14 compatibility: ast.Str -> ast.Constant.
+	sed -i \
+	    's/isinstance(a.value, ast.Str)/isinstance(a.value, ast.Constant) and isinstance(a.value.value, str)/' \
+	    setup.py || return 1
+
+	# ast.Constant stores the string in .value instead of .s.
+	sed -i \
+	    's/version = a.value.s/version = a.value.value/' \
+	    setup.py || return 1
+
+	python3 setup.py build || return 1
+
+	python3 setup.py install \
+	    --root="${PKG}" \
+	    --optimize=1 \
+	    --skip-build || return 1
+}

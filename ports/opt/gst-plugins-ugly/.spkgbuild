@@ -1,0 +1,31 @@
+# description : A set of plugins for gstreamer that may pose distribution problems.
+# homepage    : https://gstreamer.freedesktop.org/modules/gst-plugins-ugly.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gst-plugins-base liba52 libdvdread x264
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gst-plugins-ugly
+version=1.28.7
+release=1
+source="https://gstreamer.freedesktop.org/src/$name/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	  mkdir build &&
+	cd    build &&
+
+	meson  setup ..            \
+	       --prefix=/usr       \
+	       --buildtype=release \
+	       -Dgpl=enabled       \
+	       -Dpackage-origin=https://www.linuxfromscratch.org/blfs/view/systemd/ \
+	       -Dpackage-name="GStreamer 1.22.6 BLFS" &&
+	ninja
+	  DESTDIR=$PKG ninja install
+}

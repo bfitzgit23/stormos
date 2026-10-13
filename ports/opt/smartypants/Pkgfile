@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on:
-
-name=smartypants
-version=2.0.2
-release=1
-source=(https://github.com/leohemsted/${name}.py/archive/v${version}/${name}-${version}.tar.gz)

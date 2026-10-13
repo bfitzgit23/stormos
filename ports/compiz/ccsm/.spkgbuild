@@ -1,0 +1,22 @@
+# description : CompizConfig graphical Settings Manager (GTK3/Python3)
+# homepage    : https://gitlab.com/compiz/ccsm
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : compizconfig-python gtk3 python3-cairo python3-gobject python3-setuptools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=ccsm
+version=0.8.18
+release=2
+source="https://gitlab.com/compiz/$name/-/archive/v$version/$name-v$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	python3 setup.py build || return 1
+	python3 setup.py install --root="$PKG" --prefix=/usr --optimize=1 || return 1
+}

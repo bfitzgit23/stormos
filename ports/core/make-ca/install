@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		set -eu
+
+		# CA population must be reproducible and offline during package installation.
+		# ca-certificates owns the pinned Mozilla certdata source and compatibility link.
+		[ -x /usr/bin/trust ] || {
+		    echo "make-ca: p11-kit trust utility is required before CA initialization" >&2
+		    exit 1
+		}
+		[ -s /etc/ssl/certdata.txt ] || {
+		    echo "make-ca: /etc/ssl/certdata.txt is missing; reinstall ca-certificates" >&2
+		    exit 1
+		}
+
+		/usr/sbin/make-ca -r
+
+		test -s /etc/pki/tls/certs/ca-bundle.crt || {
+		    echo "make-ca: canonical CA bundle is empty after trust-store generation" >&2
+		    exit 1
+		}
+
+		if ! /usr/bin/trust list --filter=ca-anchors 2>/dev/null | grep -q '^pkcs11:'; then
+		    echo "make-ca: p11-kit trust view contains no CA anchors after generation" >&2
+		    exit 1
+		fi
+
+		if command -v systemctl >/dev/null 2>&1 &&
+		   [ -f /usr/lib/systemd/system/update-pki.timer ]; then
+		    systemctl enable update-pki.timer
+		fi
+		;;
+esac

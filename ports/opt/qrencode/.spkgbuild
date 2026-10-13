@@ -1,0 +1,26 @@
+# description : Qrencode is a fast and compact library for encoding data in a QR Code symbol, a 2D symbology that can be scanned by handheld terminals such as a mobile phone with a CCD sensor.
+# homepage    : https://fukuchi.org/works/qrencode/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libpng
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=qrencode
+version=4.1.1
+release=2
+source="https://distfiles.gentoo.org/distfiles/c8/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	    --prefix=/usr || return 1
+
+	make -j "${JOBS:-1}" || return 1
+
+	make DESTDIR="$PKG" install || return 1
+}

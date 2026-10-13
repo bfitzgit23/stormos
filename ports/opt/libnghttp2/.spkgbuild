@@ -1,0 +1,27 @@
+# description : HTTP/2 C Library and tools
+# homepage    : https://github.com/libnghttp2/libnghttp2/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libnghttp2
+version=1.70.0
+release=1
+source="https://github.com/nghttp2/nghttp2/releases/download/v$version/nghttp2-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		./configure --prefix=/usr     \
+	            --disable-static  \
+	            --enable-lib-only \
+	            --docdir=/usr/share/doc/libnghttp2-$version &&
+	make
+
+		make DESTDIR=$PKG install
+}

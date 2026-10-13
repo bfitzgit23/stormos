@@ -1,0 +1,38 @@
+# description : Filesystem utilities for Btrfs
+# homepage    : https://btrfs.readthedocs.io/en/latest/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : lzo util-linux
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=btrfs-progs
+version=7.1
+release=1
+build_opt="--prefix=/usr
+           --bindir=/sbin
+           --disable-convert
+           --disable-zoned
+           --disable-documentation"
+source="https://www.kernel.org/pub/linux/kernel/people/kdave/$name/$name-v$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+post_build() {
+    install -d \
+        "$PKG/usr/share/man/man5" \
+        "$PKG/usr/share/man/man8"
+
+    install -m 644 Documentation/*.5 "$PKG/usr/share/man/man5/"
+    install -m 644 Documentation/*.8 "$PKG/usr/share/man/man8/"
+}

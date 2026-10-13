@@ -1,0 +1,30 @@
+# description : Mesa OpenGL Utility library
+# homepage    : https://www.mesa3d.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : mesa
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=glu
+version=9.0.3
+release=1
+source="https://mesa.freedesktop.org/archive/$name/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		mkdir build &&
+		cd    build &&
+
+	meson setup ..              \
+	      --prefix=$XORG_PREFIX \
+	      -Dgl_provider=gl      \
+	      --buildtype=release   &&
+	ninja
+		DESTDIR=$PKG ninja install
+		rm -vf $PKG/usr/lib/libGLU.a
+}

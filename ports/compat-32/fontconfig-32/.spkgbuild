@@ -1,0 +1,40 @@
+# description : A library for configuring and customizing font access
+# homepage    : https://www.freedesktop.org/wiki/Software/fontconfig/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : expat-32 fontconfig freetype-32 util-linux-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=fontconfig-32
+version=2.18.3
+release=3
+build_opt="-D doc-man=enabled -D doc=disabled -D nls=disabled -D tests=disabled -D cache-build=disabled"
+source="https://fontconfig.org/release/fontconfig-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+post_build() {
+	rm -r $PKG/usr/{bin,include,share} $PKG/etc
+}

@@ -1,0 +1,38 @@
+# description : colord
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus glib gobject-introspection lcms2 polkit sqlite libgudev libgusb systemd vala
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=colord
+version=1.4.8
+release=4
+source="https://mirror.freedif.org/pub/blfs/conglomeration/colord/colord-$version.tar.xz disable-udev-hwdb-tests.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir build &&
+	cd build &&
+
+	meson setup .. \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -Ddaemon_user=colord \
+	    -Dvapi=true \
+	    -Dsystemd=true \
+	    -Dlibcolordcompat=true \
+	    -Dargyllcms_sensor=false \
+	    -Dbash_completion=false \
+	    -Ddocs=false \
+	    -Dman=false &&
+
+	ninja &&
+
+	DESTDIR="$PKG" ninja install
+}

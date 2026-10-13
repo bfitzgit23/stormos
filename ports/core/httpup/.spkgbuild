@@ -1,0 +1,23 @@
+# description : httpup
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=httpup
+version=0.5.1
+release=1
+source="https://crux.nu/files/$name-$version.tar.xz httpup"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make
+	make prefix=/usr mandir=/usr/share/man install
+	install -D -m 755 $SRC/httpup $PKG/etc/ports/drivers/httpup
+}

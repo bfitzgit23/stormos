@@ -1,0 +1,21 @@
+# description : Complete BFSOS LXQt desktop meta package
+# homepage    : https://lxqt-project.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libfm-qt liblxqt libqtxdg lxqt-about lxqt-admin lxqt-archiver lxqt-config lxqt-globalkeys lxqt-menu-data lxqt-notificationd lxqt-openssh-askpass lxqt-panel lxqt-policykit lxqt-powermanagement lxqt-qtplugin lxqt-runner lxqt-session lxqt-sudo lxqt-themes lxqt-wayland-session pcmanfm-qt pavucontrol-qt qterminal qtermwidget qtxdg-tools xdg-desktop-portal-lxqt lximage-qt qps screengrab openbox obconf-qt breeze-icons desktop-file-utils sddm pipewire wireplumber alsa-utils rtkit labwc swaylock
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=lxqt-meta
+version=2.4.0
+release=5
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	install -d "$PKG/usr/share/doc/$name"
+	printf '%s\n' 'BFSOS LXQt 2.4 desktop meta-package.' > "$PKG/usr/share/doc/$name/README"
+}

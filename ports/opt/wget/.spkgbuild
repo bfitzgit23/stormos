@@ -1,0 +1,53 @@
+# description : Modern multi-threaded file and website downloader based on GNU Wget2.
+# homepage    : https://gitlab.com/gnuwget/wget2
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : ca-certificates gnutls libidn2 libpsl libunistring pcre2 zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=wget
+version=2.2.1
+release=2
+build_opt=(
+    --prefix=/usr
+    --sysconfdir=/etc
+    --disable-doc
+)
+source="https://ftp.gnu.org/gnu/wget/wget2-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure "${build_opt[@]}"
+
+	make
+	make DESTDIR="$PKG" install
+
+	# BFS packages Wget2 under the traditional wget port name.
+	# Preserve wget2 while also providing /usr/bin/wget.
+	if [[ -x "$PKG/usr/bin/wget2" ]]; then
+	    ln -sf wget2 "$PKG/usr/bin/wget"
+	    install -d "$PKG/etc"
+	    cat > "$PKG/etc/wgetrc" <<'EOF'
+# BFSOS system trust store. Wget2 reads /etc/wgetrc and otherwise may not
+# discover the distro CA bundle on every TLS backend/build configuration.
+ca_certificate = /etc/pki/tls/certs/ca-bundle.crt
+EOF
+	else
+	    echo "ERROR: wget2 binary was not installed." >&2
+	    return 1
+	fi
+	post_build || return 1
+}
+
+post_build() {
+    rm -rf \
+        "$PKG/usr/share/info" \
+        "$PKG/usr/share/doc"
+
+    find "$PKG" -type f -name '*.la' -delete
+}

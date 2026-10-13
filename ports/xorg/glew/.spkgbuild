@@ -1,0 +1,30 @@
+# description : OpenGL Extension Wrangler library
+# homepage    : https://glew.sourceforge.net/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glu libxi libxmu
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=glew
+version=2.3.1
+release=1
+source="https://downloads.sourceforge.net/project/glew/glew/$version/glew-$version.tgz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make -j"${JOBS:-1}" \
+	    GLEW_DEST=/usr \
+	    LIBDIR=/usr/lib \
+	    || return 1
+	make \
+	    GLEW_DEST="$PKG/usr" \
+	    LIBDIR="$PKG/usr/lib" \
+	    PKGDIR="$PKG/usr/lib/pkgconfig" \
+	    install \
+	    || return 1
+}

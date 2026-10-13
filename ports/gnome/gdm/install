@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		GDM_UID=21
+		GDM_GID=21
+
+		# Create the GDM system group only if it does not already exist.
+		if ! getent group gdm >/dev/null 2>&1; then
+		    # Do not silently steal an existing numeric GID.
+		    if getent group "$GDM_GID" >/dev/null 2>&1; then
+		        echo "ERROR: GDM requires GID $GDM_GID, but that GID is already in use." >&2
+		        exit 1
+		    fi
+
+		    groupadd -g "$GDM_GID" gdm || exit 1
+		fi
+
+		# Create the GDM system user only if it does not already exist.
+		if ! getent passwd gdm >/dev/null 2>&1; then
+		    # Do not silently steal an existing numeric UID.
+		    if getent passwd "$GDM_UID" >/dev/null 2>&1; then
+		        echo "ERROR: GDM requires UID $GDM_UID, but that UID is already in use." >&2
+		        exit 1
+		    fi
+
+		    useradd \
+		        -c "GDM Daemon Owner" \
+		        -d /var/lib/gdm \
+		        -u "$GDM_UID" \
+		        -g gdm \
+		        -s /bin/false \
+		        gdm || exit 1
+		fi
+
+		# Ensure the service account remains locked.
+		passwd -ql gdm || exit 1
+
+		exit 0
+		;;
+esac

@@ -1,0 +1,34 @@
+# description : KDAB dock widget framework for Qt6
+# homepage    : https://github.com/KDAB/KDDockWidgets
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : fmt qt6 vulkan-loader
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=kddockwidgets
+version=2.4.1
+release=1
+source="https://github.com/KDAB/KDDockWidgets/releases/download/v$version/KDDockWidgets-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir -p build || return 1
+	cd build || return 1
+
+	cmake \
+	    -DCMAKE_INSTALL_PREFIX=/opt/kf6 \
+	    -DCMAKE_PREFIX_PATH="/opt/qt6;/opt/kf6" \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DKDAB_INSTALL=OFF \
+	    -DKDDockWidgets_QT6=ON \
+	    -Wno-author \
+	    .. || return 1
+
+	make -j${JOBS:-1} || return 1
+	make DESTDIR="$PKG" install || return 1
+}

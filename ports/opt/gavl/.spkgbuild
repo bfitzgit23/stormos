@@ -1,0 +1,31 @@
+# description : Low-level audio/video support library used by multimedia applications
+# homepage    : https://github.com/bplaum/gavl
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gnutls libdrm libglvnd libva nettle libpng
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gavl
+version=2.0.1
+release=2
+source="https://github.com/bplaum/gavl/archive/refs/tags/v$version.tar.gz gavl-2.0.1-nettle4-md5.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	autoreconf -fi
+
+	./configure \
+	    --prefix=/usr \
+	    --disable-static \
+	    --enable-shared \
+	    --without-doxygen \
+	    --with-cpuflags=none
+
+	make -j${JOBS:-1}
+	make DESTDIR="$PKG" install
+}

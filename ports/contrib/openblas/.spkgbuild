@@ -1,0 +1,73 @@
+# description : Optimized BLAS library
+# homepage    : https://www.openblas.net/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gcc-fortran
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=openblas
+version=0.3.34
+release=4
+source="https://github.com/OpenMathLib/OpenBLAS/archive/v$version/OpenBLAS-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	export MAKE_NB_JOBS=-1 \
+	  COMMON_OPT=" " \
+	  FCOMMON_OPT=" "
+
+	local build_opt=(
+	  PREFIX=$PKG/usr
+	  NO_LAPACK=1
+	  NO_LAPACKE=1
+	  NO_STATIC=1
+	  NO_AFFINITY=1
+	  USE_OPENMP=1
+	  DYNAMIC_ARCH=1
+	  NUM_THREADS=64
+	  MAJOR_VERSION=3
+	  USE_THREAD=1
+	  CFLAGS="$CFLAGS $CPPFLAGS"
+	)
+
+	make "${build_opt[@]}" || return 1
+
+	make "${build_opt[@]}" install || return 1
+
+	# Symlink to provide blas & cblas
+	cd "$PKG/usr/lib" || return 1
+	local _lapackver='3.11.0'
+	# BLAS
+	ln -sf libopenblasp-r$version.so libblas.so
+	ln -sf libopenblasp-r$version.so libblas.so.${_lapackver:0:1}
+	ln -sf libopenblasp-r$version.so libblas.so.${_lapackver}
+	# CBLAS
+	ln -sf libopenblasp-r$version.so libcblas.so
+	ln -sf libopenblasp-r$version.so libcblas.so.${_lapackver:0:1}
+	ln -sf libopenblasp-r$version.so libcblas.so.${_lapackver}
+	# LAPACK
+	# provided by lapack
+	# LAPACKE
+	# provided by lapack
+	#rm -r $PKG/usr/include/lapack*
+
+	# fix paths
+	sed -i 's|'$PKG'||g' "$PKG"/usr/lib/cmake/$name/*.cmake || return 1
+	sed -i 's|'$PKG'||g' "$PKG/usr/lib/pkgconfig/openblas.pc" || return 1
+
+	# remove host CPU info if built with DYNAMIC_ARCH=1
+	sed -i '/#define OPENBLAS_NEEDBUNDERSCORE/,/#define OPENBLAS_VERSION/{//!d}' \
+	  $PKG/usr/include/openblas_config.h
+
+	# provide pkgconfig files for blas and cblas
+	ln -s openblas.pc $PKG/usr/lib/pkgconfig/blas.pc
+	ln -s openblas.pc $PKG/usr/lib/pkgconfig/cblas.pc
+	)
+}

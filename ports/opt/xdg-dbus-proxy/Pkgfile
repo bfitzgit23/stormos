@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: glib
-
-name=xdg-dbus-proxy
-version=0.1.8
-release=1
-source=(https://github.com/flatpak/${name}/releases/download/${version}/${name}-${version}.tar.xz)

@@ -1,0 +1,30 @@
+# description : KDE optical-disc authoring, ripping, copying, and burning application.
+# homepage    : https://kde.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : kde-frameworks-6 libkcddb libsamplerate shared-mime-info udisks libburn libdvdread taglib dvd+rw-tools cdrdao cdrtools qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=k3b
+version=26.08.1
+release=1
+source="https://download.kde.org/stable/release-service/$version/src/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build -G Ninja \
+	    -DCMAKE_INSTALL_PREFIX=/opt/kf6 \
+	    -DCMAKE_INSTALL_LIBEXECDIR=libexec \
+	    "-DCMAKE_PREFIX_PATH=/opt/qt6;/opt/kf6" \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DBUILD_TESTING=OFF \
+	    -DQT_MAJOR_VERSION=6 \
+	    -Wno-author || return 1
+	cmake --build build -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}

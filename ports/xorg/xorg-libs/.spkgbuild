@@ -1,0 +1,22 @@
+# description : The Xorg libraries provide library routines that are used within all X Window applications.
+# homepage    : https://www.x.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xtrans libx11 libxext libfs libice libsm libxscrnsaver libxt libxmu libxpm libxaw libxfixes libxcomposite libxrender libxcursor libxdamage libfontenc libxfont2 libxft libxi libxinerama libxrandr libxres libxtst libxv libxvmc libxxf86dga libxxf86vm libpciaccess libxkbfile libxshmfence libxpresent libxcb xcb-util xcb-util-renderutil xcb-util-image xcb-util-keysyms xcb-util-wm xcb-util-cursor libxkbcommon
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xorg-libs
+version=7x
+release=4
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	mkdir -p "$PKG/usr/share/bfsos/meta-packages"
+	printf '%s
+' 'BFSOS X.Org libraries meta package'         > "$PKG/usr/share/bfsos/meta-packages/xorg-libs"
+}

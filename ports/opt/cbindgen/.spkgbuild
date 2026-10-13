@@ -1,0 +1,24 @@
+# description : Generate C bindings from rust code
+# homepage    : https://github.com/eqrion/cbindgen
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : rustc
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=cbindgen
+version=0.29.4
+release=2
+source="https://github.com/mozilla/$name/archive/v$version/$name-v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	cargo build --release
+	mkdir -p $PKG/usr/bin/
+	install -Dm755 target/release/cbindgen $PKG/usr/bin/
+}

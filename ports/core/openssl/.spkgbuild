@@ -1,0 +1,40 @@
+# description : openssl
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=openssl
+version=4.0.2
+release=1
+source="https://github.com/openssl/openssl/releases/download/$name-$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./config \
+		--prefix=/usr \
+		--openssldir=/etc/ssl \
+		--libdir=lib \
+		shared \
+		zlib-dynamic
+	make
+	make MANSUFFIX=ssl DESTDIR=$PKG install
+}
+
+bootstrap_build() {
+	./config \
+		--prefix=$TOOLS \
+		--openssldir=$TOOLS/etc/ssl \
+		--libdir=lib \
+		shared \
+		no-ssl3-method
+	make
+	make -j1 MANDIR=$TOOLS/share/man MANSUFFIX=ssl install
+}

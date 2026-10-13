@@ -1,0 +1,38 @@
+# description : Utility for incremental file transfers over networks
+# homepage    : https://rsync.samba.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : acl openssl zlib zstd
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=rsync
+version=3.5.1
+release=1
+source="https://www.samba.org/ftp/$name/src/$name-$version.tar.gz \ rsyncd.conf rsyncd.service rsync.driver"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	./configure \
+		--prefix=/usr \
+		--with-rsh=ssh \
+		--with-included-zlib=no \
+		--with-included-popt=yes \
+		--disable-xxhash \
+		--disable-lz4
+
+	make
+	make DESTDIR=$PKG install
+
+	install -d $PKG/etc/ports/drivers $PKG/var/log $PKG/usr/lib/systemd/system
+	install -m 644 $SRC/rsyncd.service $PKG/usr/lib/systemd/system/rsyncd.service
+	install -m 644 $SRC/rsyncd.conf $PKG/etc
+	install -m 755 $SRC/rsync.driver $PKG/etc/ports/drivers/rsync
+	touch $PKG/var/log/rsyncd.log
+}

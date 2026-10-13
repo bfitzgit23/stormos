@@ -1,0 +1,33 @@
+# description : Performance-portable SIMD library
+# homepage    : https://github.com/google/highway
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake ninja
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=highway
+version=1.4.0
+release=3
+source="highway-$version.tar.gz::https://github.com/google/highway/archive/refs/tags/$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build \
+	    -G Ninja \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_INSTALL_LIBDIR=lib \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DBUILD_SHARED_LIBS=ON \
+	    -DHWY_ENABLE_TESTS=OFF \
+	    -DHWY_ENABLE_EXAMPLES=OFF || return 1
+
+	cmake --build build -j "${JOBS:-1}" || return 1
+
+	DESTDIR="$PKG" \
+	    cmake --install build || return 1
+}

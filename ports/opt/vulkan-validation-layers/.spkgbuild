@@ -1,0 +1,38 @@
+# description : Vulkan validation layers
+# homepage    : https://www.khronos.org/vulkan/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glslang robin-hood-hashing vulkan-utility-libraries libxrandr
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=vulkan-validation-layers
+version=1.4.357.0
+release=1
+_name=Vulkan-ValidationLayers
+_version=vulkan-sdk-$version
+source="https://github.com/KhronosGroup/Vulkan-ValidationLayers/archive/$_version/$_name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	prt-get isinst wayland || PKGMK_VULKAN_VALIDATION_LAYERS+=' -D BUILD_WSI_WAYLAND_SUPPORT=OFF'
+
+	cmake -S $_name-$_version -B build -G Ninja $PKGMK_VULKAN_VALIDATION_LAYERS \
+		-D CMAKE_INSTALL_PREFIX=/usr \
+		-D CMAKE_INSTALL_LIBDIR=lib \
+		-D CMAKE_BUILD_TYPE=Release \
+		-D CMAKE_CXX_FLAGS_RELEASE="${CXXFLAGS}" \
+		-D CMAKE_SKIP_RPATH=ON \
+		-D SPIRV_HEADERS_INSTALL_DIR=/usr \
+		-D VULKAN_HEADERS_INSTALL_DIR=/usr \
+		-D USE_ROBIN_HOOD_HASHING=ON \
+		-D BUILD_TESTS=OFF \
+		-Wno-dev
+
+	cmake --build build
+	DESTDIR=$PKG cmake --install build
+}

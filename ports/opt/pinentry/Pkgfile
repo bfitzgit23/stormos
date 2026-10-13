@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: libassuan libgpg-error
-
-name=pinentry
-version=1.3.3
-release=1
-source=(https://mirrors.dotsrc.org/gcrypt/${name}/${name}-${version}.tar.bz2)

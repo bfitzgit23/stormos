@@ -1,0 +1,77 @@
+# description : OpenSSH secure shell client and server
+# homepage    : https://www.openssh.com/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : linux-pam openssl zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=openssh
+version=10.5p1
+release=2
+build_opt="--prefix=/usr
+           --sysconfdir=/etc/ssh
+           --with-privsep-path=/var/lib/sshd
+           --with-default-path=/usr/bin
+           --with-superuser-path=/usr/sbin:/usr/bin
+           --with-pid-dir=/run
+           --with-pam"
+source="https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/$name-$version.tar.gz sshd.service"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+    install -d -m700 /var/lib/sshd
+
+    groupadd -f -g 50 sshd
+
+    id -u sshd >/dev/null 2>&1 || useradd \
+        -u 50 \
+        -g sshd \
+        -d /var/lib/sshd \
+        -s /bin/false \
+        -c "sshd PrivSep" \
+        sshd
+}
+
+post_build() {
+    install -d "$PKG/usr/bin"
+    install -m755 contrib/ssh-copy-id \
+        "$PKG/usr/bin/ssh-copy-id"
+
+    install -d "$PKG/usr/share/man/man1"
+    install -m644 contrib/ssh-copy-id.1 \
+        "$PKG/usr/share/man/man1/ssh-copy-id.1"
+
+    install -d "$PKG/usr/share/doc/$name-$version"
+    install -m644 INSTALL LICENCE OVERVIEW README* \
+        "$PKG/usr/share/doc/$name-$version"
+
+    install -d "$PKG/etc/pam.d"
+
+    if [ -f /etc/pam.d/login ]; then
+        sed 's@d/login@d/sshd@g' /etc/pam.d/login \
+            > "$PKG/etc/pam.d/sshd"
+        chmod 644 "$PKG/etc/pam.d/sshd"
+    fi
+
+    if [ -f "$PKG/etc/ssh/sshd_config" ] &&
+       ! grep -q '^UsePAM' "$PKG/etc/ssh/sshd_config"; then
+        echo "UsePAM yes" >> "$PKG/etc/ssh/sshd_config"
+    fi
+
+    install -d "$PKG/usr/lib/systemd/system"
+    install -m644 "$SRC/sshd.service" \
+        "$PKG/usr/lib/systemd/system/sshd.service"
+}

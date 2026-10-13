@@ -1,0 +1,26 @@
+# description : Complete BFSOS GNOME 51 desktop meta package
+# homepage    : https://www.gnome.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gdm gnome-session gnome-shell gnome-shell-extensions gnome-control-center gnome-settings-daemon gnome-backgrounds gnome-keyring gnome-menus nautilus gnome-terminal gnome-tweaks gnome-user-docs yelp dconf-editor xdg-desktop-portal-gnome gnome-apps-meta pipewire wireplumber alsa-utils rtkit samba cifs-utils nfs-utils
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gnome-meta
+version=51.0
+release=2
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	install -d "$PKG/usr/share/bfsos/meta-packages" || return 1
+	cat > "$PKG/usr/share/bfsos/meta-packages/$name" <<'EOT'
+BFSOS complete GNOME 51 desktop meta package.
+The core GNOME 51 shell/session/settings/application stack is coordinated with
+GTK 4.23 and libadwaita 1.10. Legacy compatibility modules remain packaged
+where BFSOS still has runtime consumers; removal is a separate migration.
+EOT
+}

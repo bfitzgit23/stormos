@@ -1,0 +1,23 @@
+# description : Complete baseline BFSOS X.Org environment
+# homepage    : https://www.x.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xorg-server xorg-libs xorg-apps xorg-fonts xorg-driver xinit wayland wayland-protocols xwayland
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xorg
+version=7x
+release=3
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	mkdir -p "$PKG/usr/share/bfsos/meta-packages"
+	printf '%s
+' 'BFSOS xorg meta package' \
+	    > "$PKG/usr/share/bfsos/meta-packages/xorg"
+}

@@ -1,0 +1,78 @@
+# description : Mouse server for the Linux virtual console
+# homepage    : https://www.nico.schottelius.org/software/gpm/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gpm
+version=1.20.7
+release=2
+build_opt="--prefix=/usr
+           --sysconfdir=/etc"
+source="https://anduin.linuxfromscratch.org/BLFS/gpm/$name-$version.tar.bz2 gpm-1.20.7-consolidated-1.patch https://www.linuxfromscratch.org/patches/blfs/svn/gpm-1.20.7-gcc15_fixes-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+    ./autogen.sh
+}
+
+post_build() {
+    rm -f "$PKG/usr/lib/libgpm.a"
+
+    ln -sfn \
+        libgpm.so.2.1.0 \
+        "$PKG/usr/lib/libgpm.so"
+
+    install -d -m 0755 \
+        "$PKG/etc"
+
+    install -m 0644 \
+        conf/gpm-root.conf \
+        "$PKG/etc/gpm-root.conf"
+
+    install -d -m 0755 \
+        "$PKG/usr/share/doc/$name-$version/support"
+
+    install -m 0644 \
+        doc/support/* \
+        "$PKG/usr/share/doc/$name-$version/support/"
+
+    install -m 0644 \
+        doc/FAQ \
+        doc/HACK_GPM \
+        doc/README* \
+        "$PKG/usr/share/doc/$name-$version/"
+
+    install -d -m 0755 \
+        "$PKG/usr/lib/systemd/system"
+
+    cat > "$PKG/usr/lib/systemd/system/gpm.service" <<'EOF'
+[Unit]
+Description=General Purpose Mouse daemon
+Documentation=man:gpm(8)
+After=systemd-udev-settle.service
+ConditionPathExists=/dev/input/mice
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/gpm -m /dev/input/mice -t imps2
+PIDFile=/run/gpm.pid
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}

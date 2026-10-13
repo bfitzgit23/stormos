@@ -1,0 +1,32 @@
+# description : Reference implementation of the Argon2 password hashing and key derivation algorithm.
+# homepage    : https://github.com/P-H-C/phc-winner-argon2
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=argon2
+version=20190702
+release=1
+build_opt=(
+    PREFIX=/usr
+    LIBDIR=/usr/lib
+)
+source="https://github.com/P-H-C/phc-winner-argon2/archive/refs/tags/$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make "${build_opt[@]}"
+
+	make \
+	    DESTDIR="$PKG" \
+	    "${build_opt[@]}" \
+	    install
+
+	rm -f "$PKG/usr/lib/"*.la
+}

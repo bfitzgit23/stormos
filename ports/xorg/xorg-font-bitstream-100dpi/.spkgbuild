@@ -1,0 +1,27 @@
+# description : xorg font font-bitstream-100dpi
+# homepage    : https//xorg.freedesktop.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : bdftopcf mkfontscale
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xorg-font-bitstream-100dpi
+version=1.0.4
+release=1
+source="https://xorg.freedesktop.org/archive/individual/font/font-bitstream-100dpi-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	./configure --prefix=/usr
+
+	make
+	make DESTDIR=$PKG install
+
+	rm $PKG/usr/share/fonts/X11/100dpi/fonts.dir
+}

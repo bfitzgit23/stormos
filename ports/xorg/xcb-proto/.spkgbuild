@@ -1,0 +1,26 @@
+# description : XCB X protocol descriptions
+# homepage    : https://xcb.freedesktop.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xcb-proto
+version=1.17.0
+release=1
+source="https://xorg.freedesktop.org/archive/individual/proto/xcb-proto-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+			PYTHON=/usr/bin/python3 \
+		       ./configure $XORG_CONFIG
+		make
+		make DESTDIR=$PKG install
+	#	rm -f $PKG$XORG_PREFIX/lib/pkgconfig/xcb-proto.pc
+}

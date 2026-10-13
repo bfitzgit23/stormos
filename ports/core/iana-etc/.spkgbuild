@@ -1,0 +1,22 @@
+# description : Services and protocols files for /etc
+# homepage    : https://www.iana.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=iana-etc
+version=20260817
+release=1
+source="https://github.com/Mic92/iana-etc/releases/download/$version/iana-etc-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	install -d -m 0755 "$PKG/etc"
+	install -m 0644 services protocols "$PKG/etc/"
+}

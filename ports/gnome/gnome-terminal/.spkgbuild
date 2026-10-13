@@ -1,0 +1,27 @@
+# description : gnome-terminal
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dconf gnome-shell gsettings-desktop-schemas itstool libhandy pcre vte nautilus
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gnome-terminal
+version=3.60.0
+release=1
+source="https://gitlab.gnome.org/GNOME/${name}/-/archive/${version}/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i -r 's:"(/system):"/org/gnome\1:g' src/external.gschema.xml
+	mkdir build &&
+	cd    build &&
+
+	meson setup --prefix=/usr --buildtype=release .. &&
+	ninja
+	ninja install
+}

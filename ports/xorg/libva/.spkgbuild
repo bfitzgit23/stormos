@@ -1,0 +1,28 @@
+# description : Video Acceleration API to enable hardware accelerated video decode/encode.
+# homepage    : https://github.com/intel/libva
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libdrm libglvnd libxfixes
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libva
+version=2.24.1
+release=2
+source="https://github.com/intel/libva/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		mkdir builds &&
+		cd    builds &&
+
+	meson setup --prefix=$XORG_PREFIX --buildtype=release &&
+	ninja
+
+	DESTDIR=$PKG ninja  install
+	chmod -x $PKG/usr/include/va/va_vpp.h
+}

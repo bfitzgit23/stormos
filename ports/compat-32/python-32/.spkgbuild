@@ -1,0 +1,57 @@
+# description : Python interpreter, version 2.7
+# homepage    : https://www.python.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : bzip2-32 db-32 gdbm-32 libtirpc-32 openssl-32 sqlite3-32 zlib-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python-32
+version=2.7.18
+release=4
+source="https://www.python.org/ftp/python/$version/Python-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	  # set OPT to the python default without -O3
+	  # our CFLAGS are used as well
+	  OPT="-Wall -Wstrict-prototypes -fwrapv" \
+	  ./configure --prefix=/usr \
+	--libdir=/usr/lib32 \
+	--enable-shared \
+	--with-threads \
+	--enable-ipv6
+
+	  make
+	  make -j1 DESTDIR=$PKG install
+
+	  ln -sf python2.7 $PKG/usr/bin/python
+	  ln -s python2.7 $PKG/usr/lib32/python
+	  ln -s python2.7 $PKG/usr/include/python
+	  ln -s /usr/lib32/libpython2.7.so $PKG/usr/lib32/python2.7/config/libpython2.7.so
+
+	  mv $PKG/usr/include/python2.7/pyconfig.h $PKG/
+	  rm -r $PKG/usr/{bin,include,lib,share/man}
+	  install -d $PKG/usr/include/python2.7
+	  mv $PKG/pyconfig.h $PKG/usr/include/python2.7/pyconfig-32.h
+
+	  install -d $PKG/usr/lib32/python2.7/site-packages
+	)
+}

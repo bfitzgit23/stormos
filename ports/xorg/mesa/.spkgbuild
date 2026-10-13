@@ -1,0 +1,47 @@
+# description : Mesa 3D graphics library and open-source GPU drivers
+# homepage    : https://www.mesa3d.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cbindgen glslang libclc libdrm libglvnd llvm lua python3-mako python3-ply python3-pyyaml rust-bindgen rustc spirv-llvm-translator vulkan-loader wayland-protocols xorg-libs
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mesa
+version=26.2.3
+release=1
+source="https://archive.mesa3d.org/mesa-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	local platforms=x11
+	local vulkan_drivers=''
+
+	if prt-get isinst wayland-protocols >/dev/null 2>&1; then
+	    platforms=x11,wayland
+	fi
+
+	if prt-get isinst vulkan-loader >/dev/null 2>&1 &&
+	   prt-get isinst glslang >/dev/null 2>&1; then
+	    vulkan_drivers=auto
+	fi
+
+	meson setup build \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -Dplatforms="$platforms" \
+	    -Dgallium-drivers=auto \
+	    -Dvulkan-drivers="$vulkan_drivers" \
+	    -Dglvnd=enabled \
+	    -Dglvnd-vendor-name=mesa \
+	    -Dvalgrind=disabled \
+	    -Dlibunwind=disabled \
+	    -Dvideo-codecs=all || return 1
+
+	meson compile -C build -j "${JOBS:-1}" || return 1
+
+	DESTDIR="$PKG" meson install -C build || return 1
+}

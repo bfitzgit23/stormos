@@ -1,0 +1,28 @@
+# description : The libaom package contains a reference version of the Alliance for Open Media video codec. This codec is a patent free alternative to H.265, and is starting to be used throughout the internet.
+# homepage    : https://aomedia.googlesource.com/aom/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : yasm nasm
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libaom
+version=3.15.0
+release=1
+build_opt="-DCMAKE_INSTALL_PREFIX=/usr
+      -DCMAKE_BUILD_TYPE=Release
+      -DBUILD_SHARED_LIBS=1
+      -DENABLE_DOCS=no
+      -G Ninja .."
+source="https://storage.googleapis.com/aom-releases/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

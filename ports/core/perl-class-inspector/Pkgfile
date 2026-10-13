@@ -1,9 +1,0 @@
-# Description: Get information about a Perl class and its structure
-# URL: https://metacpan.org/dist/Class-Inspector
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: perl
-
-name=perl-class-inspector
-version=1.36
-release=1
-source=(https://cpan.metacpan.org/authors/id/P/PL/PLICEASE/Class-Inspector-$version.tar.gz)

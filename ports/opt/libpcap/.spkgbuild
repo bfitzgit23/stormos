@@ -1,0 +1,25 @@
+# description : libpcap provides functions for user-level packet capture, used in low-level network monitoring.
+# homepage    : https://www.tcpdump.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libpcap
+version=1.10.7
+release=1
+source="https://www.tcpdump.org/release/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure --prefix=/usr &&
+	make
+	sed -i '/INSTALL_DATA.*libpcap.a\|RANLIB.*libpcap.a/ s/^/#/' Makefile
+		make DESTDIR=$PKG install
+}

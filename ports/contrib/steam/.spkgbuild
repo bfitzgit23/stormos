@@ -1,0 +1,49 @@
+# description : Digital distribution client bootstrap package.
+# homepage    : https://store.steampowered.com/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-plugins-32 curl dbus desktop-file-utils fontconfig-32 gtk-32 libx11-32 libxinerama-32 libxscrnsaver-32 libgcrypt-32 libglvnd-32 libgpg-error-32 libnm-32 libva-32 mesa-32 nss-32 openal-32 pipewire-32 vulkan-loader-32 xdg-user-dirs zenity
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=steam
+version=1.0.0.87
+release=5
+source="https://repo.steampowered.com/steam/archive/stable/steam_$version.tar.gz steam-runtime.sh"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	# apply roundups for udev rules
+	sed -r 's|("0666")|"0660", TAG+="uaccess"|g' -i subprojects/steam-devices/60-steam-input.rules || return 1
+	sed -r 's|("misc")|\1, OPTIONS+="static_node=uinput"|g' -i subprojects/steam-devices/60-steam-input.rules || return 1
+	sed -r 's|(, TAG\+="uaccess")|, MODE="0660"\1|g' -i subprojects/steam-devices/60-steam-vr.rules || return 1
+
+	# separated runtime/native desktop files
+	sed -r 's|(Name=Steam)|\1 (Runtime)|' -i steam.desktop || return 1
+	sed -r 's|(/usr/bin/steam)|\1-runtime|' -i steam.desktop || return 1
+
+	make DESTDIR="$PKG" install || return 1
+
+	mv "$PKG/usr/bin/steam" "$PKG/usr/lib/steam/steam" || return 1
+	install -Dm 755 "$SRC/steam-runtime.sh" "$PKG/usr/bin/steam-runtime" || return 1
+
+	# blank steamdeps because apt-get
+	ln -sf /bin/true "$PKG/usr/bin/steamdeps" || return 1
+
+	install -d "$PKG/etc/ssl/certs" || return 1
+
+	install -Dm 644 subprojects/steam-devices/60-steam-input.rules \
+	  "$PKG/usr/lib/udev/rules.d/70-steam-input.rules" || return 1
+
+	install -Dm 644 subprojects/steam-devices/60-steam-vr.rules \
+	  "$PKG/usr/lib/udev/rules.d/70-steam-vr.rules" || return 1
+
+	rm -rf "$PKG/usr/share/doc"
+	)
+}

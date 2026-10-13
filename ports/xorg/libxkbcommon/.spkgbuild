@@ -1,0 +1,34 @@
+# description : A library to handle keyboard descriptions.
+# homepage    : https://xkbcommon.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xkeyboard-config
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libxkbcommon
+version=1.13.2
+release=8
+source="https://github.com/xkbcommon/libxkbcommon/archive/xkbcommon-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		prt-get isinst wayland-protocols || PKGMK_XKBCOMMON+=' -Denable-wayland=false'
+		prt-get isinst xkeyboard-config || PKGMK_XKBCOMMON+=' -Denable-x11=false'
+
+
+		mkdir build &&
+	cd    build &&
+
+	meson setup ..            \
+	      --prefix=/usr       \
+	      --buildtype=release \
+	      -Denable-docs=false \
+	     $PKGMK_XKBCOMMON &&
+	ninja
+	DESTDIR=$PKG ninja install
+}

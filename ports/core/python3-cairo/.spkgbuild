@@ -1,0 +1,30 @@
+# description : A set of python bindings for cairo.
+# homepage    : https://pypi.org/project/pycairo/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cairo
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-cairo
+version=1.29.1
+release=2
+source="https://github.com/pygobject/pycairo/releases/download/v$version/pycairo-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build . \
+	  --prefix=/usr \
+	  --buildtype=plain \
+	  --wrap-mode nodownload \
+	  -D b_lto=true \
+	  -D b_pie=true \
+	  -D python=/usr/bin/python3
+
+	meson compile -C build
+	DESTDIR=$PKG meson install -C build
+}

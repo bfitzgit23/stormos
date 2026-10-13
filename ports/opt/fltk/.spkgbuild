@@ -1,0 +1,30 @@
+# description : FLTK (pronounced "fulltick") is a cross-platform C++ GUI toolkit. FLTK provides modern GUI functionality and supports 3D graphics via OpenGL and its built-in GLUT emulation libraries used for creating graphical user interfaces for applications.
+# homepage    : https://fltk.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xorg-libs hicolor-icon-theme libjpeg-turbo libpng doxygen
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=fltk
+version=1.4.5
+release=2
+source="https://github.com/fltk/fltk/releases/download/release-$version/fltk-$version-source.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		sed -i -e '/cat./d' documentation/Makefile       &&
+
+	./configure --prefix=/usr    \
+	            --enable-shared  &&
+	make
+	make -C documentation html
+	make DESTDIR=$PKG docdir=/usr/share/doc/$name-$version install
+	make DESTDIR=$PKG -C test          docdir=/usr/share/doc/$name-$version install-linux &&
+	make DESTDIR=$PKG -C documentation docdir=/usr/share/doc/$name-$version install-linux
+}

@@ -1,0 +1,27 @@
+# description : The oxygen icons 5 theme is a photo-realistic icon style, with a high standard of graphics quality.
+# homepage    : https://kde.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : extra-cmake-modules qt5
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=oxygen-icons5
+version=5.109.0
+release=1
+source="https://download.kde.org/Attic/frameworks/5.109/oxygen-icons5-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i '/( oxygen/ s/)/scalable )/' CMakeLists.txt
+	mkdir build &&
+	cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr -Wno-dev ..
+
+		make DESTDIR=$PKG install
+}

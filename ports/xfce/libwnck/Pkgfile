@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: gtk3 glib gobject-introspection startup-notification
-
-name=libwnck
-version=43.3
-release=1
-source=(https://download.gnome.org/sources/${name}/43/${name}-${version}.tar.xz)

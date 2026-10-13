@@ -1,0 +1,30 @@
+# description : Device Tree Compiler and libfdt
+# homepage    : https://git.kernel.org/pub/scm/utils/dtc/dtc.git/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : flex bison
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=dtc
+version=1.8.1
+release=1
+build_opt=(
+    PREFIX=/usr
+    LIBDIR=/usr/lib
+)
+source="https://www.kernel.org/pub/software/utils/dtc/dtc-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make "${build_opt[@]}" || return 1
+
+	make \
+	    DESTDIR="$PKG" \
+	    "${build_opt[@]}" \
+	    install || return 1
+}

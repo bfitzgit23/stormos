@@ -1,0 +1,31 @@
+# description : kirigami-addons
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : kde-frameworks-6 vulkan-loader qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=kirigami-addons
+version=1.13.1
+release=1
+source="https://download.kde.org/stable/${name}/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	mkdir build &&
+	cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/opt/kf6 \
+	            -DCMAKE_PREFIX_PATH="/opt/qt6;/opt/kf6"  \
+	      -DCMAKE_BUILD_TYPE=Release          \
+	      -DBUILD_TESTING=OFF                 \
+	       ..                                  &&
+	make
+	make DESTDIR=$PKG install
+}

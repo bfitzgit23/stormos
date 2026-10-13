@@ -1,0 +1,39 @@
+# description : Text-based web browser.
+# homepage    : https://lynx.invisible-island.net/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : brotli bzip2 ncurses openssl zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=lynx
+version=2.9.3
+release=3
+source="https://invisible-mirror.net/archives/lynx/tarballs/lynx${version}.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure --prefix=/usr \
+	    --sysconfdir=/etc/lynx \
+	    --with-zlib \
+	    --with-bzlib \
+	    --with-ssl \
+	    --without-gnutls \
+	    --without-libarchive \
+	    --without-libidn \
+	    --with-screen=ncursesw \
+	    --enable-ipv6 \
+	    --enable-locale-charset \
+	    --enable-nls \
+	    --datadir=/usr/share/doc/lynx-$version
+	make -j "${JOBS:-1}"
+	make DESTDIR="$PKG" install-full
+	chgrp -R root "$PKG/usr/share/doc/lynx-$version/lynx_doc"
+	sed -e '/#LOCALE/     a LOCALE_CHARSET:TRUE' -i "$PKG/etc/lynx/lynx.cfg"
+	sed -e '/#DEFAULT_ED/ a DEFAULT_EDITOR:vi' -i "$PKG/etc/lynx/lynx.cfg"
+	sed -e '/#PERSIST/    a PERSISTENT_COOKIES:TRUE' -i "$PKG/etc/lynx/lynx.cfg"
+}

@@ -1,0 +1,47 @@
+# description : dbus
+# homepage    : https://www.freedesktop.org/wiki/Software/dbus/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=dbus
+version=1.16.2
+release=2
+source="https://dbus.freedesktop.org/releases/$name/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    --wrap-mode=nofallback
+
+	meson compile -C build
+
+	DESTDIR="$PKG" meson install -C build
+
+	#
+	# The D-Bus launch helper must be owned by root:messagebus and
+	# setuid root. Use the numeric messagebus GID so packaging does
+	# not depend on that group existing on the build host.
+	#
+	if [ -f "$PKG/usr/libexec/dbus-daemon-launch-helper" ]; then
+	    chown 0:18 "$PKG/usr/libexec/dbus-daemon-launch-helper"
+	    chmod 4750 "$PKG/usr/libexec/dbus-daemon-launch-helper"
+	fi
+
+	#
+	# D-Bus and systemd must share the same machine ID.
+	#
+	install -d -m 0755 "$PKG/var/lib/dbus"
+
+	ln -sfn \
+	    ../../../etc/machine-id \
+	    "$PKG/var/lib/dbus/machine-id"
+}

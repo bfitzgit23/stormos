@@ -1,0 +1,24 @@
+# description : OpenRC-friendly initramfs generator
+# homepage    : https://gitlab.com/vylen/mkinitramfs
+# maintainer  : StormFS maintainers
+# depends     : meson ninja cpio gzip xz zstd
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mkinitramfs
+version=0.1
+release=1
+source="https://gitlab.com/vylen/mkinitramfs/-/archive/main/mkinitramfs-main.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd mkinitramfs-main || return 1
+	meson setup build --prefix=/usr --buildtype=release || return 1
+	ninja -C build -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" ninja -C build install || return 1
+}

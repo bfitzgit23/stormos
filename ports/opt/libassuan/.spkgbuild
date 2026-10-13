@@ -1,0 +1,37 @@
+# description : The libassuan package contains an inter process communication library used by some of the other GnuPG related packages. libassuan's primary use is to allow a client to interact with a non-persistent server. libassuan is not, however, limited to use with GnuPG servers and clients. It was designed to be flexible enough to meet the demands of many transaction based environments with non-persistent servers.
+# homepage    : https://mirrors.dotsrc.org/gcrypt/libassuan/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libgpg-error
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libassuan
+version=3.0.2
+release=1
+source="https://mirrors.dotsrc.org/gcrypt/$name/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure --prefix=/usr &&
+	make                      &&
+
+	make -C doc html                                                       &&
+	makeinfo --html --no-split -o doc/assuan_nochunks.html doc/assuan.texi &&
+	makeinfo --plaintext       -o doc/assuan.txt           doc/assuan.texi
+		make DESTDIR=$PKG install  &&
+
+	install -v -dm755   $PKG/usr/share/doc/$name-$version/html &&
+	install -v -m644 doc/assuan.html/* \
+	                    $PKG/usr/share/doc/$name-$version/html &&
+	install -v -m644 doc/assuan_nochunks.html \
+	                    $PKG/usr/share/doc/$name-$version      &&
+	install -v -m644 doc/assuan.{txt,texi} \
+	                    $PKG/usr/share/doc/$name-$version
+	rm -rf $PKG/usr/share/info/
+}

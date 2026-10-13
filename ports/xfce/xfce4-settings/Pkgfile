@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: exo garcon gnome-icon-theme libcanberra libnotify libxklavier colord libinput upower
-
-name=xfce4-settings
-version=4.20.5
-release=1
-source=(https://archive.xfce.org/src/xfce/${name}/${version%.*}/${name}-${version}.tar.bz2)

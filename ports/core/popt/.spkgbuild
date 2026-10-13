@@ -1,0 +1,29 @@
+# description : Popt libraries which are used by some programs to parse command-line options
+# homepage    : https://github.com/rpm-software-management/popt
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=popt
+version=1.19
+release=1
+source="https://ftp.osuosl.org/pub/rpm/popt/releases/popt-1.x/popt-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+		./configure --prefix=/usr --disable-static &&
+	make
+	#sed -i 's@\./@src/@' Doxyfile &&
+	#doxygen
+	        make DESTDIR=$PKG install
+	install -v -m755 -d $PKG/usr/share/doc/$name-$version
+	#install -v -m644 doxygen/html/* $PKG/usr/share/doc/$name-$version
+}

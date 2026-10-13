@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: gnome-settings-daemon itstool libdvdread libhandy libpwquality libsecret udisks
-
-name=gnome-disk-utility
-version=46.1
-release=1
-source=(https://download.gnome.org/sources/${name}/46/${name}-${version}.tar.xz)

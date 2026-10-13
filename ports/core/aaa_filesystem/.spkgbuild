@@ -1,0 +1,241 @@
+# description : Base filesystem hierarchy and default system configuration
+# homepage    : https://www.linuxfromscratch.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=aaa_filesystem
+version=1
+release=22
+bfs_version=0.9.0
+source="fstab group hostname hosts locale.conf locale.sh passwd resolv.conf shells inputrc profile dircolors.sh extrapaths.sh gawk.csh gawk.sh readline.sh umask.sh i18n.sh kf6.sh bfs-opt.sh 60-bfsos-opt.conf 99-bfsos.preset kf6.sudoers xorg.sudoers xorg.sh bashrc .bash_profile .profile .bash_logout .bashrc .vimrc"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd "$SRC"
+
+	#
+	# Root filesystem directories.
+	#
+	install -d -m 0755 \
+	    "$PKG/proc" \
+	    "$PKG/sys" \
+	    "$PKG/run" \
+	    "$PKG/dev" \
+	    "$PKG/boot" \
+	    "$PKG/etc" \
+	    "$PKG/etc/opt" \
+	    "$PKG/etc/sysconfig" \
+	    "$PKG/usr/lib/firmware" \
+	    "$PKG/media/floppy" \
+	    "$PKG/media/cdrom" \
+	    "$PKG/home" \
+	    "$PKG/mnt" \
+	    "$PKG/opt" \
+	    "$PKG/srv" \
+	    "$PKG/var"
+
+	install -d -m 0750 "$PKG/root"
+
+	install -d -m 1777 \
+	    "$PKG/tmp" \
+	    "$PKG/var/tmp"
+
+	#
+	# Merged-/usr layout.
+	#
+	install -d -m 0755 \
+	    "$PKG/usr/bin" \
+	    "$PKG/usr/lib" \
+	    "$PKG/usr/lib32" \
+	    "$PKG/usr/sbin"
+
+	ln -sfn usr/bin "$PKG/bin"
+	ln -sfn usr/lib "$PKG/lib"
+	ln -sfn usr/sbin "$PKG/sbin"
+
+	ln -sfn usr/lib32 "$PKG/lib32"
+
+
+	#
+	# /usr and /usr/local directory hierarchy.
+	#
+	install -d -m 0755 \
+	    "$PKG/usr/include" \
+	    "$PKG/usr/src" \
+	    "$PKG/usr/local/bin" \
+	    "$PKG/usr/local/include" \
+	    "$PKG/usr/local/lib" \
+	    "$PKG/usr/local/sbin" \
+	    "$PKG/usr/local/src"
+
+	install -d -m 0755 \
+	    "$PKG/usr/share/color" \
+	    "$PKG/usr/share/dict" \
+	    "$PKG/usr/share/doc" \
+	    "$PKG/usr/share/info" \
+	    "$PKG/usr/share/locale" \
+	    "$PKG/usr/share/man" \
+	    "$PKG/usr/share/misc" \
+	    "$PKG/usr/share/terminfo" \
+	    "$PKG/usr/share/zoneinfo" \
+	    "$PKG/usr/local/share/color" \
+	    "$PKG/usr/local/share/dict" \
+	    "$PKG/usr/local/share/doc" \
+	    "$PKG/usr/local/share/info" \
+	    "$PKG/usr/local/share/locale" \
+	    "$PKG/usr/local/share/man" \
+	    "$PKG/usr/local/share/misc" \
+	    "$PKG/usr/local/share/terminfo" \
+	    "$PKG/usr/local/share/zoneinfo"
+
+	#
+	# Manual-page directories.
+	#
+	for section in 1 2 3 4 5 6 7 8; do
+	    install -d -m 0755 \
+	        "$PKG/usr/share/man/man$section" \
+	        "$PKG/usr/local/share/man/man$section"
+	done
+
+	#
+	# /var directory hierarchy.
+	#
+	install -d -m 0755 \
+	    "$PKG/var/cache" \
+	    "$PKG/var/lib" \
+	    "$PKG/var/lib/color" \
+	    "$PKG/var/lib/locate" \
+	    "$PKG/var/lib/misc" \
+	    "$PKG/var/local" \
+	    "$PKG/var/log" \
+	    "$PKG/var/mail" \
+	    "$PKG/var/opt" \
+	    "$PKG/var/spool" \
+	    "$PKG/var/spool/mail"
+
+	ln -sfn ../run "$PKG/var/run"
+	ln -sfn ../run/lock "$PKG/var/lock"
+
+	ln -sfn /proc/self/mounts "$PKG/etc/mtab"
+
+	#
+	# Traditional login accounting files.
+	#
+	install -m 0600 /dev/null "$PKG/var/log/btmp"
+	install -m 0664 /dev/null "$PKG/var/log/lastlog"
+	install -m 0664 /dev/null "$PKG/var/log/faillog"
+	install -m 0664 /dev/null "$PKG/var/log/wtmp"
+
+	chgrp utmp "$PKG/var/log/lastlog"
+
+	#
+	# Base system configuration.
+	#
+	install -m 0644 passwd "$PKG/etc/passwd"
+	install -m 0644 group "$PKG/etc/group"
+	install -m 0644 resolv.conf "$PKG/etc/resolv.conf"
+	install -m 0644 locale.conf "$PKG/etc/locale.conf"
+	install -m 0644 hosts "$PKG/etc/hosts"
+	install -m 0644 hostname "$PKG/etc/hostname"
+	install -m 0644 shells "$PKG/etc/shells"
+	install -m 0644 inputrc "$PKG/etc/inputrc"
+	install -m 0644 fstab "$PKG/etc/fstab"
+	install -m 0644 profile "$PKG/etc/profile"
+	install -m 0644 bashrc "$PKG/etc/bashrc"
+
+	install -d -m 0755 \
+	    "$PKG/etc/profile.d" \
+	    "$PKG/usr/lib/environment.d" \
+	    "$PKG/usr/lib/systemd/system-preset" \
+	    "$PKG/etc/bash_completion.d" \
+	    "$PKG/etc/skel" \
+	    "$PKG/etc/sudoers.d"
+
+	# Preserve BFSOS package-build prefix variables through sudo.
+	install -m 0440 kf6.sudoers "$PKG/etc/sudoers.d/kf6"
+	install -m 0440 xorg.sudoers "$PKG/etc/sudoers.d/xorg"
+
+	#
+	# Profile scripts.
+	#
+	for file in \
+	    locale.sh \
+	    dircolors.sh \
+	    extrapaths.sh \
+	    gawk.csh \
+	    gawk.sh \
+	    i18n.sh \
+	    kf6.sh \
+	    bfs-opt.sh \
+	    readline.sh \
+	    umask.sh \
+	    xorg.sh
+	do
+	    install -m 0644 "$file" "$PKG/etc/profile.d/$file"
+	done
+
+	# systemd user managers do not source /etc/profile.  Install the proven
+	# KF6/Qt6 executable/data paths through environment.d so early Plasma
+	# Wayland units receive them deterministically.
+	install -m 0644 60-bfsos-opt.conf \
+	    "$PKG/usr/lib/environment.d/60-bfsos-opt.conf"
+
+	# BFSOS service policy: explicit distro/vendor presets win first; any
+	# unit not explicitly covered remains disabled until deliberately enabled.
+	install -m 0644 99-bfsos.preset \
+	    "$PKG/usr/lib/systemd/system-preset/99-bfsos.preset"
+
+	#
+	# Default user skeleton.
+	#
+	install -m 0644 .bash_profile "$PKG/etc/skel/.bash_profile"
+	install -m 0644 .profile "$PKG/etc/skel/.profile"
+	install -m 0644 .bashrc "$PKG/etc/skel/.bashrc"
+	install -m 0644 .bash_logout "$PKG/etc/skel/.bash_logout"
+	install -m 0644 .vimrc "$PKG/etc/skel/.vimrc"
+
+	#
+	# Root user defaults.
+	#
+	install -m 0644 .bash_profile "$PKG/root/.bash_profile"
+	install -m 0644 .profile "$PKG/root/.profile"
+	install -m 0644 .bashrc "$PKG/root/.bashrc"
+	install -m 0644 .bash_logout "$PKG/root/.bash_logout"
+	install -m 0644 .vimrc "$PKG/root/.vimrc"
+
+	#
+	# Generated and release-identification files.
+	#
+	dircolors -p > "$PKG/etc/dircolors"
+
+	printf '%s\n' "$bfs_version" > "$PKG/etc/bfs-release"
+
+	# Retain this compatibility file for software that checks for an
+	# LFS-derived system.
+	printf '%s\n' "$bfs_version" > "$PKG/etc/lfs-release"
+
+	cat > "$PKG/etc/os-release" <<EOF
+NAME="BFSOS"
+PRETTY_NAME="BFSOS $bfs_version"
+ID=bfs
+VERSION="$bfs_version"
+VERSION_ID="$bfs_version"
+HOME_URL="https://github.com/bmadonnaster/BFSOS"
+SUPPORT_URL="https://github.com/bmadonnaster/BFSOS/issues"
+BUG_REPORT_URL="https://github.com/bmadonnaster/BFSOS/issues"
+EOF
+
+	cat > "$PKG/etc/issue" <<EOF
+BFSOS $bfs_version \\n \\l
+
+EOF
+
+	chmod 0644         "$PKG/etc/bfs-release"         "$PKG/etc/lfs-release"         "$PKG/etc/os-release"         "$PKG/etc/issue"
+}

@@ -1,0 +1,26 @@
+# description : Free Lossless Audio Codec.
+# homepage    : https://xiph.org/flac/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=flac
+version=1.5.0
+release=2
+source="https://github.com/xiph/flac/releases/download/$version/flac-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	   ./configure --prefix=/usr                                \
+	            --disable-thorough-tests                     \
+	            --docdir=/usr/share/doc/$name-$version          &&
+	make
+	  DESTDIR=$PKG make install
+}

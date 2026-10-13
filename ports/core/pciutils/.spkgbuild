@@ -1,0 +1,32 @@
+# description : Library and utilities to access the PCI bus configuration registers
+# homepage    : https://mj.ucw.cz/pciutils.shtml
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=pciutils
+version=3.15.0
+release=1
+source="https://mj.ucw.cz/download/linux/pci/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+		make PREFIX=/usr                \
+	     SHAREDIR=/usr/share/hwdata \
+	     SHARED=yes
+
+	     make PREFIX=/usr                \
+	     SHAREDIR=/usr/share/hwdata \
+	     SHARED=yes                 \
+	     DESTDIR=$PKG install install-lib        &&
+
+	chmod -v 755 $PKG/usr/lib/libpci.so
+}

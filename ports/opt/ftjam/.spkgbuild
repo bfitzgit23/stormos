@@ -1,0 +1,29 @@
+# description : Small Jam-compatible build tool used by ArgyllCMS
+# homepage    : https://freetype.sourceforge.net/jam/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=ftjam
+version=2.5.3rc2
+release=1
+source="https://distfiles.gentoo.org/distfiles/72/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure --prefix=/usr
+	make
+	make DESTDIR="$PKG" install
+
+	# Upstream installs the executable as jam; avoid colliding with other Jam variants.
+	if [ -x "$PKG/usr/bin/jam" ]; then
+	    mv "$PKG/usr/bin/jam" "$PKG/usr/bin/ftjam"
+	    ln -s ftjam "$PKG/usr/bin/jam"
+	fi
+}

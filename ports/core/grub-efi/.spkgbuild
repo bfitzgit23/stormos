@@ -1,0 +1,50 @@
+# description : grub-efi
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=grub-efi
+version=2.14
+release=1
+build_opt="--disable-efiemu
+        --enable-grub-mount
+        --enable-grub-mkfont
+        --enable-device-mapper
+        --with-platform=efi
+        --target=x86_64
+        --disable-werror"
+source="https://ftp.gnu.org/gnu/grub/grub-$version.tar.xz unifont-17.0.05.pcf.noextract::https://ftp.gnu.org/gnu/unifont/unifont-17.0.05/unifont-17.0.05.pcf.gz extra_deps.lst"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+        unset CFLAGS
+        unset CXXFLAGS
+        cp $SRC/extra_deps.lst grub-core/
+        mkdir -pv $PKG/usr/share/fonts/unifont
+        gunzip -c ../unifont-17.0.05.pcf.noextract > $PKG/usr/share/fonts/unifont/unifont.pcf
+}
+
+post_build() {
+        rm -rf \
+        $PKG/etc \
+        $PKG/usr/sbin \
+        $PKG/usr/bin \
+        $PKG/usr/share/info \
+        $PKG/usr/share/locale \
+        $PKG/usr/share/grub
+}

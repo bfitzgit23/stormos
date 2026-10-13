@@ -1,0 +1,37 @@
+# description : Qt 5 WebEngine module
+# homepage    : https://doc.qt.io/qt-5/qtwebengine-index.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : qt5 bison flex gperf nodejs nss pciutils python3 python3-html5lib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=qtwebengine5
+version=5.15.19
+release=1
+source="https://download.qt.io/archive/qt/5.15/$version/submodules/qtwebengine-everywhere-opensource-src-$version.tar.xz qtwebengine-debian-patches.xzblob::https://deb.debian.org/debian/pool/main/q/qtwebengine-opensource-src/qtwebengine-opensource-src_5.15.19+dfsg2-7.debian.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	export QT5DIR=/opt/qt5
+	export PATH="$QT5DIR/bin:$PATH"
+	export PKG_CONFIG_PATH="$QT5DIR/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+
+	[ -x "$QT5DIR/bin/qmake" ] || {
+	    echo "qtwebengine5: $QT5DIR/bin/qmake is required" >&2
+	    return 1
+	}
+
+	apply_qtwebengine5_compat_patches || return 1
+
+	"$QT5DIR/bin/qmake" . || return 1
+	make -j "${JOBS:-1}" || return 1
+	make -j1 INSTALL_ROOT="$PKG" install || return 1
+
+	find "$PKG$QT5DIR" -name '*.prl' \
+	    -exec sed -i '/^QMAKE_PRL_BUILD_DIR/d' {} \; || return 1
+}

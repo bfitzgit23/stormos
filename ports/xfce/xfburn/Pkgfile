@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: libburn libisofs libxfce4ui gst-plugins-base cdrdao
-
-name=xfburn
-version=0.8.0
-release=1
-source=(https://archive.xfce.org/src/apps/${name}/${version%.*}/${name}-${version}.tar.bz2)

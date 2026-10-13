@@ -1,0 +1,28 @@
+# description : Fast, compact memory-mapped key-value database
+# homepage    : https://github.com/LMDB/lmdb
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=lmdb
+version=1.0.1
+release=3
+source="https://github.com/LMDB/lmdb/archive/LMDB_$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd libraries/liblmdb || return 1
+
+	make || return 1
+
+	# BFSOS does not ship static libraries.
+	sed -i 's| liblmdb.a||' Makefile || return 1
+
+	make prefix=/usr DESTDIR="$PKG" install || return 1
+}

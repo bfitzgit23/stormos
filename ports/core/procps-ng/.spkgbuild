@@ -1,0 +1,30 @@
+# description : procps-ng
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=procps-ng
+version=4.0.7
+release=1
+source="https://sourceforge.net/projects/procps-ng/files/Production/procps-ng-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	./configure --prefix=/usr                           \
+	    --docdir=/usr/share/doc/$name-$version \
+	    --disable-static                        \
+	    --disable-kill                          \
+	    --enable-watch8bit                      \
+	    --with-systemd
+	make
+	make DESTDIR=$PKG install
+}

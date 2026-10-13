@@ -1,0 +1,35 @@
+# description : Dependency-based service manager and init system
+# homepage    : https://github.com/OpenRC/openrc
+# maintainer  : BFSOS maintainers
+# depends     : linux-pam meson ninja
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=openrc
+version=0.63
+release=2
+source="https://github.com/OpenRC/openrc/archive/$version/openrc-$version.tar.gz inittab"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd "$name-$version" || return 1
+	mkdir build && cd build || return 1
+	meson setup .. \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -D uucp_group=root || return 1
+	ninja -j"${JOBS:-1}" || return 1
+	DESTDIR="$PKG" ninja install || return 1
+
+	install -d -m 0755 "$PKG/etc/runlevels" "$PKG/etc/init.d"
+	ln -sfn /sbin/openrc-init "$PKG/sbin/init"
+
+	# openrc-init reads /etc/inittab for the sysinit/wait states and the
+	# console gettys; without it the system never reaches a login prompt.
+	install -m 0644 inittab "$PKG/etc/inittab" || return 1
+}

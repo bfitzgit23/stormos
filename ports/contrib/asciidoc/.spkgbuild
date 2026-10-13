@@ -1,0 +1,30 @@
+# description : Text based document generation.
+# homepage    : https://asciidoc.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : docbook-xsl-nons python3-build python3-installer
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=asciidoc
+version=10.2.1
+release=4
+build_opt="--sysconfdir=/etc"
+source="https://github.com/$name-py/$name-py/archive/$version/$name-py-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}
+
+pre_build() {
+  export PYTHON=/usr/bin/python3
+  autoconf || return 1
+}

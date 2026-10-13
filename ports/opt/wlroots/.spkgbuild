@@ -1,0 +1,34 @@
+# description : Modular Wayland compositor library
+# homepage    : https://gitlab.freedesktop.org/wlroots/wlroots
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : meson wayland wayland-protocols libdrm libxkbcommon pixman libinput seatd systemd mesa libdisplay-info hwdata libliftoff
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=wlroots
+version=0.20.2
+release=2
+source="https://gitlab.freedesktop.org/wlroots/wlroots/-/releases/${version}/downloads/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build . \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    --wrap-mode=nodownload \
+	    -Dexamples=false \
+	    -Dbackends=drm,libinput \
+	    -Drenderers=gles2 \
+	    -Dsession=enabled \
+	    -Dlibliftoff=enabled \
+	    -Dxwayland=disabled || return 1
+
+	meson compile -C build || return 1
+
+	DESTDIR="$PKG" meson install -C build || return 1
+}

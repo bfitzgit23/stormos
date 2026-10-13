@@ -1,0 +1,66 @@
+# description : An essential exemplary set of plugins for gstreamer.
+# homepage    : https://gstreamer.freedesktop.org/modules/gst-plugins-base.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : graphene-32 gst-plugins-base gstreamer-32 libjpeg-turbo-32 libtheora-32 libvisual-32 libvorbis-32 mesa-32 opus-32 orc-32 pango-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gst-plugins-base-32
+version=1.28.7
+release=5
+build_opt=(
+  "-Dgl=enabled"
+  "-Dgl-graphene=enabled"
+  "-Dnls=disabled"
+  "-Dintrospection=disabled"
+  "-Dexamples=disabled"
+  "-Dqt5=disabled"
+  "-Dpackage-name=GStreamer Plugins Base (BFSOS)"
+  "-Dpackage-origin=https://github.com/bmadonnaster/BFSOS"
+)
+source="https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+  if [ -e /usr/lib32/pkgconfig/egl.pc ] && prt-get isinst wayland-protocols; then
+    PKGMK_GST_PLATFORM=egl
+    PKGMK_GST_GLAPI=gles2
+    PKGMK_GST_WINDOW=egl
+  fi
+  if prt-get isinst libXdamage-32 libXrandr-32 libxshmfence-32 libXvMC-32 libXxf86vm-32; then
+    PKGMK_GST_PLATFORM="${PKGMK_GST_PLATFORM:+$PKGMK_GST_PLATFORM,}glx"
+    PKGMK_GST_GLAPI="${PKGMK_GST_GLAPI:+$PKGMK_GST_GLAPI,}opengl"
+    PKGMK_GST_WINDOW="${PKGMK_GST_WINDOW:+$PKGMK_GST_WINDOW,}x11"
+  fi
+  [ -z "${PKGMK_GST_PLATFORM:-}" ] || build_opt+=("-Dgl_platform=$PKGMK_GST_PLATFORM")
+  [ -z "${PKGMK_GST_GLAPI:-}" ] || build_opt+=("-Dgl_api=$PKGMK_GST_GLAPI")
+  [ -z "${PKGMK_GST_WINDOW:-}" ] || build_opt+=("-Dgl_winsys=$PKGMK_GST_WINDOW")
+}
+
+post_build() {
+  rm -rf "$PKG/usr/bin" "$PKG/usr/include" "$PKG/usr/share"
+}

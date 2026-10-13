@@ -1,0 +1,22 @@
+# description : A simple, correct PEP517 package builder
+# homepage    : https://github.com/pypa/build
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-packaging python3-pyproject-hooks
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-build
+version=1.6.1
+release=1
+source="https://files.pythonhosted.org/packages/source/b/build/build-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	 /usr/bin/python3 -m flit_core.wheel
+	/usr/bin/python3 -m installer --destdir=$PKG dist/*.whl
+}

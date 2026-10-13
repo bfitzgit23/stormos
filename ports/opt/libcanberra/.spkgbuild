@@ -1,0 +1,26 @@
+# description : libcanberra is an implementation of the XDG Sound Theme and Name Specifications, for generating event sounds on free desktops, such as GNOME.
+# homepage    : https://0pointer.de/lennart/projects/libcanberra
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libvorbis alsa-lib gstreamer gtk3 sound-theme-freedesktop
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libcanberra
+version=0.30
+release=1
+skip_patch=1
+source="https://0pointer.de/lennart/projects/$name/$name-$version.tar.xz https://www.linuxfromscratch.org/patches/blfs/svn/$name-$version-wayland-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	patch -Np1 -i $PKGMK_SOURCE_DIR/$name-$version-wayland-1.patch
+	#autoreconf -fi
+		./configure --prefix=/usr --disable-oss &&
+	make
+		make DESTDIR=$PKG install
+}

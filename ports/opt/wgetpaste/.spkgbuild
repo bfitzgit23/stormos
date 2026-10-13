@@ -1,0 +1,23 @@
+# description : A script that automates pasting to a number of pastebin services
+# homepage    : https://wgetpaste.zlin.dk/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : wget
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=wgetpaste
+version=2.34
+release=1
+source="https://github.com/zlin/$name/releases/download/$version/$name-$version.tar.xz https://wgetpaste.zlin.dk/$name.example"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	install -Dm755 ${name} "${PKG}"/usr/bin/${name}
+	install -Dm644 _${name} "${PKG}"/usr/share/zsh/site-functions/_${name}
+	install -Dm644 "${SRC}"/${name}.example ${PKG}/usr/share/${name}/${name}.example
+}

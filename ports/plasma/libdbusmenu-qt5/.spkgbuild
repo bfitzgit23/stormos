@@ -1,0 +1,27 @@
+# description : A library that provides a Qt implementation of the DBusMenu spec
+# homepage    : https://launchpad.net/libdbusmenu-qt
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake doxygen qt5
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libdbusmenu-qt5
+version=0.9.3+16.04.20160218
+release=2
+source="https://launchpad.net/ubuntu/+archive/primary/+files/libdbusmenu-qt_0.9.3+16.04.20160218.orig.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DWITH_DOC=OFF \
+	    -Wno-dev || return 1
+	cmake --build build -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}

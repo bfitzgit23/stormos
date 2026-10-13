@@ -1,0 +1,49 @@
+# description : WINE with staging patches
+# homepage    : https://wiki.winehq.org/Wine-Staging
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib-32 alsa-plugins-32 cups-32 fontconfig-32 freeglut-32 gnutls-32 gst-plugins-base-32 gstreamer-32 lcms2-32 libx11-32 libxcomposite-32 libxcursor-32 libxext-32 libxi-32 libxinerama-32 libxrandr-32 libxrender-32 libxxf86vm-32 libgcrypt-32 libpcap-32 libsdl2-32 libunwind-32 libusb-32 libva-32 mpg123-32 openal-32 pipewire-32 pulseaudio-32 vkd3d-32 vulkan-loader-32 wayland-32 mingw-w64-gcc
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=wine-staging
+version=11.17
+release=4
+build_opt="--prefix=/usr --libdir=/usr/lib --enable-win64 --enable-archs=i386,x86_64"
+source="https://dl.winehq.org/wine/source/11.x/wine-$version.tar.xz \ https://github.com/$name/$name/archive/v$version/$name-$version.tar.gz \ https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-x86.msi \ https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-x86_64.msi \ https://dl.winehq.org/wine/wine-mono/11.3.0/wine-mono-11.3.0-x86.msi"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	  "$SRC/wine-staging-$version/staging/patchinstall.py" \
+	      DESTDIR="$SRC/wine-$version" --all -W server-Stored_ACLs || return 1
+
+	  export CPPFLAGS="${CPPFLAGS/-D_FORTIFY_SOURCE=2/} -D_FORTIFY_SOURCE=0"
+
+	  install -d "$SRC/wine64" || return 1
+	  cd "$SRC/wine64" || return 1
+	  "$SRC/wine-$version/configure" $build_opt || return 1
+	  make depend || return 1
+	  make -j"${JOBS:-1}" || return 1
+	  make DESTDIR="$PKG" install || return 1
+
+	  install -d "$PKG/usr/share/wine/gecko" "$PKG/usr/share/wine/mono" || return 1
+
+	  install -t "$PKG/usr/share/wine/gecko/" \
+	      "$SRC/wine-gecko-2.47.4-x86.msi" \
+	      "$SRC/wine-gecko-2.47.4-x86_64.msi" || return 1
+
+	  install "$SRC/wine-mono-11.3.0-x86.msi" "$PKG/usr/share/wine/mono/" || return 1
+
+	  rm -rf "$PKG"/usr/share/man/??.UTF-8
+
+	  install -d "$PKG/etc/revdep.d" || return 1
+	  printf '%s\n' '/usr/lib/wine/x86_64-unix' > "$PKG/etc/revdep.d/$name" || return 1
+	)
+}

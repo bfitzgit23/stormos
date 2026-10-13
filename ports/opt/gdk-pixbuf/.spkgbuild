@@ -1,0 +1,33 @@
+# description : An image loading library for GTK+
+# homepage    : https://wiki.gnome.org/Projects/GdkPixbuf
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gobject-introspection libpng libtiff shared-mime-info
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gdk-pixbuf
+version=2.44.8
+release=1
+source="https://download.gnome.org/sources/gdk-pixbuf/2.44/gdk-pixbuf-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build . \
+		--prefix=/usr \
+		--buildtype=plain \
+		--wrap-mode nodownload \
+		-D b_lto=true \
+		-D b_pie=true \
+		-D tests=false \
+		-D installed_tests=false \
+		-D man=false \
+		-D glycin=disabled -D others=enabled &&
+
+	meson compile -C build -j ${JOBS:-1}
+	DESTDIR=$PKG meson install  -C build
+}

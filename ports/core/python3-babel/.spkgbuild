@@ -1,0 +1,38 @@
+# description : python3-babel
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-babel
+version=2.18.0
+release=1
+cldrver=47
+cldrfilever=47.0
+source="https://github.com/python-babel/babel/archive/v$version/$name-$version.tar.gz https://unicode.org/Public/cldr/$cldrver/cldr-common-$cldrver.zip"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	/usr/bin/python3 setup.py import_cldr
+
+	/usr/bin/python3 setup.py build
+
+	/usr/bin/python3 setup.py install \
+	    --root="$PKG" \
+	    --optimize=1 \
+	    --skip-build
+
+	mv "$PKG/usr/bin/pybabel" \
+	   "$PKG/usr/bin/py3babel"
+
+	find "$PKG/usr/lib/python"*"/site-packages" \
+	    -type f \
+	    -exec chmod go-w '{}' +
+}

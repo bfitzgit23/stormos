@@ -1,0 +1,34 @@
+# description : Array processing for numbers, strings, records, and objects with Python
+# homepage    : https://numpy.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : lapack python3-cython python3-meson_python
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-numpy
+version=2.5.3
+release=1
+source="https://github.com/numpy/numpy/releases/download/v$version/numpy-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	CFLAGS+=" -ffat-lto-objects" \
+	CXXFLAGS+=" -ffat-lto-objects" \
+	/usr/bin/python3 -m build --wheel --no-isolation \
+	  -Csetup-args="-Dblas=blas" \
+	  -Csetup-args="-Dlapack=lapack"
+
+	/usr/bin/python3 -m installer --destdir=$PKG dist/*.whl
+	find $PKG \( \
+	  -iname "LICENSE.txt" -o \
+	  -iname "*README*" \
+	  \) -delete
+	chmod -R g-w $PKG
+}

@@ -1,0 +1,32 @@
+# description : SDL 1.2 compatibility layer implemented on top of SDL2
+# homepage    : https://github.com/libsdl-org/sdl12-compat
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake glu sdl2
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=sdl12-compat
+version=1.2.76
+release=1
+source="https://github.com/libsdl-org/sdl12-compat/archive/refs/tags/release-$version/$name-release-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build \
+	  -DCMAKE_INSTALL_PREFIX=/usr \
+	  -DCMAKE_INSTALL_LIBDIR=lib \
+	  -DCMAKE_BUILD_TYPE=Release \
+	  -DSDL12TESTS=OFF \
+	  -DSDL12DEVEL=ON \
+	  -DSTATICDEVEL=OFF || return 1
+
+	cmake --build build -j "${JOBS:-1}" || return 1
+
+	DESTDIR="$PKG" \
+	  cmake --install build || return 1
+}

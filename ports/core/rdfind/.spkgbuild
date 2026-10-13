@@ -1,0 +1,26 @@
+# description : find duplicate files utility
+# homepage    : https://github.com/pauldreik/rdfind
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : nettle
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=rdfind
+version=1.8.0
+release=1
+source="$name-$version.tar.gz::https://github.com/pauldreik/rdfind/archive/releases/$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	./bootstrap.sh
+	./configure --prefix=/usr
+	make
+	make DESTDIR=$PKG install
+}

@@ -1,0 +1,156 @@
+# description : Open-source Chromium web browser
+# homepage    : https://www.chromium.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib at-spi2-core brotli cairo cups dav1d dbus desktop-file-utils expat flac fontconfig freetype git glib gperf gtk3 harfbuzz hicolor-icon-theme icu libdrm libevent libffi libgcrypt libjpeg-turbo libpng libva libwebp libx11 libxcb libxcomposite libxdamage libxext libxfixes libxkbcommon libxrandr libxscrnsaver libxml2 libxslt llvm mesa minizip nspr nss openh264 opus pango pciutils pipewire pulseaudio systemd xdg-utils zlib zstd gn ninja nodejs python3 rust-bindgen rustc typescript
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=chromium
+version=153.0.8010.36
+release=3
+build_work=disk
+build_opt=(
+    'is_official_build=true'
+    'treat_warnings_as_errors=false'
+    'is_debug=false'
+    'symbol_level=0'
+    'blink_symbol_level=0'
+    'v8_symbol_level=0'
+    'chrome_pgo_phase=0'
+    'use_sysroot=false'
+    'use_kerberos=false'
+    'use_official_google_api_keys=false'
+    'use_system_libffi=true'
+    'proprietary_codecs=true'
+    'ffmpeg_branding="Chrome"'
+    'use_pulseaudio=true'
+    'use_vaapi=true'
+    'ozone_auto_platforms=true'
+    'ozone_platform_wayland=true'
+    'ozone_platform_x11=true'
+    'is_clang=true'
+    'clang_base_path="/usr"'
+    'clang_version="23"'
+    'clang_use_chrome_plugins=false'
+    'use_lld=true'
+)
+source="https://commondatastorage.googleapis.com/chromium-browser-official/chromium-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	local gn_args f d size
+
+	# Fail early with a useful message instead of discovering a missing host
+	# tool hours into a Chromium build.
+	for f in gn ninja clang clang++ node python3 rustc bindgen gperf tsc; do
+	    command -v "$f" >/dev/null 2>&1 || {
+	        echo "chromium: required build tool not found: $f" >&2
+	        return 1
+	    }
+	done
+
+	# Chromium 153 carries -Wno-stringop-overread, which Clang 23 does not
+	# recognize. Remove the unsupported warning-suppression flag rather than
+	# emitting tens of thousands of -Wunknown-warning-option diagnostics.
+	sed -i '/"-Wno-stringop-overread",/d' \
+	    build/config/compiler/BUILD.gn || return 1
+
+	printf -v gn_args '%s ' "${build_opt[@]}"
+
+	mkdir -p out/Release || return 1
+	gn gen out/Release --args="$gn_args" || return 1
+	ninja -C out/Release chrome chrome_sandbox chromedriver || return 1
+
+	install -d \
+	    "$PKG/usr/lib/chromium" \
+	    "$PKG/usr/bin" \
+	    "$PKG/usr/share/applications" || return 1
+
+	install -m755 \
+	    out/Release/chrome \
+	    "$PKG/usr/lib/chromium/chromium" || return 1
+
+	install -m4755 \
+	    out/Release/chrome_sandbox \
+	    "$PKG/usr/lib/chromium/chrome-sandbox" || return 1
+
+	install -m755 \
+	    out/Release/chromedriver \
+	    "$PKG/usr/bin/chromedriver" || return 1
+
+	# Runtime artifacts vary slightly by Chromium release/configuration. Stage
+	# every known artifact that this build produced, but never hide a missing
+	# core data file.
+	for f in \
+	    icudtl.dat \
+	    resources.pak \
+	    chrome_100_percent.pak \
+	    chrome_200_percent.pak \
+	    v8_context_snapshot.bin
+	do
+	    [ -e "out/Release/$f" ] || {
+	        echo "chromium: required runtime artifact missing: $f" >&2
+	        return 1
+	    }
+
+	    cp -a \
+	        "out/Release/$f" \
+	        "$PKG/usr/lib/chromium/" || return 1
+	done
+
+	for f in \
+	    chrome_crashpad_handler \
+	    libEGL.so \
+	    libGLESv2.so \
+	    libvk_swiftshader.so \
+	    libvulkan.so.1 \
+	    vk_swiftshader_icd.json \
+	    snapshot_blob.bin
+	do
+	    [ ! -e "out/Release/$f" ] || \
+	        cp -a \
+	            "out/Release/$f" \
+	            "$PKG/usr/lib/chromium/" || return 1
+	done
+
+	for d in locales resources; do
+	    [ ! -e "out/Release/$d" ] || \
+	        cp -a \
+	            "out/Release/$d" \
+	            "$PKG/usr/lib/chromium/" || return 1
+	done
+
+	cat > "$PKG/usr/bin/chromium" <<'WRAP'
+#!/bin/sh
+exec /usr/lib/chromium/chromium "$@"
+WRAP
+
+	chmod 755 "$PKG/usr/bin/chromium" || return 1
+
+	cat > "$PKG/usr/share/applications/chromium.desktop" <<'DESKTOP'
+[Desktop Entry]
+Name=Chromium
+Comment=Access the Internet
+Exec=chromium %U
+Terminal=false
+Type=Application
+Icon=chromium
+Categories=Network;WebBrowser;
+MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+DESKTOP
+
+	for size in 16 24 32 48 64 128 256; do
+	    f="out/Release/product_logo_${size}.png"
+	    [ -f "$f" ] || continue
+
+	    install -Dm644 \
+	        "$f" \
+	        "$PKG/usr/share/icons/hicolor/${size}x${size}/apps/chromium.png" || return 1
+	done
+}

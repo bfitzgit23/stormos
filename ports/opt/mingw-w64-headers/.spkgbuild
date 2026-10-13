@@ -1,0 +1,30 @@
+# description : headers for mingw-w64 toolchain
+# homepage    : http://mingw-w64.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mingw-w64-headers
+version=14.0.0
+release=2
+source="https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	for T in {i686,x86_64}-w64-mingw32; do
+		mkdir build-$T
+		cd build-$T
+		../mingw-w64-headers/configure --prefix=/usr/$T --host=$T
+		make DESTDIR=$PKG install
+		cd ..
+	done
+
+	ln -sv x86_64-w64-mingw32 $PKG/usr/mingw
+	ln -sv lib $PKG/usr/x86_64-w64-mingw32/lib64
+}

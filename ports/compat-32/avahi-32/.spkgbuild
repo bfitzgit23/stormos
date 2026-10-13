@@ -1,0 +1,49 @@
+# description : 32-bit Avahi mDNS/DNS-SD compatibility libraries
+# homepage    : https://github.com/avahi/avahi
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : avahi dbus-32 gdbm-32 glib-32 libcap-32 libdaemon-32 libevent-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# scratchpkg rejects '-' in `version`; the upstream version 0.9-rc5 is kept verbatim in the source URLs below.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=avahi-32
+version=0.9
+release=8
+build_opt="--with-distro=none --disable-static --disable-gtk --disable-gtk3 --disable-qt3 --disable-qt4 --disable-qt5 --disable-python --disable-pygobject --disable-python-dbus --disable-mono --disable-monodoc --disable-nls --disable-manpages --enable-compat-libdns_sd --disable-libsystemd"
+source="https://github.com/avahi/avahi/archive/v0.9-rc5/avahi-0.9-rc5.tar.gz https://www.linuxfromscratch.org/patches/blfs/svn/avahi-0.9-rc5-ipv6_race_condition_fix-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+  autoreconf -fiv || return 1
+}
+
+post_build() {
+  # compat-32 owns only the 32-bit ABI. Native Avahi owns executables,
+  # configuration, service units, headers and architecture-independent data.
+  rm -rf "$PKG/usr/bin" "$PKG/usr/sbin" "$PKG/usr/include" "$PKG/usr/share" \
+         "$PKG/usr/lib/systemd" "$PKG/etc" "$PKG/var"
+}

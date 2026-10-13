@@ -1,0 +1,26 @@
+# description : Network route tracing diagnostic utility
+# homepage    : https://sourceforge.net/projects/traceroute/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=traceroute
+version=2.1.6
+release=1
+source="https://downloads.sourceforge.net/traceroute/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make -j "${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" prefix=/usr install || return 1
+
+	ln -sf traceroute "$PKG/usr/bin/traceroute6" || return 1
+	ln -sf traceroute.8 "$PKG/usr/share/man/man8/traceroute6.8" || return 1
+	rm -f "$PKG/usr/share/man/man1/traceroute.1"
+}

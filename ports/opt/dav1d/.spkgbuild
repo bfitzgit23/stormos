@@ -1,0 +1,29 @@
+# description : Fast and small AV1 video decoder
+# homepage    : https://code.videolan.org/videolan/dav1d
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : meson ninja
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=dav1d
+version=1.5.4
+release=1
+source="https://download.videolan.org/pub/videolan/dav1d/${version}/dav1d-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -Denable_tests=false \
+	    -Denable_examples=false || return 1
+
+	ninja -C build || return 1
+
+	DESTDIR="$PKG" ninja -C build install || return 1
+}

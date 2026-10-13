@@ -1,0 +1,34 @@
+# description : Qt 6 WebEngine Chromium-based web content module
+# homepage    : https://doc.qt.io/qt-6/qtwebengine-index.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : bison cmake flex gperf ninja nodejs nss python3 python3-html5lib qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=qt6-webengine
+version=6.11.2
+release=1
+source="https://download.qt.io/official_releases/qt/6.11/$version/submodules/qtwebengine-everywhere-src-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	export PATH=/opt/qt6/bin:$PATH
+
+	unset DESTDIR DEST_DIR INSTALLROOT install_root INSTALL_ROOT
+
+	mkdir -p _build
+	cd _build
+	/opt/qt6/bin/qt-configure-module .. || return 1
+	cmake --build . --parallel "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" cmake --install . || return 1
+
+	test -e "$PKG/opt/qt6/lib/cmake/Qt6WebEngineCore/Qt6WebEngineCoreConfig.cmake" || {
+	    echo "ERROR: Qt6 WebEngine CMake metadata was not staged" >&2
+	    return 1
+	}
+}

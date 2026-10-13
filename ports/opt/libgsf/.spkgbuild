@@ -1,0 +1,23 @@
+# description : Extensible I/O abstraction library for structured file formats
+# homepage    : https://gitlab.gnome.org/GNOME/libgsf
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib libxml2 gdk-pixbuf
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libgsf
+version=1.14.58
+release=2
+source="https://download.gnome.org/sources/$name/1.14/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure --prefix=/usr --disable-static || return 1
+	make -j"${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" install || return 1
+}

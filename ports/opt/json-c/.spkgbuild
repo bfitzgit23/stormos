@@ -1,0 +1,39 @@
+# description : JSON-C implements a reference-counted JSON object model and parser for C.
+# homepage    : https://github.com/json-c/json-c
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=json-c
+version=0.19
+release=1
+build_opt=(
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_INSTALL_LIBDIR=lib
+    -DCMAKE_BUILD_TYPE=Release
+    -DBUILD_SHARED_LIBS=ON
+    -DBUILD_STATIC_LIBS=OFF
+    -DBUILD_TESTING=OFF
+    -DDISABLE_WERROR=ON
+)
+source="https://github.com/json-c/json-c/archive/refs/tags/json-c-$version-20260627.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake \
+	    -S . \
+	    -B build \
+	    "${build_opt[@]}"
+
+	cmake --build build
+
+	DESTDIR="$PKG" cmake --install build
+
+	rm -rf "$PKG/usr/share/doc"
+}

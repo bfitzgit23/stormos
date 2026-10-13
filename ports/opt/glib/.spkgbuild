@@ -1,0 +1,36 @@
+# description : Low-level data structure handling, portability wrappers, and interfaces for runtime functionality
+# homepage    : https://www.gtk.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-docutils libxslt pcre2
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=glib
+version=2.90.0
+release=1
+source="https://download.gnome.org/sources/$name/${version:0:4}/$name-$version.tar.xz https://www.linuxfromscratch.org/patches/blfs/svn/glib-skip_warnings-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	local introspection_opt="-Dintrospection=disabled"
+
+	if prt-get isinst gobject-introspection >/dev/null 2>&1; then
+	  introspection_opt="-Dintrospection=enabled"
+	fi
+
+	meson setup build . \
+	  --prefix=/usr \
+	  --buildtype=release \
+	  -D glib_debug=disabled \
+	  -D man-pages=enabled \
+	  -D sysprof=disabled \
+	  "$introspection_opt" || return $?
+
+	meson compile -C build -j "${JOBS:-1}" || return $?
+	DESTDIR="$PKG" meson install --no-rebuild -C build || return $?
+}

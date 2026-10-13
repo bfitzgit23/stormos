@@ -1,0 +1,27 @@
+# description : Qt cryptographic architecture
+# homepage    : https://userbase.kde.org/QCA
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake make-ca qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=qca
+version=2.3.12
+release=2
+source="https://download.kde.org/stable/qca/$version/qca-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build -G Ninja \
+	    -DCMAKE_INSTALL_PREFIX=/opt/qt6 \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DQT6=ON \
+	    -DQCA_MAN_INSTALL_DIR=/usr/share/man
+	cmake --build build -j "${JOBS:-1}"
+	DESTDIR="$PKG" cmake --install build
+}

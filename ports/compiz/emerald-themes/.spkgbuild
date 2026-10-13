@@ -1,0 +1,24 @@
+# description : Themes for the Emerald Compiz decorator
+# homepage    : https://gitlab.com/compiz/emerald-themes
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : emerald-decorator
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=emerald-themes
+version=0.8.18
+release=2
+source="https://gitlab.com/compiz/$name/-/archive/v$version/$name-v$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	NOCONFIGURE=1 ./autogen.sh || return 1
+	./configure --prefix=/usr || return 1
+	make -j"${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" install || return 1
+}

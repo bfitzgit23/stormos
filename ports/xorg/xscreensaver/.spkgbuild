@@ -1,0 +1,37 @@
+# description : X11 screen saver collection and locker
+# homepage    : https://ftp.ludd.ltu.se/pub/blfs/conglomeration/xscreensaver/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gtk3 xorg-apps glu linux-pam ffmpeg kerberos
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xscreensaver
+version=6.15
+release=7
+source="https://ftp.ludd.ltu.se/pub/blfs/conglomeration/xscreensaver/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure --prefix=/usr --with-systemd || return 1
+	make -j"${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" install || return 1
+
+	chmod 755 "$PKG/usr/bin/xscreensaver" || return 1
+	install -d "$PKG/usr/share/backgrounds" || return 1
+
+	# `bsod` intentionally simulates crashes/security incidents, including a
+	# ransomware screen. Keep it available but exclude it from the default
+	# random-hack list so a stock BFSOS install cannot mislead the user.
+	for cfg in \
+	    "$PKG/etc/X11/app-defaults/XScreenSaver" \
+	    "$PKG/usr/share/X11/app-defaults/XScreenSaver"
+	do
+	    [ -f "$cfg" ] || continue
+	    sed -E -i '/^[[:space:]]*-[[:space:]]+bsod([[:space:]]|$)/! s/^([[:space:]]*)bsod([[:space:]])/\1- bsod\2/' "$cfg" || return 1
+	done
+}

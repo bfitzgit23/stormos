@@ -1,0 +1,37 @@
+# description : Vulkan ICD loader
+# homepage    : https://github.com/KhronosGroup/Vulkan-Loader
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake ninja vulkan-headers wayland xorg-libs
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=vulkan-loader
+version=1.4.357.0
+release=5
+source="vulkan-loader-${version}.tar.gz::https://github.com/KhronosGroup/Vulkan-Loader/archive/refs/tags/vulkan-sdk-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build \
+	    -G Ninja \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_INSTALL_LIBDIR=lib \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DCMAKE_SKIP_RPATH=TRUE || return 1
+
+	cmake --build build -j "${JOBS:-1}" || return 1
+
+	DESTDIR="$PKG" cmake --install build || return 1
+
+	if ! find "$PKG/usr/lib" -maxdepth 1 \
+	    \( -name 'libvulkan.so' -o -name 'libvulkan.so.*' \) \
+	    -print -quit | grep -q .; then
+	    echo "vulkan-loader: libvulkan.so was not staged" >&2
+	    return 1
+	fi
+}

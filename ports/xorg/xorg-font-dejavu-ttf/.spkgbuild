@@ -1,0 +1,29 @@
+# description : A font family based on the Bitstream Vera Fonts
+# homepage    : https://dejavu-fonts.github.io/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : fontconfig mkfontscale
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xorg-font-dejavu-ttf
+version=2.37
+release=1
+source="https://downloads.sourceforge.net/project/dejavu/dejavu/$version/dejavu-fonts-ttf-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	install -m 0755 -d $PKG/usr/share/fonts/X11/TTF
+	install -m 0644 -t $PKG/usr/share/fonts/X11/TTF ttf/*.ttf
+
+	install -m 0755 -d $PKG/etc/fonts/conf.{d,avail}
+	install -m 0644 -t $PKG/etc/fonts/conf.avail fontconfig/*.conf
+
+	cd $PKG/etc/fonts/conf.d
+	ln -s ../conf.avail/* .
+}

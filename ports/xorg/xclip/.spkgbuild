@@ -1,0 +1,24 @@
+# description : Command line interface to the X11 clipboard
+# homepage    : https://github.com/astrand/xclip
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxmu
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xclip
+version=0.13
+release=3
+source="https://github.com/astrand/$name/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./bootstrap
+	./configure --prefix=/usr
+	make
+	make DESTDIR=$PKG install
+}

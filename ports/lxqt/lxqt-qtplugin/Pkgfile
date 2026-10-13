@@ -1,9 +1,0 @@
-# Description: Lxqt Qtplugin component for LXQt
-# URL: https://github.com/lxqt/lxqt-qtplugin
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: liblxqt libdbusmenu-lxqt
-
-name=lxqt-qtplugin
-version=2.4.0
-release=2
-source=(https://github.com/lxqt/${name}/releases/download/${version}/${name}-${version}.tar.xz)

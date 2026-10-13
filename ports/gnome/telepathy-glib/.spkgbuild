@@ -1,0 +1,26 @@
+# description : telepathy-glib
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus-glib libxslt glib gobject-introspection vala
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=telepathy-glib
+version=0.24.2
+release=1
+source="https://telepathy.freedesktop.org/releases/${name}/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i '1794 s/tp_value_array_free/(GDestroyNotify) tp_value_array_free/' telepathy-glib/protocol.c
+	PYTHON=/usr/bin/python3 ./configure --prefix=/usr          \
+	                                    --enable-vala-bindings \
+	                                    --disable-static       &&
+	make
+	make install
+}

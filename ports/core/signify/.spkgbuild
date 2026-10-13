@@ -1,0 +1,40 @@
+# description : signify
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=signify
+version=0.14
+release=1
+source="https://github.com/leahneukirchen/outils/archive/v$version/outils-$version.tar.gz cruxify.diff"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+
+	export CFLAGS+=" -DSIGNIFYROOT=\\\"/etc/ports\\\""
+
+	make \
+	    PREFIX=/usr \
+	    src/usr.bin/signify/signify
+
+	install -d \
+	    "$PKG/usr/bin" \
+	    "$PKG/usr/share/man/man1"
+
+	install -m 0755 \
+	    src/usr.bin/signify/signify \
+	    "$PKG/usr/bin/signify"
+
+	install -m 0644 \
+	    src/usr.bin/signify/signify.1 \
+	    "$PKG/usr/share/man/man1/signify.1"
+}

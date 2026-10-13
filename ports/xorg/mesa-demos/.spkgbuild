@@ -1,0 +1,35 @@
+# description : mesa-demos
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : mesa libdecor
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mesa-demos
+version=9.0.0
+release=2
+source="https://archive.mesa3d.org/demos/${name}-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	prt-get isinst libdecor wayland || PKGMK_MESA_DEMOS+=' -D wayland=disabled'
+
+	meson setup build . $PKGMK_MESA_DEMOS \
+		--prefix=/usr \
+		--buildtype=plain \
+		--wrap-mode nodownload \
+		-D b_lto=true \
+		-D b_pie=true \
+		-D osmesa=disabled \
+		-D gles1=disabled
+	meson compile -C build -j ${JOBS:-1}
+
+	install -Dm 0755 -t $PKG/usr/bin \
+		build/src/xdemos/glx{gears,info} \
+		build/src/egl/opengl/eglinfo
+}

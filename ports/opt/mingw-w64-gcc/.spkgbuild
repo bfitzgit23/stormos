@@ -1,0 +1,77 @@
+# description : gcc for mingw-w64 toolchain
+# homepage    : https://gcc.gnu.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : mingw-w64-binutils mingw-w64-headers mingw-w64-crt
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mingw-w64-gcc
+version=16.2.0
+release=1
+source="https://gcc.gnu.org/pub/gcc/releases/gcc-$version/gcc-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	for T in i686-w64-mingw32 x86_64-w64-mingw32; do
+	        rm -rf build-$T
+	        mkdir -p build-$T || return 1
+	        cd build-$T || return 1
+
+	        ../configure \
+	                --prefix=/usr \
+	                --libexecdir=/usr/lib/$name \
+	                --target=$T \
+	                --enable-languages=c,c++,lto \
+	                --enable-shared \
+	                --enable-static \
+	                --enable-threads=win32 \
+	                --enable-libstdcxx-time=yes \
+	                --enable-lto \
+	                --disable-libgomp \
+	                --disable-multilib \
+	                --enable-checking=release \
+	                --disable-nls \
+	                --disable-werror \
+	                --with-system-zlib \
+	                --with-gnu-as \
+	                --with-gnu-ld || return 1
+
+	        make || return 1
+	        make DESTDIR="$PKG" install || return 1
+	        cd .. || return 1
+
+	        if [ ! -x "$PKG/usr/bin/$T-gcc" ]; then
+	                echo "ERROR: $name: staged compiler missing: /usr/bin/$T-gcc" >&2
+	                return 1
+	        fi
+
+	        if [ ! -x "$PKG/usr/bin/$T-g++" ]; then
+	                echo "ERROR: $name: staged C++ compiler missing: /usr/bin/$T-g++" >&2
+	                return 1
+	        fi
+	done
+
+	rm -rf "$PKG"/usr/share/{info,locale}
+	rm -f "$PKG"/usr/share/man/man7/{fsf-funding,gfdl,gpl}.7*
+	rm -f "$PKG"/usr/lib/libcc1*
+	rm -f "$PKG"/usr/lib/gcc/{i686,x86_64}-w64-mingw32/$version/{include-fixed,install-tools/include}/README
+
+	for T in i686-w64-mingw32 x86_64-w64-mingw32; do
+	        test -x "$PKG/usr/bin/$T-gcc" || {
+	                echo "ERROR: $name: cleanup removed/missed $T-gcc" >&2
+	                return 1
+	        }
+	done
+
+	payload_files=$(find "$PKG" -type f 2>/dev/null | wc -l)
+	if [ "$payload_files" -lt 100 ]; then
+	        echo "ERROR: $name: staged payload is implausibly small ($payload_files files)" >&2
+	        return 1
+	fi
+}

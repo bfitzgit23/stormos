@@ -1,0 +1,27 @@
+# description : Text and graphics mode WWW browser
+# homepage    : http://links.twibright.com/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : openssl libevent
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=links
+version=2.30
+release=3
+source="http://links.twibright.com/download/$name-$version.tar.bz2 links-2.30-gcc16-const-fix.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure --prefix=/usr --mandir=/usr/share/man
+		make
+		make DESTDIR=$PKG install
+	install -v -d -m755 $PKG/usr/share/doc/links-2.29 &&
+	install -v -m644 doc/links_cal/* KEYS BRAILLE_HOWTO \
+	    $PKG/usr/share/doc/links-2.29
+}

@@ -1,0 +1,29 @@
+# description : GLib and GObject bindings for libvirt
+# homepage    : https://libvirt.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib gobject-introspection libvirt libxml2 vala
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libvirt-glib
+version=5.0.0
+release=1
+build_opt=(
+    -Ddocs=disabled
+    -Dtests=disabled
+    -Dintrospection=enabled
+    -Dvapi=enabled
+)
+source="https://download.libvirt.org/glib/libvirt-glib-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

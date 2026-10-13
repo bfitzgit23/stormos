@@ -1,0 +1,30 @@
+# description : Linux io_uring userspace library
+# homepage    : https://github.com/axboe/liburing
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=liburing
+version=2.15
+release=5
+source="https://github.com/axboe/liburing/archive/refs/tags/liburing-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	    --prefix=/usr \
+	    --includedir=/usr/include \
+	    --libdir=/usr/lib \
+	    --libdevdir=/usr/lib \
+	    --mandir=/usr/share/man \
+	    --datadir=/usr/share || return 1
+
+	make || return 1
+	make DESTDIR="$PKG" install || return 1
+}

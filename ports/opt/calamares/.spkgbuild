@@ -1,0 +1,40 @@
+# description : Graphical installer configured for StormFS and selectable init profiles
+# homepage    : https://calamares.io/
+# maintainer  : StormFS maintainers
+# depends     : cmake extra-cmake-modules qt6 qt6-tools kpmcore yaml-cpp polkit-qt-1 boost python3-pyqt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=calamares
+version=3.4.3
+release=3
+source="https://codeberg.org/Calamares/calamares/archive/calamares-$version.tar.gz branding.desc stylesheet.qss show.qml settings.conf services-openrc.conf partition.conf bootloader.conf grubcfg.conf users.conf locale.conf keyboard.conf mount.conf initramfs.conf StormFS-Wallpaper-01-Horizon.jpg StormFS-Wallpaper-02-Lightning.jpg StormFS-Wallpaper-03-Circuit.jpg StormFS-Wallpaper-04-Aurora.jpg StormFS-Wallpaper-05-Hex.jpg StormFS-Wallpaper-06-Orbit.jpg stormfs-logo.png"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -B build -S calamares \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DWITH_PYTHONQT6=ON \
+	    -DWITH_SYSTEMD=OFF \
+	    -DWITH_NETWORKMANAGER=ON \
+	    -DWITH_KPMCORE=ON \
+	    -DWITH_MODULE_INITRAMFS=ON \
+	    -DWITH_MODULE_SERVICES_OPENRC=OFF || return 1
+	cmake --build build -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+
+	install -d -m 0755 "$PKG/etc/calamares/branding/stormfs" "$PKG/etc/calamares/modules"
+	install -m 0644 branding.desc stylesheet.qss show.qml \
+	    "$PKG/etc/calamares/branding/stormfs/"
+	install -m 0644 StormFS-*.jpg stormfs-logo.png \
+	    "$PKG/etc/calamares/branding/stormfs/"
+	install -m 0644 settings.conf services-openrc.conf partition.conf \
+	    bootloader.conf grubcfg.conf users.conf locale.conf keyboard.conf \
+	    mount.conf initramfs.conf "$PKG/etc/calamares/modules/"
+}

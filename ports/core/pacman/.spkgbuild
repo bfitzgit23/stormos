@@ -1,0 +1,49 @@
+# description : Pacman package manager wired for BFSOS source-built repositories
+# homepage    : https://gitlab.archlinux.org/pacman/pacman
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libarchive curl gpgme meson ninja
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=pacman
+version=6.1.0
+release=1
+source="https://gitlab.archlinux.org/pacman/pacman/-/archive/v$version/pacman-v$version.tar.gz pacman.conf"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir -p build && cd build
+	meson setup .. \
+	    --prefix=/usr \
+	    --libdir=/usr/lib \
+	    --buildtype=plain \
+	    -Dgit=disabled \
+	    -Ddoc=disabled \
+	    -Ddoxygen=disabled \
+	    -Dman=disabled \
+	    -Dcurl=enabled \
+	    -Dgpgme=enabled || return 1
+	meson compile -C . || return 1
+	DESTDIR="$PKG" meson install --no-rebuild -C . || return 1
+
+	# BFSOS repository configuration. The only enabled repo is the local
+	# source-built one; pacman CLI wrappers (bfsos) rely on this repo.
+	install -d -m0755 "$PKG/etc"
+	install -m0644 "$SRC/pacman.conf" "$PKG/etc/pacman.conf"
+
+	# pacman -U wants a local repo directory; give a stable mirror path
+	# so admins can serve the repo over the network without re-editing
+	# pacman.conf.
+	install -d -m0755 "$PKG/etc/pacman.d"
+	cat > "$PKG/etc/pacman.d/mirrorlist" <<'MIRROR_EOF'
+# BFSOS local source-built repository mirror.
+# Point this at your repository host or leave the local file:// path in
+# pacman.conf as delivered.
+Server = file:///var/cache/repo/bfsos
+MIRROR_EOF
+}

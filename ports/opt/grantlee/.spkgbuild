@@ -1,0 +1,29 @@
+# description : Grantlee is a set of free software libraries written using the Qt framework. Currently two libraries are shipped with Grantlee: Grantlee Templates and Grantlee TextDocument. The goal of Grantlee Templates is to make it easier for application developers to separate the structure of documents from the data they contain, opening the door for theming.
+# homepage    : https://github.com/steveire/grantlee/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake qt5
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=grantlee
+version=5.3.1
+release=1
+source="https://github.com/steveire/grantlee/releases/download/v$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		mkdir build &&
+		cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DCMAKE_BUILD_TYPE=Release  \
+	      .. &&
+	make
+		make DESTDIR=$PKG install
+}

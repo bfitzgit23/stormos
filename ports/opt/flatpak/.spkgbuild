@@ -1,0 +1,46 @@
+# description : Application deployment and sandboxing framework for Linux desktops
+# homepage    : https://flatpak.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : appstream bubblewrap xdg-dbus-proxy dbus dconf glib gpgme json-glib libarchive libseccomp libsoup3 libxmlb ostree p11-kit python3-pyparsing fuse curl xdg-desktop-portal
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=flatpak
+version=1.18.2
+release=1
+source="https://github.com/flatpak/flatpak/releases/download/${version}/flatpak-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir -p build && cd build || return 1
+
+	# -Dsystemd=disabled keeps BFSOS init-neutral: service integration is
+	# owned by the selected init profile (systemd/openrc/sysvinit), and
+	# system_bubblewrap/system_dbus_proxy point at the distro-provided
+	# binaries so Meson does not fetch its own subprojects at build time.
+	meson setup \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -D systemd=disabled \
+	    -D system_bubblewrap=bwrap \
+	    -D system_dbus_proxy=xdg-dbus-proxy \
+	    -D auto_sideloading=false \
+	    -D gdm_env_file=false \
+	    -D tests=false \
+	    .. || return 1
+
+	ninja -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" ninja install || return 1
+
+	# Strip any systemd-carried artifacts from the disabled-but-installed
+	# integration paths so the package stays init-neutral on disk.
+	rm -rf "$PKG/usr/lib/systemd" "$PKG/lib/systemd" \
+	       "$PKG/usr/lib/sysusers.d" "$PKG/usr/lib/tmpfiles.d"
+
+	find "$PKG" -name '*.la' -delete
+}

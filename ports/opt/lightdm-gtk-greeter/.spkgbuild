@@ -1,0 +1,34 @@
+# description : GTK3 greeter for the LightDM display manager
+# homepage    : https://github.com/Xubuntu/lightdm-gtk-greeter
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : lightdm gtk3 exo intltool libxklavier
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=lightdm-gtk-greeter
+version=2.0.9
+release=1
+build_opt="\
+    --libexecdir=/usr/lib/lightdm \
+    --sbindir=/usr/bin \
+    --sysconfdir=/etc \
+    --with-libxklavier \
+    --enable-kill-on-sigterm \
+    --disable-libido \
+    --disable-libindicator \
+    --disable-static \
+    --disable-maintainer-mode \
+    --docdir=/usr/share/doc/lightdm-gtk-greeter-$version"
+source="https://github.com/Xubuntu/lightdm-gtk-greeter/releases/download/lightdm-gtk-greeter-$version/lightdm-gtk-greeter-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

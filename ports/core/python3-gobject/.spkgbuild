@@ -1,0 +1,33 @@
+# description : Python bindings for GLib/GObject/GIO/GTK+/GStreamer
+# homepage    : https://wiki.gnome.org/Projects/PyGObject
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gobject-introspection python3-cairo
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-gobject
+version=3.58.0
+release=1
+source="https://download.gnome.org/sources/pygobject/${version::4}/pygobject-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build . \
+		--prefix=/usr \
+		--buildtype=plain \
+		--wrap-mode nodownload \
+		-D b_lto=true \
+		-D b_pie=true \
+		-D python=/usr/bin/python3
+
+	meson compile -C build -j ${JOBS:-1}
+	DESTDIR=$PKG meson install -C build
+
+	/usr/bin/python3 -m compileall -d /usr/lib $PKG/usr/lib
+	/usr/bin/python3 -O -m compileall -d /usr/lib $PKG/usr/lib
+}

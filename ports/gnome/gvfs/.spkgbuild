@@ -1,0 +1,34 @@
+# description : gvfs
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus glib gcr4 libusb libsecret gtk3 libcdio libgudev libsoup3 systemd udisks libcdio-paranoia avahi bluez fuse gnome-online-accounts libarchive libgcrypt libgdata libxml2 libxslt openssh samba
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gvfs
+version=1.62.0
+release=1
+build_opt="-Donedrive=false
+-Dfuse=true
+-Dgphoto2=false
+-Dafc=false
+-Dbluray=false
+-Dnfs=false
+-Dmtp=false
+-Dsmb=true
+-Ddnssd=true
+-Dgoa=true
+-Dgoogle=true"
+source="https://download.gnome.org/sources/${name}/${version%.*}/${name}-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

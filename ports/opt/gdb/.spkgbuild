@@ -1,0 +1,34 @@
+# description : gdb
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-six expat mpfr readline texinfo xz zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gdb
+version=17.2
+release=2
+source="https://ftp.gnu.org/gnu/${name}/${name}-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	mkdir build &&
+	cd    build &&
+
+	../configure --prefix=/usr          \
+	             --with-system-readline \
+	             --with-python=/usr/bin/python3 &&
+	make
+	make -C gdb DESTDIR=$PKG install &&
+	make -C gdbserver DESTDIR=$PKG install
+}
+
+pre_build() {
+sed '/^SUBDIRS/s/doc//' -i gdb/Makefile.in
+}

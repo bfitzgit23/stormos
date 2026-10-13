@@ -1,0 +1,25 @@
+# description : The libnsl package contains the public client interface for NIS(YP). It replaces the NIS library that used to be in glibc.
+# homepage    : https://github.com/thkukuk/$name/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libtirpc
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libnsl
+version=2.0.1
+release=1
+source="https://github.com/thkukuk/$name/releases/download/v$version/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+		./configure --sysconfdir=/etc --disable-static &&
+	make
+		make DESTDIR=$PKG install
+}

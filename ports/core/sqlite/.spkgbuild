@@ -1,0 +1,34 @@
+# description : sqlite
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=sqlite
+version=3.53.4
+release=1
+_version=$(printf "%i%.2i%.2i%.2i" ${version//./ })
+source="https://www.sqlite.org/2026/sqlite-autoconf-${_version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	CPPFLAGS="$CPPFLAGS \
+        -DSQLITE_SECURE_DELETE=1 \
+        -DSQLITE_ENABLE_COLUMN_METADATA=1 \
+        -DSQLITE_ENABLE_UNLOCK_NOTIFY=1 \
+        -DSQLITE_ENABLE_DBSTAT_VTAB=1" \
+	./configure \
+	    --prefix=/usr \
+	    --disable-static \
+	    --enable-fts4 \
+	    --enable-fts5
+
+	make LDFLAGS.rpath=""
+	make DESTDIR="$PKG" install
+}

@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		# BFSOS 0.9.0 migration:
+		# Move existing installations from the retired Codeberg repository
+		# to the authoritative GitHub repository.
+
+		config=/etc/ports/bfsos.git
+		cache=/var/cache/ports-git/bfsos
+
+		old_https='https://codeberg.org/bmadonnaster/BFSOS.git'
+		old_ssh='git@codeberg.org:bmadonnaster/BFSOS.git'
+		new_https='https://github.com/bmadonnaster/BFSOS.git'
+
+		if [ -f "$config" ]; then
+		    current_url="$(sed -n 's/^URL=//p' "$config" | head -n1)"
+
+		    case "$current_url" in
+		        "$old_https"|"$old_ssh")
+		            sed -i \
+		                "s|^URL=.*$|URL=$new_https|" \
+		                "$config"
+
+		            printf '%s\n' \
+		                "BFSOS ports repository migrated from Codeberg to GitHub."
+		            ;;
+		    esac
+		fi
+
+		# Also migrate an existing cached Git checkout so the next ports -u
+		# does not continue using Codeberg.
+		if [ -d "$cache/.git" ]; then
+		    current_remote="$(git -C "$cache" remote get-url origin 2>/dev/null || true)"
+
+		    case "$current_remote" in
+		        "$old_https"|"$old_ssh")
+		            git -C "$cache" remote set-url origin "$new_https" || true
+		            ;;
+		    esac
+		fi
+
+		exit 0
+		;;
+esac

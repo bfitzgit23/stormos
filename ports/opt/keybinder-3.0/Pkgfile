@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: gtk3 glib gobject-introspection
-
-name=keybinder-3.0
-version=0.3.2
-release=1
-source=(https://github.com/kupferlauncher/keybinder/releases/download/${name}-v${version}/${name}-${version}.tar.gz)

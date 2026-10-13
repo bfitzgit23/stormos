@@ -1,0 +1,24 @@
+# description : GTK3 Emerald window decorator for Compiz Reloaded
+# homepage    : https://gitlab.com/compiz/emerald
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : compiz gtk3 libwnck libxres shared-mime-info xdg-utils desktop-file-utils hicolor-icon-theme
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=emerald-decorator
+version=0.8.18
+release=2
+source="https://gitlab.com/compiz/emerald/-/archive/v$version/emerald-v$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	NOCONFIGURE=1 LIBS+=" -lm -ldl" ./autogen.sh || return 1
+	./configure --prefix=/usr --with-gtk=3.0 || return 1
+	make -j"${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" install || return 1
+}

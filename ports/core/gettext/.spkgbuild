@@ -1,0 +1,52 @@
+# description : gettext
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gettext
+version=1.0
+release=1
+source="https://ftp.gnu.org/gnu/gettext/gettext-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	    --prefix=/usr \
+	    --libexecdir=/usr/lib \
+	    --enable-shared \
+	    --enable-static \
+	    --disable-csharp \
+	    --disable-java \
+	    --disable-nls \
+	    --without-emacs \
+	    --without-git \
+	    --with-included-glib \
+	    --with-included-libcroco \
+	    --with-included-libxml \
+	    --with-included-libunistring
+
+	make
+	make DESTDIR="$PKG" install
+}
+
+bootstrap_build() {
+    ./configure \
+        --disable-shared \
+        --without-emacs \
+        --without-git
+
+    make -j1
+
+    cp -v \
+        gettext-tools/src/msgfmt \
+        gettext-tools/src/msgmerge \
+        gettext-tools/src/xgettext \
+        "$TOOLS/bin"
+}

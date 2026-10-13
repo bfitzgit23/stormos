@@ -1,0 +1,39 @@
+# description : Cross-platform build-system generator.
+# homepage    : https://cmake.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : curl expat libarchive ncurses openssl xz zlib libuv
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=cmake
+version=4.4.3
+release=1
+build_opt=(
+    --prefix=/usr
+    --system-libs
+    --mandir=/share/man
+    --docdir=/share/doc/$name-$version
+    --no-system-jsoncpp
+    --no-system-cppdap
+    --no-system-librhash
+)
+source="https://cmake.org/files/v${version%.*}/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	export LC_ALL=C
+	unset LANGUAGE
+
+	# Keep libraries under /usr/lib instead of /usr/lib64.
+	sed -i '/"lib64"/s/64//' Modules/GNUInstallDirs.cmake
+
+	./bootstrap "${build_opt[@]}"
+
+	make
+	make DESTDIR="$PKG" install
+}

@@ -1,0 +1,26 @@
+# description : spirv-headers
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=spirv-headers
+version=1.4.357.0
+release=2
+source="https://github.com/KhronosGroup/SPIRV-Headers/archive/vulkan-sdk-${version}/SPIRV-Headers-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir build &&
+	cd    build &&
+
+	cmake -D CMAKE_INSTALL_PREFIX=/usr -G Ninja .. &&
+	ninja
+	DESTDIR="$PKG" ninja install
+}

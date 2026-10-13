@@ -1,0 +1,31 @@
+# description : Window Navigator Construction Kit 2 compatibility library
+# homepage    : https://gitlab.gnome.org/Archive/libwnck
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : at-spi2-core cairo fontconfig freetype gdk-pixbuf glib gtk harfbuzz libx11 libxres pango startup-notification
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libwnck2
+version=2.31.0
+release=2
+source="https://download.gnome.org/sources/libwnck/2.31/libwnck-$version.tar.xz WindowActionMenu-unset-window-and-stop-async-events-on-dispose.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	    --prefix=/usr \
+	    --sysconfdir=/etc \
+	    --localstatedir=/var \
+	    --disable-static
+
+	make
+	make DESTDIR="$PKG" install
+
+	rm -f "$PKG/usr/bin/wnckprop" "$PKG/usr/bin/wnck-urgency-monitor"
+	rmdir "$PKG/usr/bin" 2>/dev/null || true
+}

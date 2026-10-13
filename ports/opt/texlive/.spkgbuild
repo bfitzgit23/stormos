@@ -1,0 +1,45 @@
+# description : TeX Live typesetting system built from source
+# homepage    : https://www.tug.org/texlive/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cairo fontconfig freetype graphite2 harfbuzz icu libpaper libpng
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=texlive
+version=20260301
+release=3
+source="https://texlive.info/historic/systems/texlive/2026/texlive-$version-source.tar.xz https://texlive.info/historic/systems/texlive/2026/texlive-$version-texmf.tar.xz https://texlive.info/historic/systems/texlive/2026/texlive-$version-extra.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	  export TEXLIVE_PREFIX=/opt/texlive/$version
+	export TEXARCH="$(uname -m | sed -e 's/i.86/i386/' -e 's/$/-linux/')"
+
+	mkdir texlive-build
+	cd texlive-build
+	../configure CC='gcc -std=gnu17' -C \
+	    --prefix="$TEXLIVE_PREFIX" \
+	    --bindir="$TEXLIVE_PREFIX/bin/$TEXARCH" \
+	    --datarootdir="$TEXLIVE_PREFIX" \
+	    --includedir="$TEXLIVE_PREFIX/include" \
+	    --infodir="$TEXLIVE_PREFIX/texmf-dist/doc/info" \
+	    --libdir="$TEXLIVE_PREFIX/lib" \
+	    --mandir="$TEXLIVE_PREFIX/texmf-dist/doc/man" \
+	    --disable-native-texlive-build
+
+	make -j "${JOBS:-1}"
+	make DESTDIR="$PKG" install-strip
+	make DESTDIR="$PKG" texlinks || true
+
+	mkdir -p "$PKG$TEXLIVE_PREFIX/tlpkg"
+	tar -xf "$PKGMK_SOURCE_DIR/texlive-$version-texmf.tar.xz" -C "$PKG$TEXLIVE_PREFIX" --strip-components=1
+	tar -xf "$PKGMK_SOURCE_DIR/texlive-$version-extra.tar.xz" -C "$PKG$TEXLIVE_PREFIX/tlpkg" --strip-components=2
+
+	mkdir -p "$PKG/opt/texlive"
+	ln -sfn "$version" "$PKG/opt/texlive/current"
+}

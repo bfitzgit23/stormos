@@ -1,0 +1,69 @@
+# description : Lightweight Directory Access Protocol (LDAP) Toolkit
+# homepage    : https://www.openldap.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cyrus-sasl libtool perl util-linux
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=openldap
+version=2.7.1
+release=1
+source="https://www.openldap.org/software/download/OpenLDAP/openldap-release/$name-$version.tgz slapd"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	./configure \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--libexecdir=/usr/sbin \
+		--localstatedir=/var/lib/openldap \
+		--enable-syslog \
+		--with-threads \
+		--with-tls \
+		--with-cyrus-sasl \
+		--enable-spasswd \
+		--enable-dynamic \
+		--enable-ipv6 \
+		--enable-modules \
+		--enable-crypt \
+		--enable-ldap \
+		--enable-meta \
+		--enable-dnssrv \
+		--enable-null \
+		--enable-perl \
+		--enable-dynacl \
+		--enable-aci \
+		--enable-shared
+
+	make depend
+	make
+	make DESTDIR=$PKG install
+
+	ln -sf liblber.so $PKG/usr/lib/liblber.so.2
+	ln -sf libldap.so $PKG/usr/lib/libldap.so.2
+
+	install -D -m 0755 $SRC/slapd $PKG/etc/rc.d/slapd
+	rm -f $PKG/etc/openldap/schema/README
+
+	install -d "$PKG/usr/share/doc/openldap-$version" || return 1
+	cp -a doc/drafts doc/rfc doc/guide "$PKG/usr/share/doc/openldap-$version/" || return 1
+}
+
+post_install() {
+	getent group ldap >/dev/null 2>&1 || groupadd -g 83 ldap || return 1
+	id -u ldap >/dev/null 2>&1 || useradd -c "OpenLDAP Daemon Owner" \
+		-d /var/lib/openldap -u 83 -g ldap -s /bin/false ldap || return 1
+
+	sed -e "s/\\.la/.so/" -i /etc/openldap/slapd.{conf,ldif}{,.default} || return 1
+	install -dm700 -o ldap -g ldap /var/lib/openldap || return 1
+	install -dm700 -o ldap -g ldap /etc/openldap/slapd.d || return 1
+	chmod 640 /etc/openldap/slapd.{conf,ldif} || return 1
+	chown root:ldap /etc/openldap/slapd.{conf,ldif} || return 1
+}

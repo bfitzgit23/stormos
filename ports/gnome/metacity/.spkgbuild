@@ -1,0 +1,30 @@
+# description : metacity
+# homepage    : https://gnome.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : at-spi2-core cairo dconf gdk-pixbuf glib glibc gsettings-desktop-schemas gtk3 libcanberra libgtop libice libsm libx11 libxcomposite libxcursor libxdamage libxext libxfixes libxinerama libxpresent libxrandr libxrender libxres pango startup-notification zenity
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=metacity
+version=3.58.1
+release=1
+source="https://download.gnome.org/sources/$name/${version%.*}/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	  ./configure \
+	    --prefix=/usr \
+	    --sysconfdir=/etc \
+	    --localstatedir=/var \
+	    --disable-debug \
+	    --enable-compile-warnings \
+	    --disable-vulkan
+	  sed -i -e 's/ -shared / -Wl,-O1,--as-needed\0/g' libtool
+	  make
+	make install
+}

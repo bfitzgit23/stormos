@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: 
-
-name=talloc
-version=2.5.0
-release=1
-source=(https://www.samba.org/ftp/${name}/${name}-${version}.tar.gz)

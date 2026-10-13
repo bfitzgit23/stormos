@@ -1,0 +1,42 @@
+# description : efibootmgr
+# homepage    : https://github.com/rhboot/efibootmgr
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : efivar pciutils
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=efibootmgr
+version=18
+release=2
+source="https://github.com/rhboot/efibootmgr/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	#
+	# Compatibility fix for newer efivar headers.
+	#
+	sed -i \
+	    '/extern int efi_set_verbose/d' \
+	    src/efibootmgr.c
+
+	#
+	# EFIDIR is only the default EFI System Partition path compiled
+	# into the utility. It does not mount or modify /boot/efi here.
+	#
+	make \
+	    EFIDIR=/boot/efi \
+	    CFLAGS="$CFLAGS -Wno-error=pointer-sign"
+
+	install -D -m 0755 \
+	    src/efibootmgr \
+	    "$PKG/usr/sbin/efibootmgr"
+
+	install -D -m 0644 \
+	    src/efibootmgr.8 \
+	    "$PKG/usr/share/man/man8/efibootmgr.8"
+}

@@ -1,0 +1,28 @@
+# description : x265
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake nasm
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=x265
+version=4.3
+release=1
+source="https://github.com/Multicorewareinc/x265/releases/download/$version/x265_$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir bld &&
+	cd    bld &&
+
+	cmake -D CMAKE_INSTALL_PREFIX=/usr \
+	      -D GIT_ARCHETYPE=1           \
+	      -W no-dev ../source          &&
+	make
+	make DESTDIR="$PKG" install
+}

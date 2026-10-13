@@ -1,5 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-name=intltool
-version=0.51.0
-release=1
-source=(https://mirrors.omnios.org/intltool/intltool-$version.tar.gz)

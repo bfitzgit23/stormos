@@ -1,0 +1,201 @@
+# description : Mozilla Firefox Extended Support Release (ESR) browser
+# homepage    : https://www.mozilla.org/firefox/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dav1d cbindgen desktop-file-utils gtk3 libarchive libnotify llvm nodejs pulseaudio python3 startup-notification icu libaom libevent libvpx libwebp nasm nspr nss rustc libffi libjpeg-turbo libpng pixman wayland zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=firefox-esr
+version=153.2.0esr
+release=4
+source="https://archive.mozilla.org/pub/firefox/releases/$version/source/firefox-$version.source.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	if [ "$(python3 -c 'import sys; print(sys.stdout.encoding.lower())')" != 'utf-8' ]; then
+	    echo "firefox-esr: a UTF-8 locale is required to build Firefox ESR" >&2
+	    return 1
+	fi
+
+	# Rust 1.98 added *-oe-linux-* targets. Firefox 153 ESR's Rust target
+	# detector can then fail to map config.guess's x86_64-pc-linux-gnu to
+	# Rust's generic x86_64-unknown-linux-gnu target.
+	#
+	# Normalize the x86 vendor during the final Rust target disambiguation.
+	# This is a targeted backport of the upstream Mozilla fix for Bug 2053518.
+	rustcfg=build/moz.configure/rust.configure
+
+	[ -f "$rustcfg" ] || {
+	    echo "firefox-esr: missing $rustcfg" >&2
+	    return 1
+	}
+
+	python3 - "$rustcfg" <<'PY' || return 1
+from pathlib import Path
+import sys
+
+p = Path(sys.argv[1])
+s = p.read_text()
+
+old = "c.target.vendor == host_or_target.vendor"
+new = 'c.target.vendor == ("unknown" if host_or_target.vendor == "pc" else host_or_target.vendor)'
+
+if new in s:
+    print("firefox-esr: Rust vendor compatibility fix already present")
+elif old in s:
+    s = s.replace(old, new)
+    p.write_text(s)
+    print("firefox-esr: applied Rust 1.98 target-detection compatibility fix")
+else:
+    raise SystemExit(
+        "firefox-esr: expected Rust target-detection code not found; "
+        "refusing to build with an unverified patch"
+    )
+PY
+
+	cat > mozconfig <<'EOF_MOZ'
+# BFSOS Firefox ESR keeps the same system-library integration policy as the
+# rapid-release Firefox port while using Mozilla's supported ESR release.
+
+ac_add_options --disable-necko-wifi
+
+ac_add_options --with-system-icu
+ac_add_options --with-system-libevent
+ac_add_options --with-system-libvpx
+ac_add_options --with-system-nspr
+ac_add_options --with-system-nss
+ac_add_options --with-system-webp
+
+ac_add_options --enable-official-branding
+ac_add_options --disable-debug-symbols
+ac_add_options --prefix=/usr
+ac_add_options --enable-application=browser
+ac_add_options --disable-crashreporter
+ac_add_options --disable-updater
+ac_add_options --disable-tests
+ac_add_options --enable-rust-simd
+ac_add_options --enable-system-ffi
+ac_add_options --enable-system-pixman
+ac_add_options --with-system-jpeg
+ac_add_options --with-system-png
+ac_add_options --with-system-zlib
+ac_add_options --without-wasm-sandboxed-libraries
+
+unset MOZ_TELEMETRY_REPORTING
+
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/firefox-build-dir
+
+MOZ_APP_REMOTINGNAME=firefox-esr
+EOF_MOZ
+
+	# Keep one recipe usable for Xorg-only, Wayland-only, and combined desktop
+	# installations without dragging either display stack into Firefox itself.
+	if prt-get isinst wayland >/dev/null 2>&1 &&
+	   prt-get isinst xorg-server >/dev/null 2>&1; then
+
+	    echo 'ac_add_options --enable-default-toolkit=cairo-gtk3-x11-wayland' \
+	        >> mozconfig
+
+	elif prt-get isinst wayland >/dev/null 2>&1; then
+
+	    echo 'ac_add_options --enable-default-toolkit=cairo-gtk3-wayland-only' \
+	        >> mozconfig
+
+	else
+	    echo 'ac_add_options --enable-default-toolkit=cairo-gtk3-x11-only' \
+	        >> mozconfig
+	fi
+
+	export CC=clang
+	export CXX=clang++
+	export AR=llvm-ar
+	export NM=llvm-nm
+	export RANLIB=llvm-ranlib
+	export MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE=none
+	export MOZBUILD_STATE_PATH="$PWD/mozbuild"
+	export MOZ_NOSPAM=1
+	export SHELL=/bin/bash
+
+	./mach build || {
+	    echo "firefox-esr: ./mach build failed" >&2
+	    return 1
+	}
+
+	DESTDIR="$PKG" ./mach install || {
+	    echo "firefox-esr: ./mach install failed" >&2
+	    return 1
+	}
+
+	# Mozilla installs the application directory as /usr/lib/firefox.
+	# Move the ESR build to its own package-owned directory so Firefox and
+	# Firefox ESR can coexist without file collisions.
+	[ -x "$PKG/usr/lib/firefox/firefox" ] || {
+	    echo "firefox-esr: staged Firefox executable is missing" >&2
+	    return 1
+	}
+
+	rm -f "$PKG/usr/bin/firefox" || return 1
+
+	mv \
+	    "$PKG/usr/lib/firefox" \
+	    "$PKG/usr/lib/firefox-esr" || return 1
+
+	install -d "$PKG/usr/bin" || return 1
+
+	ln -s \
+	    /usr/lib/firefox-esr/firefox \
+	    "$PKG/usr/bin/firefox-esr" || return 1
+
+	unset MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE
+	unset MOZBUILD_STATE_PATH
+
+	#
+	# Dedicated Firefox ESR desktop entry.
+	#
+	# Do not inherit Mozilla's generic Firefox desktop file because Firefox
+	# and Firefox ESR are intentionally coexistable BFSOS packages.
+	#
+	install -d "$PKG/usr/share/applications" || return 1
+
+	cat > "$PKG/usr/share/applications/firefox-esr.desktop" <<'DESKTOP'
+[Desktop Entry]
+Version=1.0
+Name=Firefox ESR
+GenericName=Web Browser
+Comment=Browse the Web
+Exec=firefox-esr %u
+Icon=firefox-esr
+Terminal=false
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;application/xml;application/rss+xml;application/pdf;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+StartupWMClass=firefox-esr
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=firefox-esr --new-window
+
+[Desktop Action new-private-window]
+Name=New Private Window
+Exec=firefox-esr --private-window
+DESKTOP
+
+	install -d \
+	    "$PKG/usr/share/pixmaps" \
+	    "$PKG/etc/revdep.d" || return 1
+
+	ln -s \
+	    /usr/lib/firefox-esr/browser/chrome/icons/default/default128.png \
+	    "$PKG/usr/share/pixmaps/firefox-esr.png" || return 1
+
+	printf '%s\n' \
+	    '/usr/lib/firefox-esr' \
+	    > "$PKG/etc/revdep.d/firefox-esr" || return 1
+}

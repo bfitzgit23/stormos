@@ -1,0 +1,95 @@
+# description : LLVM compiler backend (32-bit compatibility libraries)
+# homepage    : https://llvm.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libffi-32 libxml2-32 llvm ncurses-32 zstd-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=llvm-32
+version=23.1.1
+release=5
+source="https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/llvm-project-$version.src.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	      mkdir -p "$SRC/keep" || return 1
+
+	      # pkgmk enters llvm-project-$version.src automatically because this
+	      # port has a single source archive.  The LLVM CMake project is ./llvm.
+	      cmake -S llvm -B build -G Ninja $PKGMK_LLVM \
+	              -D CMAKE_INSTALL_PREFIX=/usr \
+	              -D CMAKE_BUILD_TYPE=Release \
+	              -D CMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+	              -D CMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+	              -D LLVM_BUILD_32_BITS=ON \
+	              -D LLVM_ENABLE_PROJECTS=clang \
+	              -D LLVM_LIBDIR_SUFFIX=32 \
+	              -D LLVM_TARGET_ARCH=i686 \
+	              -D LLVM_DEFAULT_TARGET_TRIPLE=i686-pc-linux-gnu \
+	              -D LLVM_BINUTILS_INCDIR=/usr/include \
+	              -D LLVM_BUILD_LLVM_DYLIB=ON \
+	              -D LLVM_LINK_LLVM_DYLIB=ON \
+	              -D LLVM_PARALLEL_COMPILE_JOBS="${JOBS:-1}" \
+	              -D LLVM_INCLUDE_EXAMPLES=OFF \
+	              -D LLVM_INCLUDE_TESTS=OFF \
+	              -D LLVM_INCLUDE_BENCHMARKS=OFF \
+	              -D LLVM_ENABLE_FFI=ON \
+	              -D LLVM_ENABLE_RTTI=ON \
+	              -D LLVM_ENABLE_OCAMLDOC=OFF \
+	              -D LLVM_INSTALL_UTILS=ON \
+	              -D LLVM_ENABLE_LIBCXX=OFF \
+	              -D LLVM_ENABLE_LLD="$(prt-get isinst lld >/dev/null 2>&1 && echo ON || echo OFF)" \
+	              -D LLVM_OPTIMIZED_TABLEGEN=ON \
+	              -Wno-dev || return 1
+
+	      NINJA_STATUS="[%f/%t %es] " \
+	              cmake --build build || return 1
+
+	      DESTDIR="$PKG" cmake --install build || return 1
+
+	      # Preserve the 32-bit llvm-config and its generated configuration
+	      # header before removing files supplied by the native llvm package.
+	      install -Dm0755 \
+	              "$PKG/usr/bin/llvm-config" \
+	              "$SRC/keep/llvm-config" || return 1
+
+	      install -Dm0644 \
+	              "$PKG/usr/include/llvm/Config/llvm-config.h" \
+	              "$SRC/keep/llvm-config.h" || return 1
+
+	      # Native llvm owns the normal tools and headers.  This compat package
+	      # keeps the 32-bit libraries plus explicitly named 32-bit config files.
+	      rm -rf \
+	              "$PKG/usr/bin" \
+	              "$PKG/usr/include" \
+	              "$PKG/usr/share/opt-viewer"
+	              rm -rf     "$PKG/usr/lib/libear"     "$PKG/usr/lib/libscanbuild"     "$PKG/usr/libexec"     "$PKG/usr/share/clang"     "$PKG/usr/share/scan-build"     "$PKG/usr/share/scan-view"     "$PKG/usr/share/man/man1/scan-build.1"
+
+	      install -Dm0755 \
+	              "$SRC/keep/llvm-config" \
+	              "$PKG/usr/bin/llvm-config-32" || return 1
+
+	      install -Dm0644 \
+	              "$SRC/keep/llvm-config.h" \
+	              "$PKG/usr/include/llvm/Config/llvm-config-32.h" || return 1
+	)
+}

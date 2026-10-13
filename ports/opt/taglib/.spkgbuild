@@ -1,0 +1,30 @@
+# description : Taglib is a library used for reading, writing and manipulating audio file tags and is used by applications such as Amarok and VLC.
+# homepage    : https://taglib.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake utfcpp
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=taglib
+version=2.3.1
+release=2
+source="https://taglib.org/releases/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		mkdir build &&
+		cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DCMAKE_BUILD_TYPE=Release  \
+	      -DBUILD_SHARED_LIBS=ON \
+	      .. &&
+	make
+		make DESTDIR=$PKG install
+}

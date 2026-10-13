@@ -1,0 +1,34 @@
+# description : Tools for squashfs, a highly compressed read-only filesystem for Linux
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : zlib lzo xz lz4
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=squashfs-tools
+version=4.7.5
+release=2
+source="https://downloads.sourceforge.net/squashfs/squashfs$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make -C $name \
+	        XZ_SUPPORT=1 \
+	        LZO_SUPPORT=1 \
+	        LZMA_XZ_SUPPORT=1 \
+	        LZ4_SUPPORT=1 \
+	        ZSTD_SUPPORT=0
+
+	make -C $name install \
+	        XZ_SUPPORT=1 \
+	        LZO_SUPPORT=1 \
+	        LZMA_XZ_SUPPORT=1 \
+	        LZ4_SUPPORT=1 \
+	        ZSTD_SUPPORT=0 \
+	        INSTALL_DIR="$PKG/usr/bin"
+}

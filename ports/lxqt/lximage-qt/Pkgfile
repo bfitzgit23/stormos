@@ -1,9 +1,0 @@
-# Description: Lximage Qt for LXQt
-# URL: https://github.com/lxqt/lximage-qt
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: hicolor-icon-theme libexif libfm-qt libXfixes qt6
-
-name=lximage-qt
-version=2.4.0
-release=1
-source=(https://github.com/lxqt/${name}/releases/download/${version}/${name}-${version}.tar.xz)

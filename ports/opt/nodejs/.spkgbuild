@@ -1,0 +1,57 @@
+# description : Evented I/O for V8 javascript.
+# homepage    : https://nodejs.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libnghttp2 libuv openssl zlib icu
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=nodejs
+version=24.21.0
+release=1
+PKGMK_AUTO_PATCH=no
+source="https://nodejs.org/dist/v$version/node-v$version.tar.xz unbundle-uv.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	patch -Np1 -i "$SRC/unbundle-uv.patch" || return 1
+	rm deps/uv/uv.gyp deps/zlib/zlib.gyp || return 1
+
+	prt-get isinst brotli && PKGMK_NODEJS+=' --shared-brotli'
+	prt-get isinst c-ares && PKGMK_NODEJS+=' --shared-cares'
+	prt-get isinst icu && PKGMK_NODEJS+=' --with-intl=system-icu'
+	prt-get isinst libnghttp3 && PKGMK_NODEJS+=' --shared-nghttp3'
+	prt-get isinst libngtcp2 && PKGMK_NODEJS+=' --shared-ngtcp2'
+	prt-get isinst simdjson && PKGMK_NODEJS+=' --shared-simdjson'
+	prt-get isinst simdutf && PKGMK_NODEJS+=' --shared-simdutf'
+
+	CFLAGS="$CFLAGS -g0 -Wl,--no-keep-memory -fuse-ld=gold -Wl,--no-map-whole-files -Wl,--no-keep-files-mapped" \
+	CXXFLAGS="$CFLAGS" \
+	./configure ${PKGMK_NODEJS} \
+	  --prefix=/usr \
+	  --ninja \
+	  --without-npm \
+	  --shared-libuv \
+	  --shared-nghttp2 \
+	  --shared-zlib \
+	  --shared-openssl || return 1
+
+	make || return 1
+	make DESTDIR="$PKG" install || return 1
+
+	rm -r $PKG/usr/share/doc
+
+	# clean up
+	find $PKG -type f \( \
+	  -name 'README.md' -o \
+	  -name 'AUTHORS.md' -o \
+	  -name 'INSTALL.md' -o \
+	  -name 'TODO.org' -o \
+	  -name 'ChangeLog' -o \
+	  -name 'NEWS' \) -delete
+}

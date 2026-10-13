@@ -1,0 +1,48 @@
+# description : Filesystem snapshot management tool for Btrfs
+# homepage    : https://github.com/openSUSE/snapper
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : acl boost btrfs-progs dbus json-c libxml2 util-linux zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=snapper
+version=0.13.1
+release=2
+build_opt=(
+    --sysconfdir=/etc
+    --disable-static
+    --disable-pam
+    --disable-zypp
+    --disable-doc
+    --disable-bcachefs
+    --disable-ext4
+    --disable-lvm
+    --enable-btrfs
+    --enable-xattrs
+    --enable-systemd
+)
+source="https://github.com/openSUSE/snapper/archive/refs/tags/v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	autoreconf -fi || return 1
+
+	./configure "${build_opt[@]}" || return 1
+
+	make -j${JOBS:-1} || return 1
+	make DESTDIR="$PKG" install || return 1
+	post_build || return 1
+}
+
+post_build() {
+    find "$PKG" -type f -name '*.la' -delete
+
+    rm -rf \
+        "$PKG/usr/share/doc" \
+        "$PKG/usr/share/info"
+}

@@ -1,0 +1,34 @@
+# description : Library of JPEG support functions.
+# homepage    : https://www.libjpeg-turbo.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : nasm cmake
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libjpeg-turbo
+version=3.2.0
+release=2
+source="https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+
+		mkdir build &&
+	cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DCMAKE_BUILD_TYPE=RELEASE  \
+	      -DENABLE_STATIC=FALSE       \
+	      -DCMAKE_INSTALL_DOCDIR=/usr/share/doc/libjpeg-turbo-3.0.0 \
+	      -DCMAKE_INSTALL_DEFAULT_LIBDIR=lib  \
+	      .. &&
+	make
+		make DESTDIR=$PKG install
+}

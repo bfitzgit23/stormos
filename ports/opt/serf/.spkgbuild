@@ -1,0 +1,29 @@
+# description : serf
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : scons apr-util
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=serf
+version=1.3.10
+release=1
+source="https://archive.apache.org/dist/${name}/${name}-${version}.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i "/Append/s:RPATH=libdir,::"          SConstruct &&
+	sed -i "/Default/s:lib_static,::"           SConstruct &&
+	sed -i "/Alias/s:install_static,::"         SConstruct &&
+
+	 scons CFLAGS="${CFLAGS}" \
+	        LINKFLAGS="${LDFLAGS}" \
+	        PREFIX=/usr GSSAPI=/usr/bin/krb5-config
+	  install -d "${PKG}/usr"
+	  scons install --install-sandbox="${PKG}"
+}

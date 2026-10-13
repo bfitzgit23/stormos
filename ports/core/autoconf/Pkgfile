@@ -1,5 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-name=autoconf
-version=2.73
-release=1
-source=(https://ftp.gnu.org/gnu/autoconf/autoconf-$version.tar.xz)

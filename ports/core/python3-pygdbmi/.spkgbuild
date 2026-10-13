@@ -1,0 +1,22 @@
+# description : python3-pygdbmi
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-pygdbmi
+version=0.11.0.0
+release=1
+source="https://files.pythonhosted.org/packages/source/p/pygdbmi/pygdbmi-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	python3 -m build --wheel --no-isolation
+	python3 -m installer --destdir="$PKG" dist/*.whl
+}

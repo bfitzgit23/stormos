@@ -1,0 +1,30 @@
+# description : Fancy PyPI READMEs with Hatch
+# homepage    : https://github.com/hynek/hatch-fancy-pypi-readme
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-build python3-hatchling
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-hatch-fancy-pypi-readme
+version=25.1.0
+release=2
+source="https://github.com/hynek/hatch-fancy-pypi-readme/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	/usr/bin/python3 -m build --wheel --no-isolation || return 1
+
+	PIP_CONFIG_FILE=/dev/null /usr/bin/pip3 install \
+	    --isolated \
+	    --root="$PKG" \
+	    --ignore-installed \
+	    --no-deps \
+	    dist/*.whl || return 1
+
+	rm -f "$PKG"/usr/lib/python*/site-packages/hatch_fancy_pypi_readme-*/{licenses/AUTHORS.md,INSTALLER}
+}

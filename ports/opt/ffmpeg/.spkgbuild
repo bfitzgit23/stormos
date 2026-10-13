@@ -1,0 +1,52 @@
+# description : Audio/video recording, conversion and streaming framework
+# homepage    : https://ffmpeg.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib fdk-aac freetype lame libaom libass libva libvdpau libvorbis libvpx opus sdl2 x264 x265
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=ffmpeg
+version=9.0.1
+release=4
+source="https://ffmpeg.org/releases/ffmpeg-$version.tar.xz https://www.linuxfromscratch.org/patches/blfs/svn/ffmpeg-$version-chromium_method-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	  --prefix=/usr \
+	  --enable-gpl \
+	  --enable-version3 \
+	  --enable-nonfree \
+	  --disable-static \
+	  --enable-shared \
+	  --disable-debug \
+	  --enable-libaom \
+	  --enable-libass \
+	  --enable-libfdk-aac \
+	  --enable-libfreetype \
+	  --enable-libmp3lame \
+	  --enable-libopus \
+	  --enable-libvorbis \
+	  --enable-libvpx \
+	  --enable-libx264 \
+	  --enable-libx265 \
+	  --enable-openssl \
+	  --enable-vdpau \
+	  --ignore-tests=enhanced-flv-av1,enhanced-flv-multitrack || return 1
+
+	make -j "${JOBS:-1}" || return 1
+
+	gcc tools/qt-faststart.c \
+	  -o tools/qt-faststart || return 1
+
+	make DESTDIR="$PKG" install || return 1
+
+	install -Dm755 \
+	  tools/qt-faststart \
+	  "$PKG/usr/bin/qt-faststart" || return 1
+}

@@ -1,0 +1,29 @@
+# description : Functions for manipulating Unicode strings and C strings
+# homepage    : https://www.gnu.org/software/libunistring/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libunistring
+version=1.4.2
+release=2
+source="https://ftp.gnu.org/gnu/$name/$name-$version.tar.xz"
+options="libtool"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	  ./configure --prefix=/usr    \
+	            --disable-static \
+	            --docdir=/usr/share/doc/$name-$version &&
+		make
+	  	make DESTDIR=$PKG install
+	mv $PKG/usr/share/info/dir $PKG/usr/share/info/$name-$version
+}

@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		set -eu
+
+		if ! getent group sddm >/dev/null 2>&1; then
+		    groupadd -g 64 sddm
+		fi
+
+		if ! getent passwd sddm >/dev/null 2>&1; then
+		    useradd \
+		        -c "sddm Daemon" \
+		        -d /var/lib/sddm \
+		        -u 64 \
+		        -g sddm \
+		        -s /bin/false \
+		        sddm
+		fi
+
+		exit 0
+		;;
+	post-install)
+		set -eu
+
+		install -v -dm755 -o sddm -g sddm /var/lib/sddm
+		/usr/bin/sddm --example-config > /etc/sddm.conf
+		sed -i 's/-nolisten tcp//' /etc/sddm.conf
+		sed -i '/Numlock/s/none/on/' /etc/sddm.conf
+		sed -i 's/qtvirtualkeyboard//' /etc/sddm.conf
+		cat > /etc/pam.d/sddm << "EOF" &&
+# Begin /etc/pam.d/sddm
+
+auth     requisite      pam_nologin.so
+auth     required       pam_env.so
+
+auth     required       pam_succeed_if.so uid >= 1000 quiet
+auth     include        system-auth
+
+account  include        system-account
+password include        system-password
+
+session  required       pam_limits.so
+session  include        system-session
+
+# End /etc/pam.d/sddm
+EOF
+
+		cat > /etc/pam.d/sddm-autologin << "EOF" &&
+# Begin /etc/pam.d/sddm-autologin
+
+auth     requisite      pam_nologin.so
+auth     required       pam_env.so
+
+auth     required       pam_succeed_if.so uid >= 1000 quiet
+auth     required       pam_permit.so
+
+account  include        system-account
+
+password required       pam_deny.so
+
+session  required       pam_limits.so
+session  include        system-session
+
+# End /etc/pam.d/sddm-autologin
+EOF
+
+		cat > /etc/pam.d/sddm-greeter << "EOF"
+# Begin /etc/pam.d/sddm-greeter
+
+auth     required       pam_env.so
+auth     required       pam_permit.so
+
+account  required       pam_permit.so
+password required       pam_deny.so
+session  required       pam_unix.so
+-session optional       pam_systemd.so
+
+# End /etc/pam.d/sddm-greeter
+EOF
+
+		# BFSOS display-manager policy: package installation is deliberately
+		# non-activating.  The installer/administrator selects a greeter explicitly;
+		# installing or updating SDDM must not alter display-manager.service.
+		;;
+esac

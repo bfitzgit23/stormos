@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: cmake
-
-name=uchardet
-version=0.0.8
-release=1
-source=(https://www.freedesktop.org/software/${name}/releases/${name}-${version}.tar.xz)

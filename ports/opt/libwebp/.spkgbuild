@@ -1,0 +1,31 @@
+# description : A library for a new image format comparable to JPEG.
+# homepage    : https://developers.google.com/speed/webp/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libwebp
+version=1.6.0
+release=2
+source="https://storage.googleapis.com/downloads.webmproject.org/releases/webp/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	  ./configure --prefix=/usr           \
+	            --enable-libwebpmux     \
+	            --enable-libwebpdemux   \
+	            --enable-libwebpdecoder \
+	            --enable-libwebpextras  \
+	            --enable-swap-16bit-csp \
+	            --disable-static        &&
+	make
+
+
+	  DESTDIR=$PKG make install
+}

@@ -1,0 +1,29 @@
+# description : Python 3 bindings for Qt 5
+# homepage    : https://www.riverbankcomputing.com/software/pyqt/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : pyqt5-sip python3-pyqt-builder python3-sip qt5
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-pyqt5
+version=5.15.11
+release=3
+source="https://files.pythonhosted.org/packages/source/P/PyQt5/PyQt5-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	local pyver
+	pyver=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+
+	yes yes | \
+	  PATH=/opt/qt5/bin:$PATH \
+	  DESTDIR="$PKG" \
+	  sip-install \
+	    --target-dir "/usr/lib/python${pyver}/site-packages" \
+	    --scripts-dir "/usr/bin" || return 1
+}

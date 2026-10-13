@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: glib curl freetype gdk-pixbuf gst-plugins-base libjpeg-turbo libgsf libpng poppler
-
-name=tumbler
-version=4.20.2
-release=1
-source=(https://archive.xfce.org/src/xfce/${name}/${version%.*}/${name}-${version}.tar.bz2)

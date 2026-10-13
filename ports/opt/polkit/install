@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		set -eu
+
+		POLKIT_UID=27
+		POLKIT_GID=27
+
+		if getent group polkitd >/dev/null 2>&1; then
+		    current_gid=$(getent group polkitd | awk -F: '{print $3}')
+		    if [ "$current_gid" != "$POLKIT_GID" ]; then
+		        echo "ERROR: group polkitd exists with GID $current_gid; expected $POLKIT_GID" >&2
+		        exit 1
+		    fi
+		elif getent group "$POLKIT_GID" >/dev/null 2>&1; then
+		    echo "ERROR: GID $POLKIT_GID is already owned by another group" >&2
+		    getent group "$POLKIT_GID" >&2 || true
+		    exit 1
+		else
+		    groupadd -g "$POLKIT_GID" polkitd
+		fi
+
+		if getent passwd polkitd >/dev/null 2>&1; then
+		    current_uid=$(getent passwd polkitd | awk -F: '{print $3}')
+		    current_gid=$(getent passwd polkitd | awk -F: '{print $4}')
+		    if [ "$current_uid" != "$POLKIT_UID" ] || [ "$current_gid" != "$POLKIT_GID" ]; then
+		        echo "ERROR: user polkitd exists with UID:GID $current_uid:$current_gid; expected $POLKIT_UID:$POLKIT_GID" >&2
+		        exit 1
+		    fi
+		elif getent passwd "$POLKIT_UID" >/dev/null 2>&1; then
+		    echo "ERROR: UID $POLKIT_UID is already owned by another user" >&2
+		    getent passwd "$POLKIT_UID" >&2 || true
+		    exit 1
+		else
+		    useradd -c "PolicyKit Daemon Owner" -d /etc/polkit-1 -u "$POLKIT_UID" \
+		        -g polkitd -s /bin/false polkitd
+		fi
+
+		exit 0
+		;;
+esac

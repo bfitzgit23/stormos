@@ -1,0 +1,25 @@
+# description : x window sniper
+# homepage    : https://xorg.freedesktop.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxaw
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xmessage
+version=1.0.7
+release=2
+source="https://xorg.freedesktop.org/archive/individual/app/xmessage-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	./configure $XORG_CONFIG
+
+	make
+	make DESTDIR=$PKG install
+}

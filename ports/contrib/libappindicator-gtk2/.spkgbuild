@@ -1,0 +1,31 @@
+# description : Allow applications to extend a menu via Ayatana indicators in Unity, KDE or Systray
+# homepage    : https://launchpad.net/libappindicator
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus-glib libdbusmenu-gtk2
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libappindicator-gtk2
+version=12.10
+release=4
+build_opt="--disable-gtk-doc-html --disable-python --disable-mono-test --disable-static --disable-tests --with-gtk=2"
+source="http://archive.ubuntu.com/ubuntu/pool/universe/liba/libappindicator/libappindicator_12.10.1+20.10.20200706.1.orig.tar.gz 0001-Glib.Timeout-fix.patch 0002-Fix-mono-nunit-pkgconfig-name.patch 0003-Fix-Mono-assemblies-directory.patch badfunction.patch improved-plasma-support.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}
+
+pre_build() {
+  sed -i -e 's/ -Werror//' src/Makefile.am || return 1
+  NOCONFIGURE=1 ./autogen.sh || return 1
+  CXXFLAGS+=" -std=c++11"
+}

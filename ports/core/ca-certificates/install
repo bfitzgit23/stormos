@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		set -eu
+		install -d -m 0755 /etc/ssl/certs
+		[ -f /etc/ssl/cert.pem ] || { echo "ca-certificates: missing /etc/ssl/cert.pem" >&2; exit 1; }
+		ln -sfn ../cert.pem /etc/ssl/certs/ca-certificates.crt
+		ln -sfn /etc/ssl/cert.pem /etc/ssl/ca-bundle.crt
+
+		# If the complete p11-kit/make-ca stack is already present, refresh all trust
+		# representations from the packaged Mozilla certdata input. Never use -g here:
+		# normal package installation/update must not require network access.
+		if [ -x /usr/sbin/make-ca ] && [ -x /usr/bin/trust ]; then
+		    [ -s /etc/ssl/certdata.txt ] || {
+		        echo "ca-certificates: packaged certdata.txt is missing" >&2
+		        exit 1
+		    }
+		    /usr/sbin/make-ca -r
+		fi
+		;;
+esac

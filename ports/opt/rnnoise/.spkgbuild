@@ -1,0 +1,28 @@
+# description : Recurrent neural network based audio noise suppression library
+# homepage    : https://github.com/xiph/rnnoise
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=rnnoise
+version=0.2
+release=1
+source="https://github.com/xiph/rnnoise/releases/download/v$version/rnnoise-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	    --prefix=/usr \
+	    --disable-static || return 1
+
+	make -j${JOBS:-1} || return 1
+	make DESTDIR="$PKG" install || return 1
+
+	rm -rf "$PKG/usr/share/doc"
+}

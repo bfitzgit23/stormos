@@ -1,0 +1,37 @@
+# description : Support library with a focus on asynchronous I/O
+# homepage    : https://libuv.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : autoconf automake libtool
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libuv
+version=1.52.1
+release=2
+source="https://dist.libuv.org/dist/v$version/$name-v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sh autogen.sh
+
+	./configure \
+	    --prefix=/usr \
+	    --disable-static
+
+	make
+	make DESTDIR="$PKG" install
+	post_build || return 1
+}
+
+post_build() {
+    find "$PKG" -type f -name '*.la' -delete
+
+    rm -rf \
+        "$PKG/usr/share/doc" \
+        "$PKG/usr/share/info"
+}

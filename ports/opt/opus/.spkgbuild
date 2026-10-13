@@ -1,0 +1,28 @@
+# description : a totally open, royalty-free, highly versatile audio codec
+# homepage    : https://www.opus-codec.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=opus
+version=1.6.1
+release=3
+source="https://downloads.xiph.org/releases/opus/opus-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	  mkdir build &&
+	cd    build &&
+
+	meson setup --prefix=/usr        \
+	            --buildtype=release  \
+	            -Ddocdir=/usr/share/doc/opus-1.4 &&
+	ninja
+	  DESTDIR=$PKG ninja install
+}

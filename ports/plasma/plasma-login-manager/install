@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		set -eu
+
+		# Materialize the upstream runtime account/directories immediately when the
+		# tools are available; systemd will also process these declarative files later.
+		if command -v systemd-sysusers >/dev/null 2>&1 && [ -f /usr/lib/sysusers.d/plasmalogin.conf ]; then
+		    systemd-sysusers /usr/lib/sysusers.d/plasmalogin.conf || exit $?
+		fi
+		if command -v systemd-tmpfiles >/dev/null 2>&1 && [ -f /usr/lib/tmpfiles.d/plasmalogin.conf ]; then
+		    systemd-tmpfiles --create /usr/lib/tmpfiles.d/plasmalogin.conf || exit $?
+		fi
+
+		# Installation is deliberately non-disruptive.  Service activation belongs to
+		# an explicit installer/administrator bfs-display-manager selection, never a
+		# package post-install/update hook.
+		;;
+esac

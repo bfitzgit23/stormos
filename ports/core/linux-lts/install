@@ -1,0 +1,142 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		set -eu
+		command -v /usr/libexec/bfs-kernel-maintenance >/dev/null 2>&1 || {
+		    echo "linux-lts pre-install: bfs-kernel-maintenance is required" >&2
+		    exit 1
+		}
+		exec /usr/libexec/bfs-kernel-maintenance pre-upgrade linux-lts
+		;;
+	post-install)
+		set -eu
+
+		RAID_DRIVERS="linear raid0 raid1 raid10 raid456"
+		FLAVOR="linux-lts"
+		SUFFIX="BFS-LTS"
+		MAINT=/usr/libexec/bfs-kernel-maintenance
+
+		installed_pkg_version() {
+		    pkginfo -i 2>/dev/null | awk -v p="$1" '$1 == p { print $2; exit }'
+		}
+
+		package_installed() {
+		    pkginfo -i 2>/dev/null | awk -v p="$1" '$1 == p { found=1 } END { exit !found }'
+		}
+
+		pkgver="$(installed_pkg_version "$FLAVOR")"
+		version="${pkgver%-*}"
+		kver="${version}-${SUFFIX}"
+
+		if [ -z "$version" ] || [ ! -f "/boot/vmlinuz-$kver" ] || [ ! -d "/lib/modules/$kver" ]; then
+		    kver="$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*-BFS-LTS' -printf '%f\n' 2>/dev/null | sed 's/^vmlinuz-//' | sort -V | tail -n1)"
+		fi
+
+		if [ -z "$kver" ] || [ ! -f "/boot/vmlinuz-$kver" ] || [ ! -d "/lib/modules/$kver" ]; then
+		    echo "linux-lts post-install: unable to determine the installed kernel release" >&2
+		    exit 1
+		fi
+
+		kernel_image="/boot/vmlinuz-$kver"
+		initramfs_image="/boot/initramfs-$kver.img"
+		kernel_config="/boot/config-$kver"
+		source_tree="/usr/src/linux-$kver"
+
+		[ -d "$source_tree" ] || {
+		    echo "linux-lts post-install: missing source tree $source_tree" >&2
+		    exit 1
+		}
+		[ -x "$MAINT" ] || {
+		    echo "linux-lts post-install: $MAINT is required" >&2
+		    exit 1
+		}
+
+		depmod -a "$kver"
+
+		# MD core is built in; installer-supported RAID personalities may be modules
+		# and are force-included in the initramfs just like the normal BFSOS kernel.
+		grep -q '^CONFIG_MD=y$' "$kernel_config" || {
+		    echo "ERROR: $kernel_config does not have CONFIG_MD=y" >&2
+		    exit 1
+		}
+		for md_option in MD_LINEAR MD_RAID0 MD_RAID1 MD_RAID10 MD_RAID456; do
+		    grep -Eq "^CONFIG_${md_option}=(y|m)$" "$kernel_config" || {
+		        echo "ERROR: $kernel_config lacks CONFIG_${md_option}" >&2
+		        exit 1
+		    }
+		done
+
+		# BFSOS 6.18 carries the upstream MD compatibility parameter, but it remains
+		# enabled (strict) by default. Verify the backport really made it into this
+		# kernel before an installer or recovery path can rely on it.
+		builtin_modinfo="/lib/modules/$kver/modules.builtin.modinfo"
+		if [ ! -r "$builtin_modinfo" ] ||
+		   ! grep -aFq 'md_mod.parmtype=check_new_feature:bool' "$builtin_modinfo"; then
+		    echo "ERROR: $kver is missing md_mod.check_new_feature compatibility support" >&2
+		    exit 1
+		fi
+
+		mkdir -p /etc/bfsos
+		selected_flavor="$(cat /etc/bfsos/kernel-flavor 2>/dev/null || true)"
+		case "$selected_flavor" in
+		    linux|linux-lts) ;;
+		    *)
+		        if package_installed linux; then
+		            selected_flavor=linux
+		        else
+		            selected_flavor=linux-lts
+		        fi
+		        printf '%s\n' "$selected_flavor" > /etc/bfsos/kernel-flavor
+		        ;;
+		esac
+
+		# Restore the staged rollback payload before doing any fallible boot-artifact
+		# work. Do not mark the replacement pending until its initramfs is complete.
+		"$MAINT" restore-previous "$FLAVOR"
+
+		if [ "${BFS_INSTALLER_RUNNING:-no}" = yes ]; then
+		    "$MAINT" mark-pending "$FLAVOR" "$kver"
+		    echo "BFSOS installer detected; deferring LTS initramfs/bootloader regeneration."
+		    exit 0
+		fi
+
+		command -v dracut >/dev/null 2>&1 || {
+		    echo "ERROR: dracut is required to finalize $kver" >&2
+		    exit 1
+		}
+
+		tmp_initramfs="/boot/.initramfs-$kver.img.$$"
+		trap 'rm -f -- "$tmp_initramfs"' EXIT HUP INT TERM
+
+		echo "Generating $initramfs_image with BFSOS md RAID drivers"
+		dracut --force --omit "fido2 systemd-cryptsetup" --force-drivers "$RAID_DRIVERS" "$tmp_initramfs" "$kver"
+		[ -s "$tmp_initramfs" ] || {
+		    echo "ERROR: dracut produced no initramfs for $kver" >&2
+		    exit 1
+		}
+
+		if command -v lsinitrd >/dev/null 2>&1; then
+		    image_listing="$(lsinitrd "$tmp_initramfs" 2>/dev/null || true)"
+		    for driver in $RAID_DRIVERS; do
+		        if ! printf '%s\n' "$image_listing" | grep -qE "/${driver}\.ko([.]|$)"; then
+		            echo "ERROR: initramfs is missing required md driver: $driver" >&2
+		            exit 1
+		        fi
+		    done
+		fi
+
+		mv -f "$tmp_initramfs" "$initramfs_image"
+		trap - EXIT HUP INT TERM
+		"$MAINT" mark-pending "$FLAVOR" "$kver"
+		rm -f /boot/vmlinuz-BFS-LTS /boot/initramfs-BFS-LTS.img
+
+		"$MAINT" regenerate-grub
+
+		echo "Linux LTS $kver installed and pending successful boot verification."
+		;;
+esac

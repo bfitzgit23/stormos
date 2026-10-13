@@ -1,0 +1,32 @@
+# description : Bash and Zsh tab completion for Python argparse
+# homepage    : https://github.com/kislyuk/argcomplete
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3 python3-hatchling python3-hatch-vcs
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-argcomplete
+version=3.7.1
+release=1
+source="https://files.pythonhosted.org/packages/source/a/argcomplete/argcomplete-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	python3 -m pip wheel \
+	    --no-deps \
+	    --no-build-isolation \
+	    . -w dist || return 1
+
+	python3 -m pip install \
+	    --no-deps \
+	    --no-index \
+	    --no-cache-dir \
+	    --root="$PKG" \
+	    --prefix=/usr \
+	    dist/*.whl || return 1
+}

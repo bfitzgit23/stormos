@@ -1,0 +1,23 @@
+# description : python3-hatchling
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-editables python3-packaging python3-pathspec python3-pluggy python3-trove-classifiers python3-tomlkit
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-hatchling
+version=1.32.4
+release=1
+source="https://github.com/ofek/hatch/archive/hatchling-v$version/hatchling-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	/usr/bin/python3 -m build backend
+	PIP_CONFIG_FILE=/dev/null /usr/bin/pip3 install --isolated --root=$PKG \
+	  --ignore-installed --no-deps backend/dist/*.whl
+}

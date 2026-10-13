@@ -1,0 +1,24 @@
+# description : SassC is a wrapper around libsass, a CSS pre-processor language.
+# homepage    : https://github.com/sass/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libsass
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=sassc
+version=3.6.2
+release=1
+source="https://github.com/sass/sassc/archive/3.6.2/$name-$name.tar.gz https://github.com/sass/libsass/archive/3.6.5/libsass-3.6.5.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	autoreconf -fi
+	./configure --prefix=/usr
+	make
+	make DESTDIR=$PKG install
+}

@@ -1,0 +1,25 @@
+# description : Library for encoding H264/AVC video streams (snapshot).
+# homepage    : https://www.videolan.org/developers/x264.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : nasm
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=x264
+version=20250815
+release=1
+source="https://anduin.linuxfromscratch.org/BLFS/x264/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	  ./configure --prefix=/usr \
+	            --enable-shared \
+	            --disable-cli &&
+	make
+	  make DESTDIR=$PKG install
+}

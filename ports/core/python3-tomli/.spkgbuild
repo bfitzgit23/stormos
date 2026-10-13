@@ -1,0 +1,22 @@
+# description : A lil' TOML parser
+# homepage    : https://github.com/hukkin/tomli
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-pip
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-tomli
+version=2.4.1
+release=1
+source="https://pypi.python.org/packages/source/t/tomli/tomli-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	/usr/bin/pip3 install --isolate --root=$PKG --ignore-installed --no-deps .
+}

@@ -1,0 +1,139 @@
+# description : spidermonkey
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : icu rustc which llvm
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# the CRUX recipe called this package SpiderMonkey
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=spidermonkey
+version=140.15.0esr
+release=4
+source="https://archive.mozilla.org/pub/firefox/releases/$version/source/firefox-$version.source.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd "$SRC/firefox-${version%esr}"
+
+	python3 - <<'PY'
+from pathlib import Path
+
+def replace_once(path, old, new, label):
+    p = Path(path)
+    s = p.read_text()
+    count = s.count(old)
+    if count != 1:
+        raise SystemExit(f"{label}: expected 1 match, found {count}")
+    p.write_text(s.replace(old, new, 1))
+
+# Rust 1.98 target-triplet compatibility.
+replace_once(
+    "build/moz.configure/rust.configure",
+    '        narrowed = [c for c in candidates if c.target.vendor == host_or_target.vendor]',
+    '''        vendor = "unknown" if host_or_target.vendor == "pc" else host_or_target.vendor
+        narrowed = [c for c in candidates if c.target.vendor == vendor]''',
+    "Rust target vendor fix",
+)
+
+# Python 3.14 removed ast.Str. Mozilla bug 1969769.
+reader = "python/mozbuild/mozbuild/frontend/reader.py"
+
+replace_once(
+    reader,
+    "slice=c(ast.Index(value=c(ast.Str(s=node.id))))",
+    "slice=c(ast.Index(value=c(ast.Constant(value=node.id))))",
+    "ast.Str node.id fix",
+)
+
+replace_once(
+    reader,
+    "assert isinstance(target.slice.value, ast.Str)",
+    "assert isinstance(target.slice.value, ast.Constant)",
+    "ast.Str target fix",
+)
+
+replace_once(
+    reader,
+    "key = target.slice.value.s",
+    "key = target.slice.value.value",
+    "ast.Str target value fix",
+)
+
+replace_once(
+    reader,
+    "assert isinstance(v, ast.Str)",
+    "assert isinstance(v, ast.Constant)",
+    "ast.Str list fix",
+)
+
+replace_once(
+    reader,
+    "yield v.s",
+    "yield v.value",
+    "ast.Str list value fix",
+)
+
+replace_once(
+    reader,
+    "assert isinstance(value, ast.Str)",
+    "assert isinstance(value, ast.Constant)",
+    "ast.Str scalar fix",
+)
+
+replace_once(
+    reader,
+    "yield value.s",
+    "yield value.value",
+    "ast.Str scalar value fix",
+)
+
+# Python 3.14 Constant objects no longer provide .s.
+replace_once(
+    "python/mach/mach/command_util.py",
+    "kwarg_dict[name] = arg.s",
+    "kwarg_dict[name] = arg.value",
+    "command_util Python 3.14 fix",
+)
+
+# Bundled jsonschema compatibility with Python 3.14.
+replace_once(
+    "third_party/python/jsonschema/jsonschema/validators.py",
+    '''        for subschema in subschemas:
+            target_uri = self._urljoin_cache(
+                self.resolution_scope, subschema["$id"],
+            )''',
+    '''        for subschema in subschemas:
+            id = subschema["$id"]
+            if not isinstance(id, str):
+                continue
+            target_uri = self._urljoin_cache(
+                self.resolution_scope, id,
+            )''',
+    "jsonschema Python 3.14 fix",
+)
+PY
+
+	mkdir -p obj
+	cd obj
+
+	../js/src/configure --prefix=/usr           \
+	                    --disable-debug-symbols \
+	                    --disable-jemalloc      \
+	                    --enable-readline       \
+	                    --enable-rust-simd      \
+	                    --with-intl-api         \
+	                    --with-system-icu       \
+	                    --with-system-zlib || return 1
+
+	make || return 1
+	DESTDIR="$PKG" make install || return 1
+
+	rm -vf "$PKG/usr/lib/libjs_static.ajs"
+	sed -i '/@NSPR_CFLAGS@/d' "$PKG/usr/bin/js140-config"
+	sed '$i#define XP_UNIX' -i "$PKG/usr/include/mozjs-140/js-config.h"
+}

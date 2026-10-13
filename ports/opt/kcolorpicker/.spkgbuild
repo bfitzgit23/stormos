@@ -1,0 +1,30 @@
+# description : kColorPicker is a QToolButton library with a color popup menu, which lets you select colors. The popup menu features a color dialog button which can be used to add custom colors to the popup menu.
+# homepage    : https://github.com/ksnip/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake qt5
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# the CRUX recipe called this package kColorPicker
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=kcolorpicker
+version=0.3.1
+release=1
+source="https://github.com/ksnip/kColorPicker/archive/refs/tags/v$version/kColorPicker-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		mkdir build &&
+	cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DCMAKE_BUILD_TYPE=Release  \
+	      -DBUILD_SHARED_LIBS=ON      \
+	      -DBUILD_WITH_QT6=ON         \
+	      .. &&
+	make
+}

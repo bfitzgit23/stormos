@@ -1,5 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-name=bison
-version=3.8.2
-release=1
-source=(https://ftp.gnu.org/gnu/bison/bison-$version.tar.xz)

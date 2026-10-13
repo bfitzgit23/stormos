@@ -1,0 +1,23 @@
+# description : The ALSA Tools package contains advanced tools for certain sound cards.
+# homepage    : https://www.alsa-project.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib popt fltk
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=alsa-tools
+version=1.2.15
+release=1
+source="https://www.alsa-project.org/files/pub/tools/$name-$version.tar.bz2 install"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	exec ../install
+}

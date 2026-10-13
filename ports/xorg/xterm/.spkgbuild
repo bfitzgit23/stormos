@@ -1,0 +1,40 @@
+# description : X terminal emulator
+# homepage    : https://invisible-island.net/xterm/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : luit xorg-libs xorg-fonts
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xterm
+version=411
+release=1
+source="https://invisible-mirror.net/archives/xterm/$name-$version.tgz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i '/v0/{n;s/new:/new:kb=^?:/}' termcap || return $?
+	printf '\tkbs=\\177,\n' >> terminfo || return $?
+
+	TERMINFO=/usr/share/terminfo \
+	./configure $XORG_CONFIG \
+	    --with-app-defaults=/etc/X11/app-defaults || return $?
+
+	make -j "${JOBS:-1}" || return $?
+	make DESTDIR="$PKG" install || return $?
+
+	install -d "$PKG/usr/share/applications" || return $?
+	cp -v ./*.desktop "$PKG/usr/share/applications/" || return $?
+
+	cat >> "$PKG/etc/X11/app-defaults/XTerm" <<'EOF'
+*VT100*locale: true
+*VT100*faceName: Monospace
+*VT100*faceSize: 10
+*backarrowKeyIsErase: true
+*ptyInitialErase: true
+EOF
+}

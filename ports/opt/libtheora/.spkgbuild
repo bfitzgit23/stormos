@@ -1,0 +1,30 @@
+# description : a free and open video compression format
+# homepage    : https://www.theora.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libogg
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libtheora
+version=1.2.0
+release=1
+source="https://downloads.xiph.org/releases/theora/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	  sed -i 's/png_\(sizeof\)/\1/g' examples/png2theora.c &&
+	./configure --prefix=/usr --disable-static &&
+	make
+	make DESTDIR=$PKG install
+	cd examples/.libs &&
+	for E in *; do
+	mkdir -p $PKG/usr/bin/theora_${E}
+	  install -v -m755 $E $PKG/usr/bin/theora_${E}
+	done
+}

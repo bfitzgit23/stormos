@@ -170,6 +170,8 @@ BFSOS builds a temporary toolchain, uses it to build the base system, and can th
 - `scripts/bfs-build-iso.sh` — canonical live ISO builder.
 - `scripts/bfs-publish-sourceforge.sh` — canonical SourceForge publisher.
 - `scripts/bfs-mkstage3.sh` — stage3 rootfs archive builder (see *Stage3 rootfs archive*).
+- `scripts/bfs-spkgbuild-all.sh` — whole-tree build for the scratchpkg variant.
+- `scripts/bfs-ports-to-spkgbuild.py` — the CRUX→scratchpkg port converter and validator.
 - `scripts/tests/` — source/regression checks.
 - `scripts/` — maintenance, migration, ports, and repository helpers.
 - `docs/` — installation, audit, tracker, maintenance, and reference documentation, including the LFS and OpenRC/BLFS books under `docs/`.
@@ -283,6 +285,30 @@ sudo tar --one-file-system --numeric-owner \
   --exclude=./lost+found --exclude=./var/cache/pkgmk --exclude=./var/cache/ccache \
   -I 'zstd -19 -T0' -cpf bfs-stage3.tar.zst -C / .
 ```
+
+## The scratchpkg variant
+
+Everything above describes the CRUX `pkgutils` main line. A second copy of the
+ports tree, adapted for **scratchpkg** (Venom Linux's `scratch`/`pkgbuild`),
+lives on the `scratchpkg` branch of this repository. There every port is a
+`.spkgbuild` recipe, port names are lowercase, and the CRUX build conventions
+(source-directory entry, automatic patch application, default autotools/meson/
+cmake/make builds) come from a shared library the recipes source:
+
+```sh
+# build and install a port with its dependencies
+scratch install bzip2
+
+# build a whole collection
+sudo scripts/bfs-spkgbuild-all.sh -c core -j4
+
+# validate the converted tree
+python3 scripts/bfs-ports-to-spkgbuild.py --check
+```
+
+See `docs/SCRATCHPKG-VARIANT.md` for the recipe format, the conversion tooling,
+the `/etc/scratchpkg.conf`/`/etc/scratchpkg.repo` layout, and what is
+intentionally left on the `pkgutils` side (the base bootstrap and installer).
 
 ## Installer and storage
 

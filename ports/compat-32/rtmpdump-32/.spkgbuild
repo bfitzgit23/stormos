@@ -1,0 +1,59 @@
+# description : A tool to download rtmp streams.
+# homepage    : http://rtmpdump.mplayerhq.hu/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gnutls-32 zlib-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=rtmpdump-32
+version=2.6
+release=6
+_commit=6f6bb1353fc84f4cc37138baa99f586750028a01
+source="https://crux.nu/files/distfiles/rtmpdump-2.6.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	sed \
+	  -e 's/^CRYPTO=OPENSSL/#CRYPTO=OPENSSL/' \
+	  -e 's/#CRYPTO=GNUTLS/CRYPTO=GNUTLS/' \
+	  -i Makefile -i librtmp/Makefile
+
+	sed \
+	  -e 's|OPT=|&-fPIC |' \
+	  -e 's|OPT|OPTS|' \
+	  -e 's|CFLAGS=.*|& $(OPT)|' \
+	  -i librtmp/Makefile
+
+	make \
+	  OPT="$CFLAGS" \
+	  XLDFLAGS="$LDFLAGS"
+	mkdir -p $PKG/usr/lib32
+	make \
+	  prefix='/usr' \
+	  sbindir='/usr/bin' \
+	  libdir='/usr/lib32' \
+	  mandir='/usr/share/man' \
+	  DESTDIR=$PKG \
+	  install
+
+	rm -r $PKG/usr/{bin,include,share}
+	)
+}

@@ -1,0 +1,137 @@
+# description : ncurses
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=ncurses
+version=6.6
+release=1
+build_opt="--prefix=/usr
+           --mandir=/usr/share/man
+           --with-shared
+           --without-debug
+           --without-normal
+           --without-ada
+           --with-cxx-shared
+           --enable-widec
+           --enable-pc-files
+           --with-pkg-config-libdir=/usr/lib/pkgconfig
+           --disable-stripping
+           AWK=gawk"
+source="https://invisible-mirror.net/archives/ncurses/ncurses-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# bootstrap.sh calls bootstrap_build() with TOOLS pointing at the
+	# toolchain root; a package build stages into $PKG instead.
+	TOOLS="${TOOLS:-$PKG}"
+	bootstrap_build || return 1
+	post_build || return 1
+}
+
+post_build() {
+    local real_lib
+    local abi
+
+    mkdir -p "$PKG/lib"
+
+    real_lib=$(
+        find "$PKG/usr/lib" \
+            -maxdepth 1 \
+            -type f \
+            -name 'libncursesw.so.*' \
+            -printf '%f\n' |
+        sort -V |
+        tail -n 1
+    )
+
+    if [ -z "$real_lib" ]; then
+        echo "ERROR: Could not locate the real libncursesw shared library."
+        return 1
+    fi
+
+    # Derive ABI major from the actual installed library name.
+    #
+    # Example:
+    #   libncursesw.so.6.6
+    # becomes:
+    #   6
+    abi="${real_lib#libncursesw.so.}"
+    abi="${abi%%.*}"
+
+    if [ -z "$abi" ] || [ "$abi" = "$real_lib" ]; then
+        echo "ERROR: Could not determine ncurses ABI from: $real_lib"
+        return 1
+    fi
+
+    mv "$PKG/usr/lib/$real_lib" \
+        "$PKG/lib/"
+
+    # Wide ncurses linker and runtime links.
+    ln -sf "../../lib/$real_lib" \
+        "$PKG/usr/lib/libncursesw.so"
+
+    ln -sf "$real_lib" \
+        "$PKG/lib/libncursesw.so.$abi"
+
+    # Compatibility ncurses runtime library.
+    ln -sf "$real_lib" \
+        "$PKG/lib/libncurses.so.$abi"
+
+    # libtinfo compatibility links.
+    ln -sf "../../lib/$real_lib" \
+        "$PKG/usr/lib/libtinfo.so"
+
+    ln -sf "../../lib/$real_lib" \
+        "$PKG/usr/lib/libtinfo.so.$abi"
+
+    ln -sf ncursesw.pc \
+        "$PKG/usr/lib/pkgconfig/tinfo.pc"
+
+    # Compatibility linker scripts and pkg-config files.
+    for lib in ncurses form panel menu; do
+        rm -f "$PKG/usr/lib/lib${lib}.so"
+
+        echo "INPUT(-l${lib}w)" \
+            >"$PKG/usr/lib/lib${lib}.so"
+
+        ln -sf "${lib}w.pc" \
+            "$PKG/usr/lib/pkgconfig/${lib}.pc"
+    done
+
+    rm -f "$PKG/usr/lib/libcursesw.so"
+
+    echo "INPUT(-lncursesw)" \
+        >"$PKG/usr/lib/libcursesw.so"
+
+    ln -sf libncurses.so \
+        "$PKG/usr/lib/libcurses.so"
+}
+
+bootstrap_build() {
+    mkdir -p build
+    pushd build
+
+    ../configure \
+        --prefix="$TOOLS" \
+        --with-shared \
+        --without-debug \
+        --without-ada \
+        --enable-widec \
+        --enable-overwrite
+
+    make
+    make install
+
+    ln -sf libncursesw.so \
+        "$TOOLS/lib/libncurses.so"
+
+    popd
+}

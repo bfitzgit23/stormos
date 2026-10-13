@@ -1,0 +1,28 @@
+# description : Software TPM emulator using libtpms
+# homepage    : https://github.com/stefanberger/swtpm
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : autoconf automake expect fuse2 glib gmp gnutls json-glib libseccomp libtasn1 libtool libtpms openssl
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=swtpm
+version=0.10.2
+release=2
+build_opt=(
+    --with-gnutls
+    --without-selinux
+)
+source="https://github.com/stefanberger/swtpm/archive/refs/tags/v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./autogen.sh --prefix=/usr --libdir=/usr/lib --sysconfdir=/etc \
+	    --localstatedir=/var "${build_opt[@]}" || return 1
+	make || return 1
+	make DESTDIR="$PKG" install || return 1
+}

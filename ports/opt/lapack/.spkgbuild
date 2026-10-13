@@ -1,0 +1,38 @@
+# description : Linear Algebra PACKage - F77 routines for Linear Algebra
+# homepage    : https://github.com/Reference-LAPACK/lapack
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : openblas python3
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=lapack
+version=3.12.1
+release=1
+source="https://github.com/Reference-LAPACK/lapack/archive/v$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build -G Ninja \
+	  -D CMAKE_INSTALL_PREFIX=/usr \
+	  -D CMAKE_INSTALL_LIBDIR=lib \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS -fPIC" \
+	  -D CMAKE_C_FLAGS_RELEASE="$CFLAGS -fPIC" \
+	  -D CMAKE_Fortran_FLAGS="$CFLAGS -fPIC" \
+	  -D CMAKE_Fortran_COMPILER=gfortran \
+	  -D CMAKE_SKIP_RPATH=YES \
+	  -D USE_OPTIMIZED_BLAS=ON \
+	  -D CBLAS=OFF \
+	  -D LAPACKE_WITH_TMG=ON \
+	  -D BUILD_SHARED_LIBS=ON \
+	  -D BUILD_DEPRECATED=ON \
+	  -Wno-dev
+
+	cmake --build build
+	DESTDIR=$PKG cmake --install build
+}

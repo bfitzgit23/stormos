@@ -1,0 +1,35 @@
+# description : Lightweight PDF and XPS viewer
+# homepage    : https://www.mupdf.com/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glu harfbuzz libjpeg-turbo libxi
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mupdf
+version=1.28.3
+release=1
+source="https://mupdf.com/downloads/archive/$name-$version-source.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	PKGMK_MUPDF="USE_SYSTEM_LIBS=yes"
+
+	prt-get isinst freeglut || PKGMK_MUPDF+=" USE_SYSTEM_GLUT=no"
+	prt-get isinst openjpeg2 || PKGMK_MUPDF+=" USE_SYSTEM_OPENJPEG=no"
+	prt-get isinst jbig2dec || PKGMK_MUPDF+=" USE_SYSTEM_JBIG2DEC=no"
+	prt-get isinst gumbo-parser || PKGMK_MUPDF+=" USE_SYSTEM_GUMBO=no"
+
+	make install $PKGMK_MUPDF\
+		prefix=$PKG/usr \
+		mandir=$PKG/usr/share/man \
+		XCFLAGS="-fpic -fcommon"
+
+	ln -s mupdf-gl $PKG/usr/bin/mupdf
+	rm -r $PKG/usr/share/doc
+}

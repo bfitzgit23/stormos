@@ -1,0 +1,25 @@
+# description : Run commands in an environment faking root privileges
+# homepage    : https://packages.debian.org/unstable/utils/fakeroot
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=fakeroot
+version=2.1.4
+release=1
+source="https://deb.debian.org/debian/pool/main/f/$name/${name}_${version}.orig.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i '/^SUBDIRS/d' doc/Makefile.am
+	./bootstrap
+	./configure --prefix=/usr
+	make
+	make DESTDIR=$PKG install
+}

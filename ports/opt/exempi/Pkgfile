@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: boost valgrind
-
-name=exempi
-version=2.6.6
-release=2
-source=(https://libopenraw.freedesktop.org/download/${name}-${version}.tar.xz)

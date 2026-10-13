@@ -1,0 +1,69 @@
+# description : Venom Linux's scratchpkg (scratch, pkgbuild, pkgadd, pkgdel, portsync) with the BFSOS .spkgbuild conventions
+# homepage    : https://github.com/venomlinux/scratchpkg
+# maintainer  : BFSOS maintainers
+# depends     : bash curl tar xz patch
+#
+# The upstream project has no tag newer than 2020, so this pins the last
+# upstream commit (2023-03-26) and installs it unchanged.  The BFSOS pieces are
+# this port's own files:
+#
+#   /etc/scratchpkg.conf               recipe name ".spkgbuild", zstd packages
+#   /etc/scratchpkg.repo               the tree's collections as repositories
+#   /usr/libexec/bfs/spkgbuild-lib.sh  the BFSOS build conventions that every
+#                                      converted recipe sources
+#
+# See docs/SCRATCHPKG-VARIANT.md for the whole picture.
+
+name=scratchpkg
+version=2023.03.26
+release=1
+source="https://github.com/venomlinux/scratchpkg/archive/d848402f95053e9c22c46d7a5492f01ebe049c55.tar.gz
+        files/scratchpkg.conf
+        files/scratchpkg.repo
+        files/spkgbuild-lib.sh"
+
+build() {
+	# scratchpkg unpacked the tarball next to the port's own files in $SRC.
+	src="$SRC/scratchpkg-d848402f95053e9c22c46d7a5492f01ebe049c55"
+	if [ ! -d "$src" ]; then
+		echo "scratchpkg: upstream archive was not unpacked in $SRC" >&2
+		return 1
+	fi
+	cd "$src" || return 1
+
+	install -d \
+		"$PKG/usr/bin" \
+		"$PKG/usr/libexec/bfs" \
+		"$PKG/usr/ports" \
+		"$PKG/etc/revdep.d" \
+		"$PKG/var/cache/scratchpkg/packages" \
+		"$PKG/var/cache/scratchpkg/sources" \
+		"$PKG/var/cache/scratchpkg/work"
+
+	# Upstream tools, unchanged.
+	install -m755 \
+		xchroot revdep pkgadd pkgdel pkgbuild scratch updateconf portsync \
+		pkgbase pkgdepends pkgrebuild portcreate \
+		"$PKG/usr/bin"
+
+	# Upstream files BFSOS does not override.
+	install -m644 scratchpkg.alias "$PKG/etc/scratchpkg.alias"
+	install -m644 scratchpkg.mask "$PKG/etc/scratchpkg.mask"
+	install -m644 revdep.conf "$PKG/etc/revdep.d/revdep.conf"
+
+	# BFSOS configuration and the shared build conventions.
+	install -m644 "$SRC/scratchpkg.conf" "$PKG/etc/scratchpkg.conf"
+	install -m644 "$SRC/scratchpkg.repo" "$PKG/etc/scratchpkg.repo"
+	install -m644 "$SRC/spkgbuild-lib.sh" "$PKG/usr/libexec/bfs/spkgbuild-lib.sh"
+
+	# Collections already installed in the tree become scratchpkg repositories;
+	# create the ones missing so scratch does not fail on a partial tree.
+	for collection in core opt gnome xorg xfce lxqt plasma compiz contrib compat-32 iso; do
+		[ -d "/usr/ports/$collection" ] && continue
+		install -d "$PKG/usr/ports/$collection"
+	done
+
+	chmod 0755 "$PKG/var/cache/scratchpkg/packages" \
+		"$PKG/var/cache/scratchpkg/sources" \
+		"$PKG/var/cache/scratchpkg/work"
+}

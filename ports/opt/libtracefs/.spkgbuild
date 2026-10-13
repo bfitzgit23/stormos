@@ -1,0 +1,41 @@
+# description : Linux kernel trace file system library
+# homepage    : https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libtraceevent meson ninja
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libtracefs
+version=1.8.3
+release=1
+source="https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/snapshot/libtracefs-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	local doc_opt="-Ddoc=false"
+
+	if prt-get isinst asciidoc >/dev/null 2>&1 &&
+	   prt-get isinst xmlto >/dev/null 2>&1; then
+	    doc_opt="-Ddoc=true"
+	fi
+
+	meson setup build \
+	    --prefix=/usr \
+	    --buildtype=plain \
+	    --wrap-mode=nodownload \
+	    -Db_lto=true \
+	    -Db_pie=true \
+	    "$doc_opt" || return 1
+
+	meson compile -C build -j "${JOBS:-1}" || return 1
+
+	DESTDIR="$PKG" \
+	    meson install -C build || return 1
+
+	rm -rf "$PKG/usr/share/doc"
+}

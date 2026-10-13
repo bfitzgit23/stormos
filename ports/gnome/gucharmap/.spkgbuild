@@ -1,0 +1,34 @@
+# description : gucharmap
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : desktop-file-utils gsettings-desktop-schemas gtk3 itstool libarchive unzip glib gobject-introspection vala
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gucharmap
+version=17.0.2
+release=1
+source="https://gitlab.gnome.org/GNOME/${name}/-/archive/${version}/${name}-${version}.tar.bz2 UCD.zipx::https://www.unicode.org/Public/17.0.0/ucd/UCD.zip Unihan.zipx::https://www.unicode.org/Public/17.0.0/ucd/Unihan.zip"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir build
+	cd build
+
+	mkdir ucd
+	unzip $SRC/UCD.zipx -d ucd
+	cp $SRC/Unihan.zipx ucd
+	meson setup --prefix=/usr       \
+	            --strip             \
+	            --buildtype=release \
+	            -Ducd_path=./ucd    \
+	            -Ddocs=false        \
+	            ..                  &&
+	ninja
+	ninja install
+}

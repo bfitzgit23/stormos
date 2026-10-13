@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: glib
-
-name=xfce4-dev-tools
-version=4.20.0
-release=1
-source=(http://archive.xfce.org/src/xfce/${name}/${version%.*}/${name}-${version}.tar.bz2)

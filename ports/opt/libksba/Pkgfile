@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: libgpg-error
-# Optional: valgrind
-name=libksba
-version=1.8.1
-release=1
-source=(https://mirrors.dotsrc.org/gcrypt/${name}/${name}-${version}.tar.bz2)

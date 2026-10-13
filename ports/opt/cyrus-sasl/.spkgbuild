@@ -1,0 +1,45 @@
+# description : cyrus-sasl
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : lmdb
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=cyrus-sasl
+version=2.1.28
+release=2
+build_opt=(
+  --prefix=/usr
+  --sysconfdir=/etc
+  --enable-auth-sasldb
+  --with-dblib=lmdb
+  --with-dbpath=/var/lib/sasl/sasldb2
+  --with-sphinx-build=no
+  --with-saslauthd=/var/run/saslauthd
+)
+source="https://github.com/cyrusimap/${name}/releases/download/${name}-${version}/${name}-${version}.tar.gz gcc-c23-gcc15-c23.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed '/saslint/a #include <time.h>' -i lib/saslutil.c
+	sed '/plugin_common/a #include <time.h>' -i plugins/cram.c
+
+	autoreconf -fi
+
+	./configure "${build_opt[@]}"
+
+	make -j1
+	make DESTDIR="$PKG" install
+
+	install -v -dm755 "$PKG/usr/share/doc/$name-$version/html"
+	install -v -m644 saslauthd/LDAP_SASLAUTHD \
+	  "$PKG/usr/share/doc/$name-$version/"
+	install -v -m644 doc/legacy/*.html \
+	  "$PKG/usr/share/doc/$name-$version/html/"
+	install -v -dm700 "$PKG/var/lib/sasl"
+}

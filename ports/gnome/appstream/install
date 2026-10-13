@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		install -vdm755 /usr/share/metainfo &&
+		cat > /usr/share/metainfo/org.linuxfromscratch.lfs.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="operating-system">
+  <id>org.linuxfromscratch.lfs</id>
+  <name>Linux From Scratch</name>
+  <summary>A customized Linux system built entirely from source</summary>
+  <description>
+    <p>
+      Linux From Scratch (LFS) is a project that provides you with
+      step-by-step instructions for building your own customized Linux
+      system entirely from source.
+    </p>
+  </description>
+  <url type="homepage">https://www.linuxfromscratch.org/lfs/</url>
+  <metadata_license>MIT</metadata_license>
+  <developer id='linuxfromscratch.org'>
+    <name>The Linux From Scratch Editors</name>
+  </developer>
+
+  <releases>
+    <release version="12.2" type="development" date="2024-09-01">
+      <description>
+        <p>The next release of Linux From Scratch.</p>
+      </description>
+    </release>
+
+    <release version="12.1" type="stable" date="2024-03-01">
+      <description>
+        <p>Now contains Binutils 2.42, GCC-13.2.0, Glibc-2.39, and Linux
+        kernel 6.7.</p>
+      </description>
+    </release>
+  </releases>
+</component>
+EOF
+		;;
+esac

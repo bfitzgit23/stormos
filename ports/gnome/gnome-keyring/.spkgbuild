@@ -1,0 +1,34 @@
+# description : GNOME daemon and tools for storing passwords and encryption keys
+# homepage    : https://gitlab.gnome.org/GNOME/gnome-keyring
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus dconf gcr glib libgcrypt linux-pam p11-kit systemd
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gnome-keyring
+version=51.1
+release=1
+source="https://download.gnome.org/sources/${name}/${version%.*}/${name}-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# Current upstream (48.alpha and newer) uses Meson, not Autotools.
+	sed -i 's:"/desktop:"/org:' schema/*.xml || return 1
+
+	meson setup build \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -Dsystemd=enabled \
+	    -Dssh-agent=false \
+	    -Dpam=true \
+	    -Dmanpage=false \
+	    -Ddebug-mode=false || return 1
+
+	meson compile -C build || return 1
+	DESTDIR="$PKG" meson install -C build || return 1
+}

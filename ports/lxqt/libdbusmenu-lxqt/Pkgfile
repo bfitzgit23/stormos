@@ -1,9 +1,0 @@
-# Description: Libdbusmenu Lxqt component for LXQt
-# URL: https://github.com/lxqt/libdbusmenu-lxqt
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: cmake qt6 extra-cmake-modules
-
-name=libdbusmenu-lxqt
-version=0.4.0
-release=1
-source=(https://github.com/lxqt/${name}/releases/download/${version}/${name}-${version}.tar.xz)

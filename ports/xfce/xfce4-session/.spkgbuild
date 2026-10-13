@@ -1,0 +1,34 @@
+# description : xfce4-session
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libwnck libxfce4windowing libxfce4ui desktop-file-utils xscreensaver shared-mime-info polkit-gnome xfdesktop
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xfce4-session
+version=4.20.4
+release=2
+source="https://archive.xfce.org/src/xfce/${name}/${version%.*}/${name}-${version}.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure --prefix=/usr \
+	    --sysconfdir=/etc \
+	    --disable-legacy-sm || return 1
+	make || return 1
+	make DESTDIR="$PKG" install || return 1
+	post_build || return 1
+}
+
+post_build() {
+    # Xfce 4.20 Wayland support is experimental and xfwm4 is still X11-only.
+    # BFSOS RC2 does not ship a supported wlroots compositor by default, so do
+    # not advertise a login-manager session that cannot be completed safely.
+    rm -f "$PKG/usr/share/wayland-sessions/xfce-wayland.desktop" \
+          "$PKG/usr/share/wayland-sessions/xfce.desktop" 2>/dev/null || true
+}

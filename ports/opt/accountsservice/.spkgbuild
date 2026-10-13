@@ -1,0 +1,28 @@
+# description : D-Bus interfaces and daemon for querying and manipulating user accounts
+# homepage    : https://www.freedesktop.org/software/accountsservice/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : polkit glib gobject-introspection systemd vala
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=accountsservice
+version=26.27.3
+release=2
+source="https://gitlab.freedesktop.org/accountsservice/accountsservice/-/archive/$version/accountsservice-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i '/^SIMULATED_SYSTEM_LOCALE/s/en_IE.UTF-8/en_HK.iso88591/' tests/test-daemon.py
+
+	meson setup build \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -Dadmin_group=adm
+	meson compile -C build -j "${JOBS:-1}"
+	DESTDIR="$PKG" meson install -C build
+}

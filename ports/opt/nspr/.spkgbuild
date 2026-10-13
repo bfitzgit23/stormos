@@ -1,0 +1,29 @@
+# description : Netscape Portable Runtime library
+# homepage    : https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSPR
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=nspr
+version=4.40
+release=3
+source="https://archive.mozilla.org/pub/$name/releases/v$version/src/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd nspr || return 1
+
+	sed -ri '/^RELEASE/s/^/#/' pr/src/misc/Makefile.in || return 1
+	sed -i 's#$(LIBRARY) ##' config/rules.mk || return 1
+
+	./configure         --prefix=/usr         --with-mozilla         --with-pthreads         $([ "$(uname -m)" = x86_64 ] && echo --enable-64bit) || return 1
+
+	make || return 1
+	make DESTDIR="$PKG" install || return 1
+}

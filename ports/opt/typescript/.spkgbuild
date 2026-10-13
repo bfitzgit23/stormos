@@ -1,0 +1,32 @@
+# description : TypeScript language compiler
+# homepage    : https://www.typescriptlang.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : nodejs
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=typescript
+version=5.7.3
+release=1
+source="https://registry.npmjs.org/typescript/-/typescript-$version.tgz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	install -d "$PKG/usr/lib/node_modules/typescript"
+	cp -a bin lib package.json \
+	    "$PKG/usr/lib/node_modules/typescript/" || return 1
+
+	install -d "$PKG/usr/bin"
+
+	ln -sf ../lib/node_modules/typescript/bin/tsc \
+	    "$PKG/usr/bin/tsc"
+
+	ln -sf ../lib/node_modules/typescript/bin/tsserver \
+	    "$PKG/usr/bin/tsserver"
+}

@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: hwdata
-
-name=libdisplay-info
-version=0.4.0
-release=2
-source=(https://gitlab.freedesktop.org/emersion/${name}/-/releases/${version}/downloads//${name}-${version}.tar.xz)

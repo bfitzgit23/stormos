@@ -1,0 +1,35 @@
+# description : Display graphical dialog boxes from shell scripts.
+# homepage    : https://gitlab.gnome.org/GNOME/zenity
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libadwaita
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=zenity
+version=4.2.2
+release=1
+source="https://download.gnome.org/sources/$name/${version%.*}/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	prt-get isinst help2man || PKGMK_ZENITY+=' -D manpage=false'
+	# disabled for now as it requires webkitgtk4.1
+	prt-get isinst webkitgtk && PKGMK_ZENITY+=' -D webkitgtk=false'
+
+	meson setup build . $PKGMK_ZENITY \
+	  --prefix=/usr \
+	  --buildtype=plain \
+	  --wrap-mode nodownload \
+	  -D b_lto=true \
+	  -D b_pie=true
+
+	meson compile -C build
+	DESTDIR=$PKG meson install -C build
+
+	rm -r $PKG/usr/share/{locale,help}
+}

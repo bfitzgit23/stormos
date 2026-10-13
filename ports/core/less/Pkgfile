@@ -1,5 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-name=less
-version=704
-release=1
-source=(https://www.greenwoodsoftware.com/$name/$name-$version.tar.gz)

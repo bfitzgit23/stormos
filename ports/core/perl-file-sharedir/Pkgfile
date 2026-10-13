@@ -1,9 +1,0 @@
-# Description: Locate per-distribution and per-module shared files
-# URL: https://metacpan.org/dist/File-ShareDir
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: perl perl-class-inspector perl-file-sharedir-install
-
-name=perl-file-sharedir
-version=1.118
-release=1
-source=(https://cpan.metacpan.org/authors/id/R/RE/REHSACK/File-ShareDir-$version.tar.gz)

@@ -1,0 +1,34 @@
+# description : SVG rendering library with cairo backend
+# homepage    : https://wiki.gnome.org/Projects/LibRsvg
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cairo gdk-pixbuf pango rustc vala cargo-c
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=librsvg
+version=2.63.0
+release=3
+build_opt="-D docs=disabled -D tests=false -D pixbuf=enabled -D pixbuf-loader=enabled"
+source="https://download.gnome.org/sources/$name/${version%.*}/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}
+
+pre_build() {
+  prt-get isinst sccache && export RUSTC_WRAPPER=/usr/bin/sccache
+  mkdir -p "$PKGMK_SOURCE_DIR/rust" || return 1
+  export CARGO_HOME="$PKGMK_SOURCE_DIR/rust"
+  export CARGO_PROFILE_RELEASE_LTO=true
+  export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
+  prt-get isinst vala && build_opt+=' -D vala=enabled'
+}

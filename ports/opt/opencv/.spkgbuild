@@ -1,0 +1,40 @@
+# description : Open Source Computer Vision Library
+# homepage    : https://opencv.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake ninja unzip gst-plugins-base gtk3 jasper libexif libjpeg-turbo libpng libtiff libwebp openjpeg2 v4l-utils
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=opencv
+version=5.0.0
+release=1
+source="https://github.com/opencv/opencv/archive/$version/$name-$version.tar.gz https://github.com/opencv/opencv_contrib/archive/$version/opencv_contrib-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build -G Ninja \
+	  -DCMAKE_INSTALL_PREFIX=/usr \
+	  -DCMAKE_INSTALL_LIBDIR=lib \
+	  -DCMAKE_BUILD_TYPE=Release \
+	  -DCMAKE_SKIP_RPATH=ON \
+	  -DOPENCV_EXTRA_MODULES_PATH="$SRC/opencv_contrib-$version/modules" \
+	  -DBUILD_SHARED_LIBS=ON \
+	  -DBUILD_TESTS=OFF \
+	  -DBUILD_PERF_TESTS=OFF \
+	  -DBUILD_EXAMPLES=OFF \
+	  -DBUILD_WITH_DEBUG_INFO=OFF \
+	  -DENABLE_PRECOMPILED_HEADERS=OFF \
+	  -DWITH_FFMPEG=OFF \
+	  -DWITH_GSTREAMER=ON \
+	  -DWITH_XINE=OFF || return 1
+
+	cmake --build build -j "${JOBS:-1}" || return 1
+
+	DESTDIR="$PKG" \
+	  cmake --install build || return 1
+}

@@ -1,0 +1,101 @@
+# description : MIT Kerberos V5 network authentication implementation
+# homepage    : https://kerberos.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : e2fsprogs openssl
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=kerberos
+version=1.22.2
+release=3
+source="https://kerberos.org/dist/krb5/${version%.*}/krb5-$version.tar.gz https://www.linuxfromscratch.org/patches/blfs/svn/mitkrb-$version-upstream_fix-1.patch https://www.linuxfromscratch.org/patches/blfs/svn/mitkrb-$version-security_fix-1.patch https://www.linuxfromscratch.org/patches/blfs/svn/mitkrb-$version-openssl_4_fixes-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd src || return 1
+
+	sed -i -e '/eq 0/{N;s/12 //}' \
+	    plugins/kdb/db2/libdb2/test/run.test \
+	    || return 1
+
+	config_opts=(
+	    --prefix=/usr
+	    --sysconfdir=/etc
+	    --localstatedir=/var/lib
+	    --runstatedir=/run
+	    --with-system-et
+	    --with-system-ss
+	    --with-system-verto=no
+	    --enable-dns-for-realm
+	    --disable-rpath
+	)
+
+	if prt-get isinst openldap >/dev/null 2>&1; then
+	    config_opts+=( --with-ldap )
+	fi
+
+	./configure "${config_opts[@]}" || return 1
+
+	make -j"${JOBS:-1}" || return 1
+
+	make DESTDIR="$PKG" install || return 1
+
+	install -d "$PKG/usr/share/doc/krb5-$version" || return 1
+
+	cp -a ../doc/. \
+	    "$PKG/usr/share/doc/krb5-$version/" \
+	    || return 1
+
+	# Verify that the development/runtime pieces Samba requires were
+	# actually installed. Never create a partial Kerberos package.
+	for f in \
+	    "$PKG/usr/bin/krb5-config" \
+	    "$PKG/usr/include/gssapi/gssapi.h" \
+	    "$PKG/usr/include/gssapi/gssapi_krb5.h" \
+	    "$PKG/usr/lib/libkrb5.so" \
+	    "$PKG/usr/lib/libgssapi_krb5.so"
+	do
+	    if [ ! -e "$f" ]; then
+	        echo "ERROR: expected Kerberos file missing: $f"
+	        return 1
+	    fi
+	done
+
+	# MIT Kerberos itself does not install systemd units.
+	install -d "$PKG/usr/lib/systemd/system" || return 1
+
+	cat > "$PKG/usr/lib/systemd/system/krb5-kdc.service" <<'UNIT'
+[Unit]
+Description=Kerberos 5 Key Distribution Center
+Documentation=man:krb5kdc(8)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/krb5kdc -n
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+	cat > "$PKG/usr/lib/systemd/system/krb5-kadmind.service" <<'UNIT'
+[Unit]
+Description=Kerberos 5 Administration Server
+Documentation=man:kadmind(8)
+After=network.target krb5-kdc.service
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/kadmind -nofork
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+}

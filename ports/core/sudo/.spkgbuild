@@ -1,0 +1,54 @@
+# description : sudo
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=sudo
+version=1.9.17p2
+release=1
+build_opt=(
+    --prefix=/usr
+    --sbindir=/usr/bin
+    --libexecdir=/usr/lib
+    --sysconfdir=/etc
+    --with-pam
+    --with-env-editor
+    --with-all-insults
+    --with-secure-path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    "--with-passprompt=[sudo] password for %p: "
+    --docdir=/usr/share/doc/$name-$version
+)
+source="https://www.sudo.ws/dist/$name-$version.tar.gz $name.pam"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	# OpenSSL 4 compatibility
+	sed -i \
+	    's/current_name->d\.iPAddress->length/ASN1_STRING_length(current_name->d.iPAddress)/g' \
+	    lib/iolog/hostcheck.c
+
+	./configure "${build_opt[@]}"
+
+	make
+	make DESTDIR="$PKG" install
+
+	# Install PAM configuration
+	install -Dm644 \
+	    "$SRC/$name.pam" \
+	    "$PKG/etc/pam.d/$name"
+
+	# Remove documentation (packaged separately if desired)
+	rm -rf \
+	    "$PKG/usr/share/doc" \
+	    "$PKG/usr/share/info"
+
+	rm -f "$PKG/usr/share/info/dir"
+}

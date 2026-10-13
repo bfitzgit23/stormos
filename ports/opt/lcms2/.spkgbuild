@@ -1,0 +1,28 @@
+# description : Little CMS intends to be an small-footprint color management engine
+# homepage    : http://www.littlecms.com/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libtiff
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=lcms2
+version=2.19.1
+release=3
+source="https://downloads.sourceforge.net/project/lcms/lcms/$version/lcms2-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+		sed '/BufferSize < TagSize/,+1 s/goto Error/TagSize = BufferSize/' \
+	    -i src/cmsio0.c
+
+	    ./configure --prefix=/usr --disable-static &&
+	make
+		make DESTDIR=$PKG install
+}

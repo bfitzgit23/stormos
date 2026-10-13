@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		umask 0022
+		ulimit -u
+		TEXARCH=$(uname -m | sed -e 's/i.86/i386/' -e 's/$/-linux/')
+		cat > /etc/profile.d/texlive.sh << EOF
+# Begin texlive setup
+TEXLIVE_PREFIX=/opt/texlive/2023
+export TEXLIVE_PREFIX
+
+pathappend \$TEXLIVE_PREFIX/texmf-dist/doc/man  MANPATH
+pathappend \$TEXLIVE_PREFIX/texmf-dist/doc/info INFOPATH
+pathappend \$TEXLIVE_PREFIX/bin/$TEXARCH
+
+# End texlive setup
+EOF
+
+		unset TEXARCH
+		source /etc/profile
+		cat >> /etc/ld.so.conf << EOF
+# Begin texlive addition
+
+$TEXLIVE_PREFIX/lib
+
+# End texlive addition
+EOF
+		;;
+	post-install)
+		umask 0022
+		mktexlsr
+		updmap-sys --nohash --syncwithtrees
+		mktexlsr
+		fmtutil-sys --all
+		sed -e '/local template=\[\[--ini/s/\(primaryflags%\)\(.*\)/\1 --socket --shell-escape \2/' \
+		 -e '/local template=\[\[%primaryflags%/s/\(primaryflags%\)\(.*\)/\1 --socket --shell-escape \2/' \
+		  -i $TEXLIVE_PREFIX/texmf-dist/scripts/context/lua/mtxrun.lua &&
+
+		mkdir -pv $TEXLIVE_PREFIX/texmf-var/luatex-cache/context/ &&
+
+		ln -sfv /$TEXLIVE_PREFIX/texmf-dist/scripts/context/lua/mtxrun.lua \
+		        /$TEXLIVE_PREFIX/bin/$TEXARCH/mtxrun &&
+
+		cat > $TEXLIVE_PREFIX/bin/$TEXARCH/context << EOF
+export TEXMF=$TEXLIVE_PREFIX/texmf-dist;
+export TEXMFCNF=$TEXLIVE_PREFIX/texmf-dist/web2c;
+export TEXMFCACHE=$TEXLIVE_PREFIX/texmf-var/luatex-cache/context/;
+$TEXLIVE_PREFIX/bin/$TEXARCH/mtxrun --script context "\$@"
+EOF
+		chmod -v 0755 $TEXLIVE_PREFIX/bin/$TEXARCH/context
+		;;
+esac

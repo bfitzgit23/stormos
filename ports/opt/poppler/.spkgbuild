@@ -1,0 +1,34 @@
+# description : PDF rendering library
+# homepage    : https://poppler.freedesktop.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : poppler-data fontconfig gobject-introspection boost cairo lcms2 libjpeg-turbo libpng nss openjpeg2 gpgme gpgmepp qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=poppler
+version=26.09.0
+release=2
+build_opt="\
+    -DCMAKE_PREFIX_PATH=/opt/qt6 \
+    -DENABLE_UNSTABLE_API_ABI_HEADERS=ON \
+    -DENABLE_QT5=OFF \
+    -DENABLE_QT6=ON \
+    -DENABLE_GLIB=ON \
+    -DBUILD_GTK_TESTS=OFF \
+    -DBUILD_QT5_TESTS=OFF \
+    -DBUILD_QT6_TESTS=OFF \
+    -DBUILD_CPP_TESTS=OFF \
+    -DBUILD_MANUAL_TESTS=OFF"
+source="https://poppler.freedesktop.org/poppler-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

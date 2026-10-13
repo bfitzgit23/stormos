@@ -1,0 +1,23 @@
+# description : BFSOS maintained Compiz Reloaded desktop stack
+# homepage    : https://gitlab.com/compiz
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : compiz compiz-bcop libcompizconfig compizconfig-python ccsm compiz-plugins-main compiz-plugins-extra compiz-plugins-experimental emerald-decorator emerald-themes fusion-icon
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=compiz-meta
+version=0.8.18
+release=4
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	install -d "$PKG/usr/share/bfsos/meta"
+	printf '%s\n' \
+	    'BFSOS Compiz Reloaded 0.8.18 meta-package.' \
+	    > "$PKG/usr/share/bfsos/meta/$name"
+}

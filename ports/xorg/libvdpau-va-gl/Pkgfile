@@ -1,8 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: cmake libvdpau libva mesa
-
-name=libvdpau-va-gl
-version=0.4.2
-release=1
-source=(https://github.com/i-rinat/${name}/archive/v${version}/${name}-${version}.tar.gz)
-build_opt="-D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=$XORG_PREFIX"

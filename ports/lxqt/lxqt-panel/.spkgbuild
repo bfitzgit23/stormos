@@ -1,0 +1,30 @@
+# description : Lxqt Panel component for LXQt
+# homepage    : https://github.com/lxqt/lxqt-panel
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : layer-shell-qt libdbusmenu-lxqt liblxqt lxqt-globalkeys lxqt-menu-data solid menu-cache alsa-lib pulseaudio libstatgrab libsysstat libxkbcommon lm-sensors
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=lxqt-panel
+version=2.4.1
+release=2
+source="https://github.com/lxqt/${name}/releases/download/${version}/${name}-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -e '/lxqt_app_translation_loader/a set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)' \
+	    -i panel/CMakeLists.txt
+	    mkdir build &&
+	cd    build &&
+
+	cmake -D CMAKE_INSTALL_PREFIX=/usr \
+	      -D CMAKE_BUILD_TYPE=Release  \
+	      ..                           &&
+	make
+	make install
+}

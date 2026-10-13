@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: python3-certifi python3-urllib3
-
-name=sentry_sdk
-version=2.68.1
-release=1
-source=(https://github.com/getsentry/sentry-python/releases/download/${version}/${name}-${version}.tar.gz)

@@ -1,0 +1,50 @@
+# description : A tool for transfering files with URL syntax
+# homepage    : https://curl.se/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : curl openssl-32 zstd-32 brotli-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=curl-32
+version=8.22.0
+release=3
+build_opt="--enable-ipv6 --without-libidn2 --with-openssl --enable-threaded-resolver --without-libpsl --with-ca-bundle=/etc/ssl/cert.pem"
+source="https://curl.se/download/${name%-*}-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+  prt-get isinst brotli && ! prt-get isinst brotli-32 && printf "\e[031mbrotli is detected on your system, please run:
+  prt-get depinst brotli-32
+  before continuing with curl-32.\033[0m\n" &&
+  exit 1
+
+  return 0
+}
+
+post_build() {
+  rm -r $PKG/usr/{bin,include,share/man,share
+}

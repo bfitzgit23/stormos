@@ -1,0 +1,31 @@
+# description : Qt Quick image editing components used by KDE applications
+# homepage    : https://invent.kde.org/libraries/kquickimageeditor
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : kconfig kirigami opencv qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=kquickimageeditor
+version=0.6.2.1
+release=3
+build_opt="-DCMAKE_INSTALL_PREFIX=/opt/kf6
+-DCMAKE_PREFIX_PATH=/opt/kf6;/opt/qt6
+-DBUILD_TESTING=OFF"
+source="https://download.kde.org/stable/$name/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}
+
+pre_build() {
+    sed -i 's/find_package(OpenCV 4\.7/find_package(OpenCV/' CMakeLists.txt
+}

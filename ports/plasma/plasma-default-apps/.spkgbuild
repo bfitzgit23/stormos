@@ -1,0 +1,22 @@
+# description : KDE Frameworks is a collection of libraries based on top of Qt6 and QML derived from the previous KDE libraries. They can be used independent of the KDE Display Environment (Plasma 6).
+# homepage    : https://kde.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : ark dolphin dolphin-plugins kdenlive kmix khelpcenter konversation libkexiv2 plasma-activities plasma-activities-stats kio-extras okular libkdcraw gwenview libkcddb k3b konsole
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=plasma-default-apps
+version=26.08.1
+release=2
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	install -d "$PKG/usr/share/bfsos/meta-packages"
+
+	printf '%s\n'         'BFSOS dependency meta-package: plasma-default-apps'         > "$PKG/usr/share/bfsos/meta-packages/plasma-default-apps"
+}

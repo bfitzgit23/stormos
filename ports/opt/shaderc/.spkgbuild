@@ -1,0 +1,51 @@
+# description : A collection of tools, libraries and tests for shader compilation
+# homepage    : https://github.com/google/shaderc
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glslang
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=shaderc
+version=2026.3
+release=1
+source="https://github.com/google/$name/archive/v$version/$name-v$version.tar.gz glslc.1"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	# de-vendor libs and disable git versioning
+	sed '/examples/d;/third_party/d' -i CMakeLists.txt
+	sed '/build-version/d' -i glslc/CMakeLists.txt
+	cat <<- EOF > glslc/src/build-version.inc
+"${version}\\n"
+"$(prt-get printf '%v\n' --filter=spirv-tools)"
+"$(prt-get printf '%v\n' --filter=glslang)"
+EOF
+	sed -e "s|\$<TARGET_FILE:spirv-dis>|spirv-dis|" \
+	    -i glslc/test/CMakeLists.txt
+
+	cmake -S . -B build -G Ninja -Wno-dev \
+	  -D CMAKE_INSTALL_PREFIX=/usr \
+	  -D CMAKE_INSTALL_LIBDIR=lib \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_FLAGS_RELEASE="${CXXFLAGS} -ffat-lto-objects" \
+	  -D SHADERC_SKIP_TESTS=ON \
+	  -D SHADERC_SKIP_COPYRIGHT_CHECK=ON \
+	  -D glslang_SOURCE_DIR:PATH='/usr/include/glslang'
+
+	cmake --build build -j ${JOBS:-1}
+	DESTDIR=$PKG cmake --install build
+
+	if prt-get isinst asciidoctor 2>/dev/null; then
+	  sed 's/^`glslc`/glslc/' glslc/README.asciidoc \
+	  | asciidoctor -q -b manpage -o glslc.1 -
+	  install -D -m 0644 -t $PKG/usr/share/man/man1 glslc.1
+	else
+	  install -D -m 0644 -t $PKG/usr/share/man/man1 $SRC/glslc.1
+	fi
+}

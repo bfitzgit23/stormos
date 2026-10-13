@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on:
-
-name=libdvdcss
-version=1.6.0
-release=3
-source=(https://mirror.freedif.org/pub/blfs/conglomeration/libdvdcss/libdvdcss-$version.tar.xz)

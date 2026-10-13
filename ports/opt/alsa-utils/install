@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		alsactl init
+		alsactl -L store
+		cat > /etc/asound.conf << "EOF"
+# Begin /etc/asound.conf
+
+defaults.pcm.card 0
+defaults.ctl.card 0
+
+# End /etc/asound.conf
+EOF
+		;;
+esac

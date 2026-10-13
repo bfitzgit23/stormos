@@ -1,0 +1,30 @@
+# description : General-purpose cryptographic library used by GnuPG and other applications.
+# homepage    : https://www.gnupg.org/software/libgcrypt/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libgpg-error
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libgcrypt
+version=1.12.3
+release=1
+build_opt=(
+    --prefix=/usr
+)
+source="https://mirrors.dotsrc.org/gcrypt/libgcrypt/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure "${build_opt[@]}"
+
+	make
+	make DESTDIR="$PKG" install
+
+	# BFS does not package GNU info pages.
+	rm -rf "$PKG/usr/share/info"
+}

@@ -1,0 +1,35 @@
+# description : protobuf
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake abseil-cpp
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=protobuf
+version=36.1
+release=2
+source="https://github.com/protocolbuffers/${name}/releases/download/v${version}/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build -G Ninja \
+	  -D CMAKE_INSTALL_PREFIX=/usr \
+	  -D CMAKE_INSTALL_LIBDIR=lib \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D protobuf_BUILD_SHARED_LIBS=ON \
+	  -D CMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+	  -D CMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+	  -D protobuf_BUILD_SHARED_LIBS=ON \
+	  -D protobuf_BUILD_TESTS=OFF \
+	  -D protobuf_ABSL_PROVIDER=package \
+	  -Wno-dev
+
+	cmake --build build
+	DESTDIR=$PKG cmake --install build
+}

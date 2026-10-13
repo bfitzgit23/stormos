@@ -1,0 +1,37 @@
+# description : A system for managing library compile/link flags.
+# homepage    : https://github.com/pkgconf/pkgconf/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=pkgconf
+version=3.0.7
+release=1
+source="https://distfiles.ariadne.space/pkgconf/pkgconf-$version.tar.xz https://github.com/mesonbuild/meson/releases/download/1.12.0/meson-1.12.0.tar.gz i686-pc-linux-gnu.personality x86_64-pc-linux-gnu.personality"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	tar -xf "$PKGMK_SOURCE_DIR/meson-1.12.0.tar.gz" -C "$SRC"
+	mkdir -p build
+	cd build
+	python3 "$SRC/meson-1.12.0/meson.py" setup \
+	    --prefix=/usr --buildtype=release ..
+	ninja
+	DESTDIR="$PKG" ninja install
+
+	mkdir -p "$PKG/usr/share/pkgconfig/personality.d"
+	install -m644 "$SRC/i686-pc-linux-gnu.personality" \
+	    "$SRC/x86_64-pc-linux-gnu.personality" \
+	    "$PKG/usr/share/pkgconfig/personality.d/"
+
+	ln -s pkgconf "$PKG/usr/bin/i686-pc-linux-gnu-pkg-config"
+	ln -s pkgconf "$PKG/usr/bin/x86_64-pc-linux-gnu-pkg-config"
+	ln -s pkgconf "$PKG/usr/bin/pkg-config"
+	ln -s pkgconf.1 "$PKG/usr/share/man/man1/pkg-config.1"
+}

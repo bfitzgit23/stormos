@@ -1,0 +1,26 @@
+# description : Compression and decompression routines used by some programs
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=zlib
+version=1.3.2
+release=1
+bootstrap_opt=""
+source="https://zlib.net/fossils/zlib-$version.tar.gz https://github.com/madler/zlib/commit/36ff1be48ef696cc67b0855f7c8537ce0276210d.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	CFLAGS+=" -ffat-lto-objects"
+	       ./configure --prefix=/usr --insecure
+	       make
+	       make DESTDIR=$PKG install
+}

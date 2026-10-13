@@ -1,0 +1,50 @@
+# description : A multi-platform toolkit for creating graphical user interfaces
+# homepage    : https://www.gtk.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : at-spi2-core-32 gdk-pixbuf-32 gtk pango-32 libxcomposite-32 libxcursor-32 libxinerama-32 libxrandr-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gtk-32
+version=2.24.33
+release=4
+build_opt="--disable-cups"
+source="https://download.gnome.org/sources/gtk+/${version%.*}/gtk+-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+  export PKG_CONFIG_PATH="/usr/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+  CFLAGS+=" -Wno-error=implicit-int -Wno-error=incompatible-pointer-types"
+  sed -e 's#l \(gtk-.*\).sgml#& -o \1#' \
+    -i docs/{faq,tutorial}/Makefile.in || return 1
+}
+
+post_build() {
+  mv "$PKG/usr/bin/gtk-query-immodules-2.0" "$PKG/usr/bin/gtk-query-immodules-2.0-32"
+  rm -f "$PKG/usr/bin/gtk-builder-convert" "$PKG/usr/bin/gtk-demo" "$PKG/usr/bin/gtk-update-icon-cache"
+  rm -rf "$PKG/etc" "$PKG/usr/include" "$PKG/usr/share"
+}

@@ -1,0 +1,28 @@
+# description : A collection of freely re-usable Autoconf macros
+# homepage    : https://www.gnu.org/software/autoconf-archive/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=autoconf-archive
+version=2024.10.16
+release=1
+source="https://ftp.gnu.org/gnu/$name/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	./configure --prefix=/usr
+	make
+	make DESTDIR=$PKG install
+
+	rm -r $PKG/usr/share/{doc,info}
+	rm $PKG/usr/share/aclocal/ax_check_enable_debug.m4
+	rm $PKG/usr/share/aclocal/ax_code_coverage.m4
+}

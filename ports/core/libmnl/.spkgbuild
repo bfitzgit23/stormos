@@ -1,0 +1,25 @@
+# description : A minimalistic user-space library oriented to Netlink developers.
+# homepage    : https://netfilter.org/projects/libmnl/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libmnl
+version=1.0.5
+release=1
+source="https://www.netfilter.org/projects/$name/files/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure --prefix=/usr &&
+	make
+		make DESTDIR=$PKG install
+	rm -rf $PKG/usr/share/man/man3/
+}

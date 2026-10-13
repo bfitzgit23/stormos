@@ -1,0 +1,45 @@
+# description : Utilities and library for managing the Linux kernel key retention facility.
+# homepage    : https://git.kernel.org/pub/scm/linux/kernel/git/dhowells/keyutils.git/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=keyutils
+version=1.6.3
+release=1
+build_opt=(
+    NO_ARLIB=1
+    BINDIR=/usr/bin
+    SBINDIR=/usr/sbin
+    LIBDIR=/usr/lib
+    USRLIBDIR=/usr/lib
+    INCLUDEDIR=/usr/include
+    PKGCONFIGDIR=/usr/lib/pkgconfig
+)
+source="https://git.kernel.org/pub/scm/linux/kernel/git/dhowells/keyutils.git/snapshot/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# Use BFS compiler flags instead of upstream's hard-coded debug flag.
+	sed -i \
+	    "s|^CFLAGS := -g|CFLAGS := $CFLAGS|" \
+	    Makefile
+
+	make "${build_opt[@]}"
+
+	make \
+	    DESTDIR="$PKG" \
+	    "${build_opt[@]}" \
+	    install
+
+	chmod 0644 \
+	    "$PKG/usr/lib/pkgconfig/libkeyutils.pc"
+
+	rm -rf "$PKG/usr/share/man"
+}

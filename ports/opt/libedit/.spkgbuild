@@ -1,0 +1,28 @@
+# description : Command line editor library providing generic line editing, history, and tokenization functions
+# homepage    : https://thrysoee.dk/editline/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libedit
+version=20260512_3.1
+release=1
+source="https://thrysoee.dk/editline/$name-${version/_/-}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	./configure --prefix=/usr
+
+	make
+	make DESTDIR=$PKG install
+
+	rm $PKG/usr/share/man/man3/history.3 # conflicts with readline
+	ln -s editline.3 $PKG/usr/share/man/man3/el.3
+}

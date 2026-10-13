@@ -1,0 +1,43 @@
+# description : cdrtools (cdrecord) is a set of command line programs that allows to record CD/DVD/BluRay media.
+# homepage    : http://cdrtools.sourceforge.net/private/cdrecord.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=cdrtools
+version=3.02a09
+release=2
+source="https://downloads.sourceforge.net/cdrtools/cdrtools-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	  sed -i 's|/opt/schily|/usr|g'           DEFAULTS/Defaults.linux &&
+	sed -i 's|DEFINSGRP=.*|DEFINSGRP=root|' DEFAULTS/Defaults.linux &&
+	sed -i 's|INSDIR=\s*sbin|INSDIR=bin|'   rscsi/Makefile          &&
+
+	export GMAKE_NOWARN=true &&
+	export CFLAGS="$CFLAGS -std=gnu89 -fno-strict-aliasing" &&
+
+	make -j1 INS_BASE=/usr  \
+	         DEFINSUSR=root \
+	         DEFINSGRP=root \
+	         VERSION_OS="LinuxFromScratch"
+	GMAKE_NOWARN=true &&
+
+	make DESTDIR=$PKG INS_BASE=/usr    \
+	     DEFINSUSR=root   \
+	     DEFINSGRP=root   \
+	     MANSUFF_LIB=3cdr \
+	     install          &&
+
+	install -v -m755 -d $PKG/usr/share/doc/$name-$version &&
+	install -v -m644 README.* READMEs/* ABOUT doc/*.ps \
+	                    $PKG/usr/share/doc/$name-$version
+}

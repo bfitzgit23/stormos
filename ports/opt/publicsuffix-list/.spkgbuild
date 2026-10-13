@@ -1,0 +1,26 @@
+# description : Cross-vendor public domain suffix database
+# homepage    : https://github.com/publicsuffix/list
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=publicsuffix-list
+version=20260913
+release=1
+source="public_suffix_list-$version.dat"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	install -D -m 644 -t $PKG/usr/share/publicsuffix \
+	  public_suffix_list-$version.dat
+
+	ln -s public_suffix_list-$version.dat $PKG/usr/share/publicsuffix/effective_tld_names.dat
+	ln -s public_suffix_list-$version.dat $PKG/usr/share/publicsuffix/public_suffix_list.dat
+}

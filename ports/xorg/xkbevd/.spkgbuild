@@ -1,0 +1,25 @@
+# description : xorg XKB keyboard description compiler
+# homepage    : https://xorg.freedesktop.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxkbfile
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xkbevd
+version=1.1.6
+release=2
+source="https://xorg.freedesktop.org/archive/individual/app/xkbevd-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	 ./configure $XORG_CONFIG
+
+	make
+	make DESTDIR=$PKG install
+}

@@ -1,0 +1,45 @@
+# description : Toolkit for managing virtualization hosts
+# homepage    : https://libvirt.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : json-c dbus dnsmasq glib gnutls libcap-ng libnl libpcap libseccomp libssh2 libxml2 libxslt nftables parted polkit qemu readline systemd yajl
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libvirt
+version=12.7.0
+release=3
+build_opt=(
+    -Dsystem=true
+    -Ddriver_libvirtd=enabled
+    -Ddriver_qemu=enabled
+    -Ddriver_network=enabled
+    -Ddriver_secrets=enabled
+    -Dstorage_dir=enabled
+    -Dstorage_fs=enabled
+    -Dstorage_disk=enabled
+    -Dstorage_lvm=enabled
+    -Dstorage_scsi=enabled
+    -Dtests=disabled
+)
+source="https://download.libvirt.org/libvirt-$version.tar.xz default-network.xml"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+post_build() {
+    # Ship a deterministic default NAT network instead of relying on an
+    # upstream sample file being present in a particular release.
+    install -Dm644 "$SRC/default-network.xml"         "$PKG/etc/libvirt/qemu/networks/default.xml" || return 1
+    install -d "$PKG/etc/libvirt/qemu/networks/autostart" || return 1
+    ln -sf ../default.xml         "$PKG/etc/libvirt/qemu/networks/autostart/default.xml" || return 1
+}

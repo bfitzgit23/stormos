@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: cmake
-
-name=utfcpp
-version=4.2.0
-release=1
-source=(https://github.com/nemtrif/${name}/archive/v${version}/${name}-${version}.tar.gz)

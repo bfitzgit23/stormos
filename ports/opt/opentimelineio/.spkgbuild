@@ -1,0 +1,33 @@
+# description : Editorial timeline interchange format and API
+# homepage    : https://github.com/AcademySoftwareFoundation/OpenTimelineIO
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : imath rapidjson
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=opentimelineio
+version=0.18.1
+release=4
+source="https://github.com/AcademySoftwareFoundation/OpenTimelineIO/archive/refs/tags/v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -B build -S . \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DOTIO_CXX_INSTALL=ON \
+	    -DOTIO_PYTHON_INSTALL=OFF \
+	    -DOTIO_FIND_IMATH=ON \
+	    -DOTIO_FIND_RAPIDJSON=ON \
+	    -DOTIO_AUTOMATIC_SUBMODULES=OFF \
+	    -DOTIO_DEPENDENCIES_INSTALL=OFF \
+	    -DBUILD_TESTING=OFF || return 1
+
+	cmake --build build -j${JOBS:-1} || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}

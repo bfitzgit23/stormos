@@ -1,0 +1,35 @@
+# description : python3-python-dbusmock
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus-python python3-setuptools python3-setuptools-scm
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-python-dbusmock
+version=0.38.1
+release=2
+source="https://files.pythonhosted.org/packages/source/p/python_dbusmock/python_dbusmock-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	python3 -m pip wheel \
+	    --no-build-isolation \
+	    --no-deps \
+	    --no-cache-dir \
+	    -w dist \
+	    . || return 1
+
+	python3 -m pip install \
+	    --no-index \
+	    --no-deps \
+	    --no-cache-dir \
+	    --no-user \
+	    --root="$PKG" \
+	    --prefix=/usr \
+	    dist/*.whl || return 1
+}

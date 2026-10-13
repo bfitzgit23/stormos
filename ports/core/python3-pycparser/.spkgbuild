@@ -1,0 +1,30 @@
+# description : C parser and AST generator written in Python.
+# homepage    : https://github.com/eliben/pycparser
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-setuptools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-pycparser
+version=3.0
+release=1
+source="https://pypi.org/packages/source/p/pycparser/pycparser-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	ls
+	cd pycparser-$version
+
+	/usr/bin/python3 setup.py build
+	cd pycparser
+	/usr/bin/python3 _build_tables.py
+	cd ..
+	/usr/bin/python3 setup.py install --prefix=/usr \
+	  --root=$PKG \
+	  --skip-build
+}

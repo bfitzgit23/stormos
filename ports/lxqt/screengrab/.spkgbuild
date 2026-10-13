@@ -1,0 +1,23 @@
+# description : Screengrab for LXQt
+# homepage    : https://github.com/lxqt/screengrab
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : kwindowsystem layer-shell-qt libqtxdg libx11 libxcb qt6 lxqt-build-tools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=screengrab
+version=3.2.0
+release=3
+source="https://github.com/lxqt/${name}/releases/download/${version}/${name}-${version}.tar.xz screengrab-3.2.0-bfsos-fixes.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

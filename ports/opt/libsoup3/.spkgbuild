@@ -1,0 +1,34 @@
+# description : HTTP library implementation in C
+# homepage    : https://wiki.gnome.org/action/show/Projects/libsoup
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib-networking libpsl libxml2 sqlite libnghttp2
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libsoup3
+version=3.6.6
+release=1
+source="https://ftp.gnome.org/pub/gnome/sources/libsoup/${version%.*}/libsoup-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	  sed 's/apiversion/soup_version/' -i docs/reference/meson.build
+	   mkdir build &&
+	cd    build &&
+
+	meson setup --prefix=/usr       \
+	            --buildtype=release \
+	            -Dvapi=enabled      \
+	            -Dgssapi=disabled   \
+	            -Dsysprof=disabled  \
+	            ..                  &&
+	ninja
+	  DESTDIR=$PKG ninja install
+
+	  rm -r $PKG/usr/share/locale
+}

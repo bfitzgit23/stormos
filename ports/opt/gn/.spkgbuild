@@ -1,0 +1,23 @@
+# description : GN meta-build system used by Chromium
+# homepage    : https://gn.googlesource.com/gn/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : llvm ninja python3
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gn
+version=0.20260907
+release=1
+source="https://gn.googlesource.com/gn/+archive/5df47e556efde72cc576d8a3af23b58b614345bd.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	python3 build/gen.py --allow-warnings || return 1
+	ninja -C out gn || return 1
+	install -Dm755 out/gn "$PKG/usr/bin/gn" || return 1
+}

@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on:
-
-name=libisofs
-version=1.5.8.pl02
-release=1
-source=(https://files.libburnia-project.org/releases/${name}-${version}.tar.gz)

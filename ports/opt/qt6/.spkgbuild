@@ -1,0 +1,82 @@
+# description : Qt 6 framework (base/modules excluding QtWebEngine)
+# homepage    : https://www.qt.io/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib bison cmake cups dbus double-conversion ffmpeg flex glib gperf gst-plugins-base gst-plugins-good harfbuzz icu libinput libjpeg-turbo libmng libpng libtiff libwebp libxkbcommon mesa mtdev ninja openssl pciutils python3 rust-bindgen rustc sqlite xorg-libs xcb-util xcb-util-renderutil xcb-util-image xcb-util-keysyms xcb-util-wm xcb-util-cursor
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=qt6
+version=6.11.2
+release=9
+build_work=disk
+source="https://download.qt.io/official_releases/qt/6.11/$version/single/qt-everywhere-src-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	export QT6PREFIX=/opt/qt6
+
+	# Configure/build tools must run outside pkgmk staging; staging is applied
+	# only to the final install below.
+	unset DESTDIR
+	unset DEST_DIR
+	unset INSTALLROOT
+	unset install_root
+	unset INSTALL_ROOT
+
+	# QtWebEngine is packaged separately so ordinary Qt rebuilds do not rebuild
+	# Chromium. qtopcua is currently incompatible with OpenSSL 4; qt3d and
+	# qtquick3dphysics remain intentionally excluded.
+	rm -rf qtwebengine qt3d qtquick3dphysics qtopcua
+
+	./configure \
+	    -prefix "$QT6PREFIX" \
+	    -release \
+	    -sysconfdir /etc/xdg \
+	    -dbus-linked \
+	    -openssl-linked \
+	    -system-sqlite \
+	    -nomake examples \
+	    -no-rpath \
+	    -no-sbom \
+	    -journald || return 1
+
+	ninja -j "${JOBS:-1}" || return 1
+
+	DESTDIR="$PKG" ninja install || return 1
+
+	find "$PKG$QT6PREFIX" \
+	    -name '*.prl' \
+	    -exec sed -i '/^QMAKE_PRL_BUILD_DIR/d' {} \;
+
+	install -d "$PKG/etc/ld.so.conf.d"
+
+	printf '%s\n' '/opt/qt6/lib' \
+	    > "$PKG/etc/ld.so.conf.d/qt6.conf"
+
+	# Mirror the BFSOS Qt5 compatibility naming policy without allowing Qt
+	# majors to compete for generic /usr/bin names.
+	install -d "$PKG/usr/bin" || return 1
+	for file in moc uic rcc qmake lconvert lrelease lupdate qtpaths; do
+	    case "$file" in
+	        moc|uic|rcc)
+	            toolpath="/opt/qt6/libexec/$file"
+	            ;;
+	        *)
+	            toolpath="/opt/qt6/bin/$file"
+	            ;;
+	    esac
+
+	    test -x "$PKG$toolpath" || {
+	        echo "qt6: expected compatibility tool missing: $toolpath" >&2
+	        return 1
+	    }
+
+	    ln -sfn "$toolpath" "$PKG/usr/bin/$file-qt6" || return 1
+	done
+}

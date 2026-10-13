@@ -1,0 +1,38 @@
+# description : freerdp
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : ffmpeg icu xorg-libs cairo docbook-xsl-nons fuse json-c kerberos libusb libxkbcommon wayland
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=freerdp
+version=3.31.1
+release=1
+source="https://github.com/${name}/${name}/archive/${version}/FreeRDP-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir build &&
+	cd    build &&
+
+	cmake -D CMAKE_INSTALL_PREFIX=/usr   \
+	      -D CMAKE_SKIP_INSTALL_RPATH=ON \
+	      -D CMAKE_BUILD_TYPE=Release    \
+	      -D WITH_CAIRO=ON               \
+	      -D WITH_CLIENT_SDL=OFF         \
+	      -D WITH_DSP_FFMPEG=ON          \
+	      -D WITH_FFMPEG=ON              \
+	      -D WITH_PCSC=OFF               \
+	      -D WITH_SERVER=ON              \
+	      -D WITH_SERVER_CHANNELS=ON     \
+	      -D DOCBOOKXSL_DIR=/usr/share/xml/docbook/xsl-stylesheets-nons-1.79.2 \
+	      -W no-dev                      \
+	      -G Ninja ..                    &&
+	ninja
+	DESTDIR="$PKG" ninja install
+}

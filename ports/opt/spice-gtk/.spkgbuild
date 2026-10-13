@@ -1,0 +1,39 @@
+# description : GTK3 SPICE client library and widget
+# homepage    : https://www.spice-space.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gobject-introspection cairo cyrus-sasl gdk-pixbuf glib gtk3 gstreamer gst-plugins-base gst-plugins-good json-glib libcap-ng libepoxy libjpeg-turbo libusb lz4 openssl opus pixman polkit python3-pyparsing python3-six spice-protocol usbredir wayland wayland-protocols zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=spice-gtk
+version=0.42
+release=2
+build_opt=(
+    -Dgtk=enabled
+    -Dwayland-protocols=enabled
+    -Dwebdav=disabled
+    -Dusbredir=enabled
+    -Dlibcap-ng=enabled
+    -Dpolkit=enabled
+    -Dintrospection=enabled
+    -Dvapi=disabled
+    -Dlz4=enabled
+    -Dsasl=enabled
+    -Dopus=enabled
+    -Dsmartcard=disabled
+    -Degl=enabled
+    -Dgtk_doc=disabled
+)
+source="https://www.spice-space.org/download/gtk/spice-gtk-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

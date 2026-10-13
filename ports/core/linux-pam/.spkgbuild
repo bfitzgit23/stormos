@@ -1,0 +1,62 @@
+# description : linux-pam
+# homepage    : https://github.com/linux-pam/linux-pam
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : meson ninja
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=linux-pam
+version=1.7.2
+release=4
+build_opt="
+    --prefix=/usr
+    --sbindir=/usr/sbin
+    --libdir=/usr/lib
+    --buildtype=plain
+    --wrap-mode=nodownload
+    -Ddocdir=/usr/share/doc/Linux-PAM-$version
+    -Db_lto=true
+    -Db_pie=true
+    -Dsecuredir=/usr/lib/security
+    -Dpam_userdb=disabled
+    -Ddocs=disabled
+"
+source="https://github.com/linux-pam/linux-pam/releases/download/v$version/Linux-PAM-$version.tar.xz other system-account system-auth system-password system-session"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+post_build() {
+    #
+    # unix_chkpwd must be setuid root so unprivileged PAM clients can
+    # validate passwords against the protected shadow database.
+    #
+    chmod 4755 "$PKG/usr/sbin/unix_chkpwd"
+
+    #
+    # Install the base PAM policy files into the package staging tree.
+    #
+    install -d -m 0755 "$PKG/etc/pam.d"
+
+    for file in \
+        other \
+        system-account \
+        system-auth \
+        system-password \
+        system-session
+    do
+        install -m 0644 \
+            "$SRC/$file" \
+            "$PKG/etc/pam.d/$file"
+    done
+}

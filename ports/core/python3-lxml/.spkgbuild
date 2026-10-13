@@ -1,0 +1,26 @@
+# description : A pythonic binding for the libxml2 and libxslt libraries.
+# homepage    : https://lxml.de/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxslt
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-lxml
+version=6.1.3
+release=1
+_name=${name#*-}
+source="https://files.pythonhosted.org/packages/23/ad/28ecd7cb894d172f3c9c80a075eeeb2017ac62e3632cee05a5f9493547eb/lxml-6.1.3.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	/usr/bin/python3 setup.py build
+
+	/usr/bin/python3 setup.py install \
+		--prefix=/usr --root=$PKG --optimize=1
+}

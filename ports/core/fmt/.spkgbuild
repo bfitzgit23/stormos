@@ -1,0 +1,31 @@
+# description : Modern formatting library for C++
+# homepage    : https://fmt.dev/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=fmt
+version=12.2.0
+release=3
+source="https://github.com/fmtlib/fmt/releases/download/$version/fmt-$version.zip"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build -G Ninja \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_INSTALL_LIBDIR=lib \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DBUILD_SHARED_LIBS=ON \
+	    -DFMT_DOC=OFF \
+	    -DFMT_TEST=OFF || return 1
+
+	cmake --build build || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}

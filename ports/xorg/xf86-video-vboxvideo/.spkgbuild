@@ -1,0 +1,26 @@
+# description : Legacy X.Org VirtualBox video driver
+# homepage    : https://xorg.freedesktop.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xorg-server
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xf86-video-vboxvideo
+version=1.0.0
+release=2
+source="https://xorg.freedesktop.org/archive/individual/driver/xf86-video-vboxvideo-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# This legacy source uses bool/true/false as identifiers. GCC defaults to
+	# C23 where those spellings are keywords, so build this port specifically
+	# as GNU17 rather than weakening the global BFSOS compiler policy.
+	CFLAGS="${CFLAGS} -std=gnu17" ./configure --prefix=/usr || return $?
+	make -j "${JOBS:-1}" CFLAGS="${CFLAGS} -std=gnu17" || return $?
+	make DESTDIR="$PKG" install || return $?
+}

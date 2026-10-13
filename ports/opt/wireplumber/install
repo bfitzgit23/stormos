@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		set -eu
+
+		# Apply BFSOS system-wide user-unit defaults. systemctl --global modifies the
+		# defaults inherited by fresh users and does not require a logged-in user
+		# manager. Ignore unit names that are not installed (for example legacy
+		# PulseAudio on a PipeWire-only system).
+		if command -v systemctl >/dev/null 2>&1; then
+		    for unit in pipewire.socket pipewire-pulse.socket wireplumber.service pulseaudio.socket pulseaudio.service; do
+		        if [ -e "/usr/lib/systemd/user/$unit" ] || [ -e "/lib/systemd/user/$unit" ]; then
+		            systemctl --global preset "$unit" || exit $?
+		        fi
+		    done
+		fi
+		exit 0
+		;;
+esac

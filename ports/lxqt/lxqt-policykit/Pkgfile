@@ -1,9 +1,0 @@
-# Description: Lxqt Policykit component for LXQt
-# URL: https://github.com/lxqt/lxqt-policykit
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: liblxqt polkit-qt-1
-
-name=lxqt-policykit
-version=2.4.0
-release=2
-source=(https://github.com/lxqt/${name}/releases/download/${version}/${name}-${version}.tar.xz)

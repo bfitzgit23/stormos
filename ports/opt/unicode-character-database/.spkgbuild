@@ -1,0 +1,31 @@
+# description : Unicode Character Database
+# homepage    : https://www.unicode.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=unicode-character-database
+version=17.0.0
+release=1
+source="UCD-$version.zip::https://www.unicode.org/Public/$version/ucd/UCD.zip Unihan-$version.zip::https://www.unicode.org/Public/$version/ucd/Unihan.zip"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cp $PKGMK_SOURCE_DIR/UCD-$version.zip .
+	cp $PKGMK_SOURCE_DIR/Unihan-$version.zip .
+	for _f in UCD Unihan; do
+	  install -Dm644 $_f-$version.zip $PKG/usr/share/unicode/$_f.zip
+	  bsdtar -C $PKG/usr/share/unicode -x --no-same-owner --no-same-permissions -f $_f-$version.zip
+	done
+
+	ln -s . "$PKG/usr/share/unicode/ucd"
+	for _f in $name unicode-data unidata; do
+	  ln -s unicode "$PKG/usr/share/$_f"
+	done
+}

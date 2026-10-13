@@ -1,0 +1,32 @@
+# description : NFS client/server userspace utilities
+# homepage    : https://linux-nfs.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libevent libnl libtirpc libxml2 rpcbind rpcsvc-proto
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=nfs-utils
+version=2.9.2
+release=1
+build_opt="--sysconfdir=/etc --sbindir=/usr/sbin --disable-gss"
+source="https://www.kernel.org/pub/linux/utils/nfs-utils/$version/nfs-utils-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+post_build() {
+    chmod u+w,go+r "$PKG/usr/sbin/mount.nfs" 2>/dev/null || true
+    install -d "$PKG/var/lib/nfs" || return 1
+    # Services are packaged but deliberately not enabled by the package.
+    # Desktop clients can use NFSv4 mounts without globally enabling rpcbind.
+}

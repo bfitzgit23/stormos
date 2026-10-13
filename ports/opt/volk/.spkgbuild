@@ -1,0 +1,30 @@
+# description : Meta loader for Vulkan API
+# homepage    : https://github.com/zeux/volk
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : vulkan-loader
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=volk
+version=1.4.357.0
+release=1
+_version=vulkan-sdk-$version
+source="https://github.com/zeux/volk/archive/$_version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S volk-$_version -B build -G Ninja \
+	  -D CMAKE_INSTALL_PREFIX=/usr \
+	  -D CMAKE_INSTALL_LIBDIR=lib \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+	  -D VOLK_INSTALL=True \
+	  -Wno-dev
+	cmake --build build
+	DESTDIR=$PKG cmake --install build
+}

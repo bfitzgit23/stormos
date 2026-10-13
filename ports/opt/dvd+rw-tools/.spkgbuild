@@ -1,0 +1,28 @@
+# description : The dvd+rw-tools package contains several utilities to master the DVD media, both +RW/+R and -R[W]. The principle tool is growisofs which provides a way to both lay down and grow an ISO9660 file system on (as well as to burn an arbitrary pre-mastered image to) all supported DVD media. This is useful for creating a new DVD or adding to an existing image on a partially burned DVD.
+# homepage    : http://fy.chalmers.se/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cdrtools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=dvd+rw-tools
+version=7.1
+release=1
+source="https://anduin.linuxfromscratch.org/BLFS/dvd+rw-tools/dvd+rw-tools-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i '/stat.h/a #include <sys/sysmacros.h>' growisofs.c &&
+	sed -i '/stdlib/a #include <limits.h>' transport.hxx &&
+	make all rpl8 btcflash
+
+		make DESTDIR=$PKG prefix=$PKG/usr install &&
+	install -v -m644 -D index.html \
+	    $PKG/usr/share/doc/$name-$version/index.html
+	rm -rf $PKG/usr/bin/btcflash
+}

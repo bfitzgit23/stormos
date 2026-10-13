@@ -1,0 +1,72 @@
+# description : libclc
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : llvm ninja spirv-llvm-translator
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libclc
+version=23.1.1
+release=5
+source="https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/llvm-project-$version.src.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	rm -rf build build-spirv-unknown-mesa3d build-spirv64-unknown-mesa3d
+
+	cmake -S llvm -B build \
+	    -G Ninja \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DLLVM_ENABLE_PROJECTS=clang \
+	    -DLLVM_RUNTIME_TARGETS="spirv32-unknown-unknown;spirv64-unknown-unknown" \
+	    -DRUNTIMES_spirv32-unknown-unknown_LLVM_ENABLE_RUNTIMES=libclc \
+	    -DRUNTIMES_spirv64-unknown-unknown_LLVM_ENABLE_RUNTIMES=libclc \
+	    || return 1
+
+	ninja -C build -j "${JOBS:-1}" \
+	    runtimes-spirv32-unknown-unknown \
+	    runtimes-spirv64-unknown-unknown \
+	    || return 1
+
+	DESTDIR="$PKG" \
+	    cmake -P build/runtimes/cmake_install.cmake \
+	    || return 1
+
+	for target in spirv-unknown-mesa3d spirv64-unknown-mesa3d; do
+	    bdir="build-$target"
+
+	    cmake -S libclc -B "$bdir" \
+	        -G Ninja \
+	        -DCMAKE_INSTALL_PREFIX=/usr \
+	        -DCMAKE_BUILD_TYPE=Release \
+	        -DLLVM_DIR=/usr/lib/cmake/llvm \
+	        -DLLVM_TOOLS_BINARY_DIR=/usr/bin \
+	        -DLLVM_DEFAULT_TARGET_TRIPLE="$target" \
+	        || return 1
+
+	    cmake --build "$bdir" -j "${JOBS:-1}" \
+	        || return 1
+
+	    DESTDIR="$PKG" cmake --install "$bdir" \
+	        || return 1
+	done
+
+	install -d "$PKG/usr/share/pkgconfig"
+
+	cat > "$PKG/usr/share/pkgconfig/libclc.pc" <<'PC_EOF'
+prefix=/usr
+libdir=${prefix}/lib
+libexecdir=${prefix}/share/clc
+clang_resource_dir=${libdir}/clang/23
+
+Name: libclc
+Description: LLVM OpenCL C device libraries
+Version: 23.1.1
+PC_EOF
+}

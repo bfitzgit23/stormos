@@ -1,0 +1,25 @@
+# description : xorg driver xf86-video-neomagic
+# homepage    : https://xorg.freedesktop.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xorg-server
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xf86-video-neomagic
+version=1.3.1
+release=1
+source="https://xorg.freedesktop.org/archive/individual/driver/xf86-video-neomagic-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	   ./configure --prefix=/usr
+
+	make
+	make DESTDIR=$PKG install
+}

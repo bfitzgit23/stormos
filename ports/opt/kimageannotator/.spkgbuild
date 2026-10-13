@@ -1,0 +1,30 @@
+# description : kImageAnnotator is a tool for annotating images.
+# homepage    : https://github.com/ksnip/kImageAnnotator/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : kColorPicker
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# the CRUX recipe called this package kImageAnnotator
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=kimageannotator
+version=0.7.2
+release=1
+source="https://github.com/ksnip/kImageAnnotator/archive/refs/tags/v$version/kImageAnnotator-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		mkdir build &&
+		cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DCMAKE_BUILD_TYPE=Release  \
+	      .. &&
+	make
+		make DESTDIR=$PKG install
+}

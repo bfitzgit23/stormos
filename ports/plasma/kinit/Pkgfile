@@ -1,8 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: 
-
-name=kinit
-version=5.115.0
-release=1
-source=(https://download.kde.org/Attic/frameworks/${version%.*}/$name-$version.tar.xz)
-build_opt="-DCMAKE_INSTALL_PREFIX=$KF5_PREFIX -DCMAKE_PREFIX_PATH=$QT5DIR -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF"

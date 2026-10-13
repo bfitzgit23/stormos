@@ -1,0 +1,28 @@
+# description : Protocol definitions and daemon for D-Bus at-spi
+# homepage    : https://gitlab.gnome.org/GNOME/at-spi2-core
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus gobject-introspection intltool libxml2 libxtst xorg-libs
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=at-spi2-core
+version=2.60.6
+release=2
+source="https://download.gnome.org/sources/$name/${version:0:4}/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	        mkdir build &&
+	        cd    build &&
+
+	meson setup --prefix=/usr --buildtype=release .. &&
+	ninja
+
+		DESTDIR=$PKG ninja install
+}

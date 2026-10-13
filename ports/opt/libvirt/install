@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		getent group kvm >/dev/null 2>&1 || groupadd -r kvm
+		getent group libvirt >/dev/null 2>&1 || groupadd -r libvirt
+
+		exit 0
+		;;
+	post-install)
+		if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+		    systemctl daemon-reload
+
+		    systemctl preset \
+		        virtqemud.socket \
+		        virtlogd.socket \
+		        virtlockd.socket \
+		        virtnetworkd.socket \
+		        virtstoraged.socket \
+		        virtnodedevd.socket \
+		        virtnwfilterd.socket \
+		        virtsecretd.socket
+
+		    systemctl start \
+		        virtqemud.socket \
+		        virtlogd.socket \
+		        virtlockd.socket \
+		        virtnetworkd.socket \
+		        virtstoraged.socket \
+		        virtnodedevd.socket \
+		        virtnwfilterd.socket \
+		        virtsecretd.socket
+		fi
+
+		exit 0
+		;;
+esac

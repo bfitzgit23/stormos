@@ -1,0 +1,36 @@
+# description : GLib core library for passing menus over D-Bus
+# homepage    : https://launchpad.net/libdbusmenu
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib json-glib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libdbusmenu-glib
+version=18.10
+release=3
+build_opt="--prefix=/usr --sysconfdir=/etc --libexecdir=/usr/lib/libdbusmenu-glib --localstatedir=/var --disable-dumper --disable-tests --disable-vala --disable-nls --disable-gtk"
+source="https://deb.debian.org/debian/pool/main/libd/libdbusmenu/libdbusmenu_18.10.20180917~bzr492+repack1.orig.tar.xz 0001_no-deprecated-gnome-common-macros.patch 0003_port-tools-dbusmenu-bench-to-py3.patch 0004_prevent-test-json-from-failing.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	export HAVE_VALGRIND_TRUE='#'
+	export HAVE_VALGRIND_FALSE=''
+
+	sed -i 's/-Werror -Wno-error=deprecated-declarations//g' libdbusmenu-{glib,gtk}/Makefile.am || return 1
+	sed -i 's/gtkdocize || exit 1//g' autogen.sh || return 1
+	sed -i 's/--enable-gtk-doc//g' autogen.sh || return 1
+
+	./autogen.sh $build_opt || return 1
+
+	make -j"${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" -C libdbusmenu-glib install || return 1
+	rm -rf "$PKG/usr/share/doc"
+	)
+}

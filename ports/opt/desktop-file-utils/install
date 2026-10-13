@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		rm -fv /usr/bin/desktop-file-edit
+		;;
+	post-install)
+		install -vdm755 /usr/share/applications &&
+		update-desktop-database /usr/share/applications
+		;;
+esac

@@ -749,3 +749,75 @@ bfsos install <anything>
 On fresh installs the BFSOS installer can set up the pacman pipeline
 alongside (or instead of) the prt-get tooling during the package
 transaction stage.
+
+## 11.14 The scratchpkg Variant (.spkgbuild)
+
+A third packaging front end exists as a **separate copy of the ports tree**,
+adapted for **scratchpkg** — the package manager from Venom Linux (`scratch`,
+`pkgbuild`, `pkgadd`, `pkgdel`, `portsync`). It lives on the `scratchpkg`
+branch of this repository; the base-system bootstrap and the installer remain
+on the pkgutils line there, and scratchpkg owns the ports tree.
+
+### What changed in the copy
+
+| | pkgutils / CRUX | scratchpkg copy |
+|---|---|---|
+| recipe file | `Pkgfile` | `.spkgbuild` |
+| variables | CRUX arrays (`source=(a b)`) | scalar shell (`source="a b"`) |
+| where `build()` runs | after `cd` into the extracted source dir | from `$SRC`; recipes call `bfs_enter_srcdir` |
+| patches | applied automatically | recipes call `bfs_apply_patches` |
+| no custom build steps | extension detects autotools/meson/cmake/make | recipes call `bfs_standard_build` |
+| port names | any spelling (`libX11`) | lowercase, directory must equal `name` |
+
+The CRUX build conventions live in one shared library,
+`/usr/libexec/bfs/spkgbuild-lib.sh`, installed by the `scratchpkg` port; every
+converted recipe sources it. `pre_build`, `post_build` and `bootstrap_build`
+hooks are preserved, and `$PKG` still means the staging root, so the build steps
+inside the recipes are unchanged.
+
+### Why the recipes are named `.spkgbuild`
+
+Upstream `pkgbuild` reads the recipe name from the shell variable
+`PKGBUILD_BSCRIPT`, which it takes from `/etc/scratchpkg.conf` *after* its own
+defaults. The `scratchpkg` port therefore ships a config that sets
+`PKGBUILD_BSCRIPT=".spkgbuild"`, and the tree keeps the dotted name. Change that
+one variable back to `spkgbuild` if you want upstream-style names.
+
+### Using it
+
+```bash
+# build and install a port with its dependencies
+cd /usr/ports/core/bzip2 && pkgbuild -i
+scratch install gimp
+scratch search compress
+scratch sysup
+portsync
+
+# build a whole collection (or the whole tree)
+sudo scripts/bfs-spkgbuild-all.sh -c core -j4
+```
+
+Packages are written to `/var/cache/scratchpkg/packages` as
+`<name>-<version>-<release>.spkg.tar.zst` and tracked in
+`/var/lib/scratchpkg/db`. `/etc/scratchpkg.repo` lists the collections that make
+up the repositories — on this tree, one line per `ports/*` collection.
+
+### Converting and validating this copy
+
+The conversion is scripted so the copy can be re-derived from a CRUX tree at
+any time:
+
+```bash
+python3 scripts/bfs-ports-to-spkgbuild.py --write              # Pkgfile -> .spkgbuild
+python3 scripts/bfs-ports-to-spkgbuild.py --lowercase-names --write
+python3 scripts/bfs-ports-to-spkgbuild.py --fix-deps --write
+python3 scripts/bfs-ports-to-spkgbuild.py --check              # validate
+find ports -name '.spkgbuild' -print0 | xargs -0 -n1 sh -n     # shell syntax
+```
+
+`--check` enforces the same rules `pkgbuild` does — directory equals `name`,
+lowercase names, a numeric `release` between 1 and 99, a `version` without `-`,
+a non-empty description, a `build()` function — plus the tree's own conventions.
+See `docs/SCRATCHPKG-VARIANT.md` for the full reference, including the known
+gaps (a few `# depends` entries that are not ports, and `post_install()`
+functions that scratchpkg does not call).

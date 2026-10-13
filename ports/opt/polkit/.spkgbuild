@@ -1,0 +1,38 @@
+# description : Application development toolkit for controlling system-wide privileges
+# homepage    : https://gitlab.freedesktop.org/polkit/polkit/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus duktape gobject-introspection intltool util-linux glib docbook-xml docbook-xsl-nons
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=polkit
+version=127
+release=3
+source="https://github.com/$name-org/$name/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	if [ ! -r /usr/share/gir-1.0/Gio-2.0.gir ]; then
+	  echo "ERROR: polkit introspection requires /usr/share/gir-1.0/Gio-2.0.gir." >&2
+	  echo "Rebuild glib after gobject-introspection is installed before building polkit." >&2
+	  return 1
+	fi
+
+	meson setup build . \
+	  --prefix=/usr \
+	  --buildtype=release \
+	  -D introspection=true \
+	  -D man=true \
+	  -D session_tracking=logind \
+	  -D tests=false || return $?
+
+	meson compile -C build -j "${JOBS:-1}" || return $?
+	DESTDIR="$PKG" meson install --no-rebuild -C build || return $?
+
+	rm -rf "$PKG/usr/share/locale"
+}

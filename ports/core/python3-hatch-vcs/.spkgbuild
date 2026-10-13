@@ -1,0 +1,23 @@
+# description : Hatch plugin for versioning with your preferred VCS
+# homepage    : https://github.com/ofek/hatch-vcs
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-hatchling
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-hatch-vcs
+version=0.5.0
+release=1
+source="https://github.com/ofek/hatch-vcs/archive/v$version/hatch-vcs-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd $SRC/hatch-vcs-$version
+	/usr/bin/python3 -m build --wheel --skip-dependency-check --no-isolation
+	/usr/bin/python3 -m installer --compile-bytecode 2 --destdir=$PKG dist/*.whl
+}

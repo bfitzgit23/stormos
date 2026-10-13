@@ -1,0 +1,25 @@
+# description : Audio processing library for changing tempo, pitch and playback rates.
+# homepage    : https://codeberg.org/soundtouch/soundtouch
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=soundtouch
+version=2.4.1
+release=2
+source="$name-$version.tar.gz::https://codeberg.org/$name/$name/archive/$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		./bootstrap &&
+	./configure --prefix=/usr \
+	            --docdir=/usr/share/doc/soundtouch-$version &&
+	make
+		DESTDIR=$PKG make install
+}

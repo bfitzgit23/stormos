@@ -1,0 +1,27 @@
+# description : The ALSA Utilities package contains various utilities which are useful for controlling your sound card.
+# homepage    : https://www.alsa-project.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib xmlto
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=alsa-utils
+version=1.2.16
+release=2
+source="https://www.alsa-project.org/files/pub/utils/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure --disable-alsaconf \
+	            --disable-bat   \
+	            --enable-xmlto \
+	            --with-curses=ncursesw || return 1
+	make || return 1
+	make DESTDIR="$PKG" install || return 1
+}

@@ -1,0 +1,29 @@
+#
+# /etc/scratchpkg.repo : scratchpkg repo file (BFSOS variant)
+#
+# format:
+#    <repo directory> <repo url for sync>
+#
+# Every collection of this tree is a scratchpkg repository: a directory full of
+# port directories, each containing a `.spkgbuild` recipe (see
+# docs/SCRATCHPKG-VARIANT.md).  scratch/portsync reads this file, so adding or
+# removing a line is all it takes to change what `scratch search` and
+# `scratch install` can see.
+#
+# The url is optional and only used by `portsync` to refresh a collection.
+#
+
+# BFSOS core: release-critical base collection
+/usr/ports/core        https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/core
+
+# Optional collections
+/usr/ports/opt         https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/opt
+/usr/ports/gnome       https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/gnome
+/usr/ports/xorg        https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/xorg
+/usr/ports/xfce        https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/xfce
+/usr/ports/lxqt        https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/lxqt
+/usr/ports/plasma      https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/plasma
+/usr/ports/compiz      https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/compiz
+/usr/ports/contrib     https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/contrib
+/usr/ports/compat-32   https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/compat-32
+/usr/ports/iso         https://github.com/bfitzgit23/StormFS-Linux/tree/scratchpkg/ports/iso

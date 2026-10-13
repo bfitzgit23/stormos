@@ -1,0 +1,27 @@
+# description : Masquerade directory to use ccache with mingw
+# homepage    : https://ccache.dev/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : ccache mingw-w64-gcc
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mingw-ccache-bindings
+version=10.2.0
+release=1
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	install -d $PKG/usr/lib/ccache
+
+	ln -s ../../bin/ccache $PKG/usr/lib/ccache/i686-w64-mingw32-c++
+	ln -s ../../bin/ccache $PKG/usr/lib/ccache/i686-w64-mingw32-g++
+	ln -s ../../bin/ccache $PKG/usr/lib/ccache/i686-w64-mingw32-gcc
+	ln -s ../../bin/ccache $PKG/usr/lib/ccache/x86_64-w64-mingw32-c++
+	ln -s ../../bin/ccache $PKG/usr/lib/ccache/x86_64-w64-mingw32-g++
+	ln -s ../../bin/ccache $PKG/usr/lib/ccache/x86_64-w64-mingw32-gcc
+}

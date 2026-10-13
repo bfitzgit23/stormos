@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: libassuan libgcrypt libksba npth openldap gnutls pinentry
-
-name=gnupg
-version=2.5.22
-release=1
-source=(https://www.${name}.org/ftp/gcrypt/${name}/${name}-${version}.tar.bz2)

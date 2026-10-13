@@ -1,0 +1,32 @@
+# description : libblockdev is a C library supporting GObject Introspection for manipulation of block devices. It has a plugin-based architecture where each technology (like LVM, Btrfs, MD RAID, Swap,...) is implemented in a separate plugin, possibly with multiple implementations (e.g. using LVM CLI or the new LVM DBus API).
+# homepage    : https://github.com/storaged-project/libblockdev/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib cryptsetup gobject-introspection keyutils libbytesize libnvme lvm2 ndctl mdadm parted libyaml
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libblockdev
+version=3.5.0
+release=2
+build_opt=" --sysconfdir=/etc
+            --with-python3
+            --without-escrow
+            --without-gtk-doc
+            --with-lvm
+            --with-lvm_dbus
+            --with-nvdimm
+            --with-tools"
+source="https://github.com/storaged-project/libblockdev/releases/download/$version/$name-$version.tar.gz"
+options="libtool"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

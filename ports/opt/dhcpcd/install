@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		install  -v -m700 -d /var/lib/dhcpcd &&
+
+		groupadd -g 52 dhcpcd        &&
+		useradd  -c 'dhcpcd PrivSep' \
+		         -d /var/lib/dhcpcd  \
+		         -g dhcpcd           \
+		         -s /bin/false       \
+		         -u 52 dhcpcd &&
+		chown    -v dhcpcd:dhcpcd /var/lib/dhcpcd 
+		;;
+esac

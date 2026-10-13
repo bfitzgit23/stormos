@@ -1,0 +1,29 @@
+# description : efivar
+# homepage    : https://github.com/rhboot/efivar
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : popt
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=efivar
+version=39
+release=2
+source="https://github.com/rhboot/$name/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make -j1 \
+	    ENABLE_DOCS=0 \
+	    libdir=/usr/lib
+
+	make \
+	    ENABLE_DOCS=0 \
+	    libdir=/usr/lib \
+	    DESTDIR="$PKG" \
+	    install
+}

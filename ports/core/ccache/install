@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		set -eu
+		cache=/var/cache/ccache
+		install -d -m 0775 -o pkgmk -g pkgmk "$cache"
+		if command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt -q; then
+		    size=20G
+		else
+		    kb=$(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo 2>/dev/null || echo 0)
+		    gib=$(( (kb + 1048575) / 1048576 ))
+		    [ "$gib" -gt 0 ] || gib=20
+		    size="${gib}G"
+		fi
+		CCACHE_DIR="$cache" ccache --set-config="max_size=$size"
+		chown -R pkgmk:pkgmk "$cache"
+		echo "ccache default maximum size: $size"
+		;;
+esac

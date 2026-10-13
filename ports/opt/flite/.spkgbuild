@@ -1,0 +1,29 @@
+# description : Small fast portable speech synthesis engine
+# homepage    : https://github.com/festvox/flite
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=flite
+version=2.2
+release=1
+source="https://github.com/festvox/flite/archive/refs/tags/v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	    --prefix=/usr \
+	    --enable-shared \
+	    --with-audio=alsa || return 1
+
+	# Flite has historically had parallel-build ordering problems.
+	make -j1 || return 1
+
+	make DESTDIR="$PKG" install || return 1
+}

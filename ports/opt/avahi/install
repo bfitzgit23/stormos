@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		if ! getent group avahi >/dev/null 2>&1; then
+		    groupadd -g 84 avahi || exit 1
+		fi
+
+		if ! getent passwd avahi >/dev/null 2>&1; then
+		    useradd \
+		        -r \
+		        -u 84 \
+		        -g avahi \
+		        -d /run/avahi-daemon \
+		        -s /bin/false \
+		        -M \
+		        -c "Avahi Daemon Owner" \
+		        avahi || exit 1
+		fi
+
+		if ! getent group netdev >/dev/null 2>&1; then
+		    groupadd -g 86 netdev || exit 1
+		fi
+
+		exit 0
+		;;
+esac

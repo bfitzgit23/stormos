@@ -1,0 +1,26 @@
+# description : General purpose TCP/IP emulator library used by QEMU
+# homepage    : https://gitlab.freedesktop.org/slirp/libslirp
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libslirp
+version=4.9.4
+release=1
+build_opt=(
+    -Ddefault_library=shared
+)
+source="https://gitlab.freedesktop.org/slirp/libslirp/-/archive/v$version/libslirp-v$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

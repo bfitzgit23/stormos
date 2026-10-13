@@ -1,0 +1,31 @@
+# description : Source code documentation generator tool
+# homepage    : https://www.doxygen.nl/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake git
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=doxygen
+version=1.18.0
+release=2
+source="https://$name.nl/files/$name-$version.src.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	grep -rl '^#!.*python$' | xargs sed -i '1s/python/&3/'
+	mkdir -p build
+	cd build
+	cmake -G "Unix Makefiles"         \
+	     -DCMAKE_BUILD_TYPE=Release  \
+	     -DCMAKE_INSTALL_PREFIX=/usr \
+	     -Wno-dev .. &&
+	make
+	make install DESTDIR=$PKG
+	mkdir -p $PKG/usr/share/man/man1
+	install -vm644 ../doc/*.1 $PKG/usr/share/man/man1
+}

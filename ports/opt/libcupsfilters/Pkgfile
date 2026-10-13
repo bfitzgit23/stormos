@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: cups glib ghostscript lcms2 poppler qpdf libexif libjpeg-turbo libpng libtiff mupdf
-
-name=libcupsfilters
-version=2.2.1
-release=1
-source=(https://github.com/OpenPrinting/${name}/releases/download/${version}/${name}-${version}.tar.xz)

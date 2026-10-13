@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: libfm-extra
-
-name=menu-cache
-version=1.1.1
-release=1
-source=(https://github.com/lxde/releases/raw/refs/heads/master/releases/${name}-${version}.tar.xz)

@@ -1,0 +1,31 @@
+# description : kwallet-pam
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : kwallet socat qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=kwallet-pam
+version=6.7.5
+release=1
+build_opt="-DCMAKE_INSTALL_PREFIX=/opt/kf6 \
+            -DCMAKE_PREFIX_PATH=/opt/qt6;/opt/kf6 
+             -DCMAKE_INSTALL_LIBEXECDIR=libexec 
+             -DCMAKE_BUILD_TYPE=Release         
+             -DCMAKE_QT6=ON				
+             -DBUILD_QT5=OFF                    
+             -DBUILD_TESTING=OFF                
+             -Wno-author"
+source="https://download.kde.org/stable/plasma/$version/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

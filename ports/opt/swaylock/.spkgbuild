@@ -1,0 +1,30 @@
+# description : Screen locker for Wayland compositors
+# homepage    : https://github.com/swaywm/swaylock
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : meson wayland wayland-protocols libxkbcommon cairo linux-pam
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=swaylock
+version=1.8.6
+release=1
+source="https://github.com/swaywm/${name}/archive/refs/tags/v${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build . \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    --wrap-mode=nodownload \
+	    -Dpam=enabled \
+	    -Dgdk-pixbuf=disabled \
+	    -Dman-pages=disabled || return 1
+
+	meson compile -C build || return 1
+	DESTDIR="$PKG" meson install -C build || return 1
+}

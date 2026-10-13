@@ -1,0 +1,29 @@
+# description : Compiz Reloaded compositing window manager (0.8.x series)
+# homepage    : https://gitlab.com/compiz/compiz-core
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus glu librsvg libsm libxcomposite libxcursor libxdamage libxi libxinerama libxrandr libxslt startup-notification
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=compiz
+version=0.8.18
+release=2
+source="https://gitlab.com/compiz/compiz-core/-/archive/v$version/compiz-core-v$version.tar.bz2 https://gitlab.com/compiz/compiz-core/-/commit/c0c605dd.patch https://gitlab.com/compiz/compiz-core/-/commit/9f105a8b.patch https://gitlab.com/compiz/compiz-core/-/commit/ea7b3731.patch https://gitlab.com/compiz/compiz-core/-/commit/d4213fa4.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	NOCONFIGURE=1 ./autogen.sh || return 1
+	./configure \
+	    --prefix=/usr \
+	    --sysconfdir=/etc \
+	    --disable-static \
+	    --with-default-plugins="core,ccp,composite,opengl,decor,move,resize,place,regex,wall,animation,staticswitcher" \
+	    || return 1
+	make -j"${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" install || return 1
+}

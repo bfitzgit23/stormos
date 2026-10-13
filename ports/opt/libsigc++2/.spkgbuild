@@ -1,0 +1,33 @@
+# description : A callback framework for C++.
+# homepage    : https://libsigcplusplus.github.io/libsigcplusplus/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : mm-common
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libsigc++2
+version=2.12.1
+release=2
+source="https://download.gnome.org/sources/libsigc++/${version%.*}/libsigc++-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir bld && cd bld
+
+	meson setup .. \
+	  --prefix=/usr \
+	  --buildtype=release \
+	  -D build-documentation=false \
+	  -D b_lto=true \
+	  -D b_pie=true
+
+	ninja -j ${JOBS:-1}
+	DESTDIR=$PKG ninja install
+
+	find $PKG \( -type f -a -perm -g+w \) -exec chmod g-w '{}' +
+}

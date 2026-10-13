@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		PREV=1.79.1
+		CUR=1.79.2
+		CATALOG=/etc/xml/catalog
+
+		[ -d /etc/xml ] || install -m 0755 -d /etc/xml
+		[ -f ${CATALOG} ] || xmlcatalog --noout --create ${CATALOG}
+
+		xmlcatalog --noout --del "/usr/share/xml/docbook/xsl-stylesheets-${PREV}" \
+			${CATALOG}
+
+		xmlcatalog --noout --add "rewriteSystem" \
+			"http://docbook.sourceforge.net/release/xsl/${CUR}" \
+			"/usr/share/xml/docbook/xsl-stylesheets-${CUR}" \
+			${CATALOG}
+
+		xmlcatalog --noout --add "rewriteURI" \
+			"http://docbook.sourceforge.net/release/xsl/${CUR}" \
+			"/usr/share/xml/docbook/xsl-stylesheets-${CUR}" \
+			${CATALOG}
+
+		xmlcatalog --noout --add "rewriteSystem" \
+			"http://docbook.sourceforge.net/release/xsl/current" \
+			"/usr/share/xml/docbook/xsl-stylesheets-${CUR}" \
+			${CATALOG}
+
+		xmlcatalog --noout --add "rewriteURI" \
+			"http://docbook.sourceforge.net/release/xsl/current" \
+			"/usr/share/xml/docbook/xsl-stylesheets-${CUR}" \
+			${CATALOG}
+		;;
+esac

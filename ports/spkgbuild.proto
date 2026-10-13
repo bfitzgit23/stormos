@@ -1,0 +1,22 @@
+# description :
+# homepage    :
+# maintainer  :
+# depends     :
+#
+# BFSOS scratchpkg port template.  Copy this file to
+# ports/<collection>/<name>/.spkgbuild and replace the placeholders.
+# `name` must equal the port directory name and must not contain capital
+# letters; see docs/SCRATCHPKG-VARIANT.md.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=
+version=
+release=1
+source="https://example.org/$name-$version.tar.gz"
+
+build() {
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	bfs_standard_build
+}

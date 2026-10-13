@@ -1,0 +1,33 @@
+# description : Print plugin and ghostscript/cups driver (formerly called gimp-print)
+# homepage    : http://gimp-print.sourceforge.net/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : ghostscript cups
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gutenprint
+version=5.3.5
+release=2
+source="http://downloads.sourceforge.net/project/gimp-print/$name-5.3/$version/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	    sed -i 's|$(PACKAGE)/doc|doc/$(PACKAGE)-$(VERSION)|' \
+	       {,doc/,doc/developer/}Makefile.in &&
+
+	./configure --prefix=/usr --disable-static &&
+	make
+	    make DESTDIR=$PKG install
+
+	install -v -m755 -d $PKG/usr/share/doc/$name-$version/api/gutenprint{,ui2} &&
+	install -v -m644    doc/$name/html/* \
+	                    $PKG/usr/share/doc/$name-$version/api/gutenprint &&
+	install -v -m644    doc/gutenprintui2/html/* \
+	                    $PKG/usr/share/doc/$name-$version/api/gutenprintui2
+}

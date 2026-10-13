@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		set -eu
+
+		# Create the unprivileged chrony user used by chronyd (the package is built
+		# with --with-user=chrony). On the systemd profile sysusers.d would normally
+		# provision this account; OpenRC and SysVinit profiles have no sysusers
+		# processor, so pkgadd runs this script at install time instead. Idempotent.
+		CHRONY_GID=
+		if ! getent group chrony >/dev/null 2>&1; then
+		    groupadd -r chrony
+		fi
+		CHRONY_GID=$(getent group chrony | awk -F: '{print $3}')
+
+		if ! getent passwd chrony >/dev/null 2>&1; then
+		    useradd -r -g "$CHRONY_GID" -d /var/lib/chrony -s /bin/false \
+		        -c "chrony time synchronization" chrony
+		fi
+
+		exit 0
+		;;
+esac

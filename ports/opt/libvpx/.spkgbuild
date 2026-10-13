@@ -1,0 +1,31 @@
+# description : The VP8/VP9 Codec SDK
+# homepage    : https://www.webmproject.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : yasm nasm which
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libvpx
+version=1.17.0
+release=1
+source="https://github.com/webmproject/$name/archive/v$version/$name-v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	 sed -i 's/cp -p/cp/' build/make/Makefile &&
+
+	mkdir libvpx-build            &&
+	cd    libvpx-build            &&
+
+	../configure --prefix=/usr    \
+	             --enable-shared  \
+	             --disable-static &&
+	make
+	  make DESTDIR=$PKG install
+}

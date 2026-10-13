@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		# Create a minimal initial configuration only when the administrator does
+		# not already have one.  Never overwrite an existing Samba configuration.
+		if [ ! -e /etc/samba/smb.conf ]; then
+		    install -d -m755 /etc/samba
+
+		    cat > /etc/samba/smb.conf <<'CONF'
+[global]
+    workgroup = WORKGROUP
+CONF
+
+		    chmod 644 /etc/samba/smb.conf
+		fi
+
+		# CUPS SMB backend.  Only create it when CUPS is actually installed.
+		if [ -d /usr/lib/cups ] && [ -x /usr/bin/smbspool ]; then
+		    install -d -m755 /usr/lib/cups/backend
+		    ln -sf /usr/bin/smbspool /usr/lib/cups/backend/smb
+		fi
+
+		exit 0
+		;;
+esac

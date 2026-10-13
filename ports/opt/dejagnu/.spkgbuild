@@ -1,0 +1,30 @@
+# description : A stream oriented C library for parsing XML
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=dejagnu
+version=1.6.3
+release=1
+source="https://ftp.gnu.org/gnu/dejagnu/dejagnu-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	        mkdir -v build
+		cd       build
+	../configure --prefix=/usr
+	makeinfo --html --no-split -o doc/dejagnu.html ../doc/dejagnu.texi
+	makeinfo --plaintext       -o doc/dejagnu.txt  ../doc/dejagnu.texi
+	make DESTDIR=$PKG install
+	install -v -dm755  $PKG/usr/share/doc/dejagnu-1.6.3
+	install -v -m644   doc/dejagnu.{html,txt} $PKG/usr/share/doc/dejagnu-1.6.3
+}

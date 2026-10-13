@@ -1,0 +1,27 @@
+# description : Diagnostic, debugging and instructional Linux syscall tracer
+# homepage    : https://strace.io/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=strace
+version=7.2
+release=1
+source="https://strace.io/files/$version/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	  --prefix=/usr \
+	  --disable-mpers \
+	  --disable-gcc-Werror || return 1
+
+	make -j ${JOBS:-1} || return 1
+	make DESTDIR="$PKG" install || return 1
+}

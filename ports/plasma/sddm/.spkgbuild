@@ -1,0 +1,32 @@
+# description : QML-based display manager
+# homepage    : https://github.com/sddm/sddm
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake extra-cmake-modules qt6 linux-pam upower
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=sddm
+version=0.21.0
+release=4
+source="https://github.com/${name}/${name}/archive/v${version}/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DBUILD_WITH_QT6=ON \
+	    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DRUNTIME_DIR=/run/sddm \
+	    -DBUILD_MAN_PAGES=ON \
+	    -DDATA_INSTALL_DIR=/usr/share/sddm \
+	    -DDBUS_CONFIG_FILENAME=sddm_org.freedesktop.DisplayManager.conf || return 1
+
+	cmake --build build -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}

@@ -1,0 +1,25 @@
+# description : Asynchronous event notification software library
+# homepage    : http://libevent.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libevent
+version=2.1.13
+release=2
+source="https://github.com/libevent/libevent/releases/download/release-$version-stable/libevent-$version-stable.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	sed -i 's/python/&3/' event_rpcgen.py
+	./configure --prefix=/usr --disable-static
+	make
+	make DESTDIR=$PKG install
+}

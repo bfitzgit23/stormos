@@ -1,0 +1,33 @@
+# description : Graph visualization software
+# homepage    : https://graphviz.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake expat zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=graphviz
+version=16.1.0
+release=1
+source="https://gitlab.com/graphviz/graphviz/-/archive/$version/graphviz-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# Current Graphviz supports CMake directly; avoid carrying the obsolete
+	# autotools/libpostfix surgery from the old recipe.
+	sed '/ORIGIN/d' -i lib/CMakeLists.txt || return 1
+
+	cmake -S . -B build \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_BUILD_TYPE=Release || return 1
+
+	# Match the current BLFS packaging fix for generated gzip commands.
+	sed -i '/GZIP/s/:.*$/=/' build/CMakeCache.txt || return 1
+
+	cmake --build build -j"${JOBS:-1}" || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}

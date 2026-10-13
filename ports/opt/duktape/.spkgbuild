@@ -1,0 +1,24 @@
+# description : embeddable Javascript engine, with a focus on portability and compact footprint
+# homepage    : https://duktape.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=duktape
+version=2.7.0
+release=2
+source="https://duktape.org/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	 export CFLAGS="$CFLAGS -DDUK_USE_FASTINT"
+	sed -i 's/-Os/-O2/' Makefile.sharedlibrary
+	 make -f Makefile.sharedlibrary INSTALL_PREFIX=/usr
+	 make -f Makefile.sharedlibrary INSTALL_PREFIX=/usr DESTDIR=$PKG install
+}

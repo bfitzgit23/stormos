@@ -1,0 +1,25 @@
+# description : Startup notification library.
+# homepage    : http://freedesktop.org/wiki/Software/startup-notification
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xorg-libs xcb-util
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=startup-notification
+version=0.12
+release=1
+source="http://www.freedesktop.org/software/$name/releases/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		./configure --prefix=/usr --disable-static &&
+	make
+		make DESTDIR=$PKG install
+	install -v -m644 -D doc/$name.txt \
+	    $PKG/usr/share/doc/$name-$version/$name.txt
+}

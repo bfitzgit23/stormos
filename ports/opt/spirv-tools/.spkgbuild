@@ -1,0 +1,32 @@
+# description : spirv-tools
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake spirv-headers
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=spirv-tools
+version=1.4.357.0
+release=2
+source="https://github.com/KhronosGroup/SPIRV-Tools/archive/vulkan-sdk-${version}/SPIRV-Tools-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir build &&
+	cd    build &&
+	cmake -D CMAKE_INSTALL_PREFIX=/usr     \
+	      -D CMAKE_BUILD_TYPE=Release      \
+	      -D SPIRV_WERROR=OFF              \
+	      -D BUILD_SHARED_LIBS=ON          \
+	      -D SPIRV_TOOLS_BUILD_STATIC=OFF  \
+	      -D SPIRV-Headers_SOURCE_DIR=/usr \
+	      -G Ninja .. &&
+
+	ninja
+	DESTDIR="$PKG" ninja install
+}

@@ -1,0 +1,24 @@
+# description : ACPI event daemon
+# homepage    : https://sourceforge.net/projects/acpid2/
+# maintainer  : BFSOS maintainers
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=acpid
+version=2.0.34
+release=1
+source="https://downloads.sourceforge.net/acpid2/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure --prefix=/usr --sbindir=/usr/sbin --sysconfdir=/etc || return 1
+	make -j"${JOBS:-1}" || return 1
+	make DESTDIR="$PKG" install || return 1
+	install -d -m 0755 "$PKG/etc/acpi/events"
+}

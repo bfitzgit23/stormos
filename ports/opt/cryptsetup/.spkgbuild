@@ -1,0 +1,47 @@
+# description : Cryptsetup configures encrypted block devices using dm-crypt and LUKS.
+# homepage    : https://gitlab.com/cryptsetup/cryptsetup
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : argon2 json-c keyutils libgcrypt
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=cryptsetup
+version=2.8.7
+release=1
+build_opt=(
+    --prefix=/usr
+    --sbindir=/usr/bin
+    --libdir=/usr/lib
+    --sysconfdir=/etc
+    --localstatedir=/var
+    --runstatedir=/run
+    --with-crypto_backend=gcrypt
+    --disable-ssh-token
+    --disable-asciidoc
+)
+source="https://www.kernel.org/pub/linux/utils/cryptsetup/v2.8/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure "${build_opt[@]}"
+
+	make
+
+	make DESTDIR="$PKG" install
+
+	# Remove libtool archive files.
+	find "$PKG" -type f -name '*.la' -delete
+
+	# BFS does not currently package upstream documentation.
+	rm -rf \
+	    "$PKG/usr/share/doc" \
+	    "$PKG/usr/share/man"
+
+	# Remove generated GNU info index.
+	rm -f "$PKG/usr/share/info/dir"
+}

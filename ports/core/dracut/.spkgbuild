@@ -1,0 +1,61 @@
+# description : Generates an initramfs image for booting Linux systems
+# homepage    : https://github.com/dracut-ng/dracut-ng
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : bash cpio kmod util-linux
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=dracut
+version=112
+release=1
+build_opt=(
+    --prefix=/usr
+    --sysconfdir=/etc
+    --disable-documentation
+)
+source="https://github.com/dracut-ng/dracut-ng/archive/refs/tags/$version.tar.gz bfs.conf bfsos-storage.conf bfsos-gpu.conf"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure "${build_opt[@]}"
+
+	sed -i \
+	    's,-arx modules,-rx modules,' \
+	    Makefile
+
+	make
+	make DESTDIR="$PKG" install
+
+	find "$PKG/usr/lib/dracut/modules.d" \
+	    -type f \
+	    -name 'README*' \
+	    -delete
+
+	chmod -R g-w \
+	    "$PKG/usr/lib/dracut/modules.d"
+
+	install -Dm644 \
+	    "$SRC/bfs.conf" \
+	    "$PKG/etc/dracut.conf.d/bfs.conf"
+
+	# Distribution-wide storage policy.  Keep this in the Dracut package so
+	# the current and LTS kernel packages can coexist without file ownership
+	# conflicts while every manual/kernel/installer Dracut invocation sees it.
+	install -Dm644 \
+	    "$SRC/bfsos-storage.conf" \
+	    "$PKG/usr/lib/dracut/dracut.conf.d/40-bfsos-md-drivers.conf"
+
+	# Hybrid GPU policy — Raptor Lake iGPU + Blackwell dGPU (e.g. Gigabyte A16 CVH).
+	# Host-only dracut otherwise omits i915/xe/nouveau when generate-config.sh
+	# replays a non-hybrid host config; force_drivers keeps the hybrid DRM stack
+	# (and its firmware via linux-firmware / nvidia) in every initramfs.
+	# Proprietary nvidia modules are listed too — ignored when not installed.
+	install -Dm644 \
+	    "$SRC/bfsos-gpu.conf" \
+	    "$PKG/usr/lib/dracut/dracut.conf.d/30-bfsos-gpu-drivers.conf"
+}

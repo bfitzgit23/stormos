@@ -1,0 +1,145 @@
+# description : CRUX package management utilities with BFSOS pkgmk extensions and pacman pipeline tools
+# homepage    : https://crux.nu/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : zstd
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=pkgutils
+version=5.40.12
+release=39
+source="https://crux.nu/files/$name-$version.tar.xz pkgadd.conf pkgmk.conf extension bfs-pkgmk bfs-build bfs-deps bfsos bfs-repo-add bfs-build-all pkgutils_source-fallbacks.patch pkgutils_numeric-owner-extract.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# bootstrap.sh calls bootstrap_build() with TOOLS pointing at the
+	# toolchain root; a package build stages into $PKG instead.
+	TOOLS="${TOOLS:-$PKG}"
+	bootstrap_build || return 1
+	post_build || return 1
+}
+
+post_build() {
+        harden_pkgmk_work_cleanup "$PKG/usr/bin/pkgmk"
+        fix_pkgmk_cli_precedence "$PKG/usr/bin/pkgmk"
+        fix_pkgmk_curl_compatible_downloader "$PKG/usr/bin/pkgmk"
+
+        # Final/installed pkgmk needs a UTF-8-capable C locale for archives
+        # containing non-ASCII pathnames (notably GCC). Support both common
+        # spellings and fall back to plain C only if neither exists.
+        sed -i '/^export LC_ALL=C\.UTF-8$/c\
+_bfs_utf8_locale=""\
+_bfs_locale_cmd=""\
+_bfs_pkgmk_path="$(readlink -f "$0" 2>/dev/null || printf "%s" "$0")"\
+case "$_bfs_pkgmk_path" in\
+    */tmp/lfs-tools/*) [ -x /tmp/lfs-tools/bin/locale ] && _bfs_locale_cmd=/tmp/lfs-tools/bin/locale ;;\
+    *) [ -x /usr/bin/locale ] && _bfs_locale_cmd=/usr/bin/locale ;;\
+esac\
+[ -n "$_bfs_locale_cmd" ] || [ ! -x /usr/bin/locale ] || _bfs_locale_cmd=/usr/bin/locale\
+[ -n "$_bfs_locale_cmd" ] || _bfs_locale_cmd="$(command -v locale 2>/dev/null || true)"\
+for _bfs_locale in C.UTF-8 C.utf8; do\
+    if [ -n "$_bfs_locale_cmd" ] && \
+       "$_bfs_locale_cmd" -a 2>/dev/null | grep -Fxiq "$_bfs_locale" && \
+       LC_ALL="$_bfs_locale" "$_bfs_locale_cmd" charmap 2>/dev/null | grep -Fxiq UTF-8; then\
+        _bfs_utf8_locale="$_bfs_locale"\
+        break\
+    fi\
+done\
+if [ -n "$_bfs_utf8_locale" ]; then\
+    export LC_ALL="$_bfs_utf8_locale"\
+else\
+    export LC_ALL=C\
+fi\
+unset _bfs_utf8_locale _bfs_locale _bfs_locale_cmd _bfs_pkgmk_path' "$PKG/usr/bin/pkgmk"
+
+        # Store sources, packages, and normal pkgmk work in /var/cache/pkg.
+        sed -i 's,^PKGMK_SOURCE_DIR=.*,PKGMK_SOURCE_DIR="/var/cache/pkg/sources",' "$PKG/usr/bin/pkgmk"
+        sed -i 's,^PKGMK_PACKAGE_DIR=.*,PKGMK_PACKAGE_DIR="/var/cache/pkg/packages",' "$PKG/usr/bin/pkgmk"
+        sed -i 's,^PKGMK_WORK_DIR=.*,PKGMK_WORK_DIR="/var/cache/pkg/build-work/pkgmk-$name",' "$PKG/usr/bin/pkgmk"
+
+        # Keep the cache parent root-owned; only build-data directories
+        # are writable by the dedicated pkgmk account (UID/GID 82).
+        install -dm755 -o 0 -g 0 "$PKG/var/cache/pkg"
+
+        install -dm775 -o 82 -g 82 \
+                "$PKG/var/cache/pkg/sources" \
+                "$PKG/var/cache/pkg/packages" \
+                "$PKG/var/cache/pkg/build-work" \
+                "$PKG/var/cache/pkg/build-work-disk"
+
+        install -dm775 -o 82 -g 82 "$PKG/var/cache/ccache"
+
+        # Use Zstandard as the default package compression mode.
+        sed -i 's,^PKGMK_COMPRESSION_MODE=.*,PKGMK_COMPRESSION_MODE="zst",' "$PKG/usr/bin/pkgmk"
+
+        # Integrity verification is enabled by default. Development/bootstrap
+        # callers may explicitly opt out through their configuration.
+        sed -i 's,^PKGMK_IGNORE_SIGNATURE=.*,PKGMK_IGNORE_SIGNATURE="no",' "$PKG/usr/bin/pkgmk"
+
+        # BFSOS pkgmk extension.  Code sourced by root must live in a
+        # root-owned directory; only the runtime timing log is pkgmk-writable.
+        install -dm755 -o 0 -g 0 "$PKG/var/lib/pkgmk"
+        install -m644 -o 0 -g 0 "$SRC/extension" "$PKG/var/lib/pkgmk/extension"
+        install -Dm755 "$SRC/bfs-pkgmk" "$PKG/usr/bin/bfs-pkgmk"
+        install -Dm755 "$SRC/bfs-build" "$PKG/usr/bin/bfs-build"
+        install -Dm755 "$SRC/bfs-deps" "$PKG/usr/bin/bfs-deps"
+        install -Dm755 "$SRC/bfsos" "$PKG/usr/bin/bfsos"
+        install -Dm755 "$SRC/bfs-repo-add" "$PKG/usr/bin/bfs-repo-add"
+        install -Dm755 "$SRC/bfs-build-all" "$PKG/usr/bin/bfs-build-all"
+        install -m664 -o 82 -g 82 /dev/null "$PKG/var/lib/pkgmk/build-times.log"
+
+        # A pkgutils archive without its dispatcher would make every migrated
+        # pkg_build() port unusable after upgrade.  Fail the build instead.
+        [ -s "$PKG/var/lib/pkgmk/extension" ] || {
+                echo "pkgutils: staged pkgmk extension is missing or empty" >&2
+                return 1
+        }
+
+        # Configuration.
+        install -m644 "$SRC/pkgadd.conf" "$PKG/etc/pkgadd.conf"
+        install -m644 "$SRC/pkgmk.conf" "$PKG/etc/pkgmk.conf"
+}
+
+bootstrap_build() {
+        # Select a UTF-8 C locale when the current environment provides one
+        # (needed by libarchive for archives such as GCC), but retain a plain-C
+        # fallback for early chroot phases where no UTF-8 locale exists yet.
+        sed -i '/^export LC_ALL=C\.UTF-8$/c\
+_bfs_utf8_locale=""\
+_bfs_locale_cmd=""\
+_bfs_pkgmk_path="$(readlink -f "$0" 2>/dev/null || printf "%s" "$0")"\
+case "$_bfs_pkgmk_path" in\
+    */tmp/lfs-tools/*) [ -x /tmp/lfs-tools/bin/locale ] && _bfs_locale_cmd=/tmp/lfs-tools/bin/locale ;;\
+    *) [ -x /usr/bin/locale ] && _bfs_locale_cmd=/usr/bin/locale ;;\
+esac\
+[ -n "$_bfs_locale_cmd" ] || [ ! -x /usr/bin/locale ] || _bfs_locale_cmd=/usr/bin/locale\
+[ -n "$_bfs_locale_cmd" ] || _bfs_locale_cmd="$(command -v locale 2>/dev/null || true)"\
+for _bfs_locale in C.UTF-8 C.utf8; do\
+    if [ -n "$_bfs_locale_cmd" ] && \
+       "$_bfs_locale_cmd" -a 2>/dev/null | grep -Fxiq "$_bfs_locale" && \
+       LC_ALL="$_bfs_locale" "$_bfs_locale_cmd" charmap 2>/dev/null | grep -Fxiq UTF-8; then\
+        _bfs_utf8_locale="$_bfs_locale"\
+        break\
+    fi\
+done\
+if [ -n "$_bfs_utf8_locale" ]; then\
+    export LC_ALL="$_bfs_utf8_locale"\
+else\
+    export LC_ALL=C\
+fi\
+unset _bfs_utf8_locale _bfs_locale _bfs_locale_cmd _bfs_pkgmk_path' pkgmk.in
+
+        fix_pkgmk_cli_precedence pkgmk.in
+        fix_pkgmk_curl_compatible_downloader pkgmk.in
+
+        sed -i -e 's/ --static//' \
+               -e 's/ -static//' Makefile
+
+        make BINDIR=$TOOLS/bin MANDIR=$TOOLS/man ETCDIR=$TOOLS/etc install
+        harden_pkgmk_work_cleanup "$TOOLS/bin/pkgmk"
+}

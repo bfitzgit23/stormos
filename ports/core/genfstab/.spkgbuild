@@ -1,0 +1,25 @@
+# description : Generate an fstab from the current system
+# homepage    : https://gitlab.archlinux.org/archlinux/arch-install-scripts
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : bash coreutils gawk grep util-linux
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=genfstab
+version=31
+release=2
+source="https://gitlab.archlinux.org/archlinux/arch-install-scripts/-/archive/v$version/arch-install-scripts-v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make genfstab || return 1
+
+	install -d "$PKG/usr/bin" "$PKG/usr/share/licenses/$name" || return 1
+	install -m755 genfstab "$PKG/usr/bin/genfstab" || return 1
+	install -m644 COPYING "$PKG/usr/share/licenses/$name/COPYING" || return 1
+}

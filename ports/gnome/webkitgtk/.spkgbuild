@@ -1,0 +1,61 @@
+# description : webkitgtk
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cairo cmake gst-plugins-base gst-plugins-bad gtk3 gtk4 icu lcms2 libgudev libsecret libsoup3 libtasn1 libwebp mesa openjpeg2 ruby sqlite unifdef which bubblewrap enchant geoclue glib gobject-introspection hicolor-icon-theme libavif libjxl libseccomp xdg-dbus-proxy hyphen woff2 libxcomposite flite
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=webkitgtk
+version=2.52.6
+release=4
+source="https://webkitgtk.org/releases/webkitgtk-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	 # fail the build if dependencies are not met
+	 ls /usr/include/harfbuzz/hb-icu.h || (printf '\e[1;31m%-6s\e[m\n' "You need to install icu, then rebuild harfbuzz for webkitgtk to work, quitting..." ; exit 1)
+
+	 # Make sure we do not have ccache masquerade directory in PATH.
+	 #[ -e '/usr/bin/ccache' ] && PATH="$(echo ${PATH} | awk -v RS=: -v ORS=: '/ccache/ {next} {print}' | sed 's/:*$//')"
+
+	 prt-get isinst openjpeg22 || PKGMK_WEBKITGTK+=' -DUSE_OPENJPEG=OFF'
+	 prt-get isinst enchant || PKGMK_WEBKITGTK+=' -DENABLE_SPELLCHECK=OFF'
+	 prt-get isinst libnotify && PKGMK_WEBKITGTK+=' -DUSE_LIBNOTIFY=ON' || PKGMK_WEBKITGTK+=' -DUSE_LIBNOTIFY=OFF'
+	 prt-get isinst geoclue && PKGMK_WEBKITGTK+=' -DENABLE_GEOLOCATION=ON' || PKGMK_WEBKITGTK+=' -DENABLE_GEOLOCATION=OFF'
+	 prt-get isinst bubblewrap xdg-dbus-proxy && PKGMK_WEBKITGTK+=' -DENABLE_BUBBLEWRAP_SANDBOX=ON' \
+	 || PKGMK_WEBKITGTK+=' -DENABLE_BUBBLEWRAP_SANDBOX=OFF'
+	 prt-get isinst wpebackend-fdo || PKGMK_WEBKITGTK+=' -DUSE_WPE_RENDERER=OFF'
+	 prt-get isinst libmanette || PKGMK_WEBKITGTK+=' -DENABLE_GAMEPAD=OFF'
+	 prt-get isinst libavif || PKGMK_WEBKITGTK+=' -DUSE_AVIF=OFF'
+	 prt-get isinst gst-plugins-bad || PKGMK_WEBKITGTK+=' -DUSE_GSTREAMER_TRANSCODER=OFF'
+
+	  cmake -S . -B build -G Ninja \
+	       -DCMAKE_BUILD_TYPE=Release ${PKGMK_WEBKITGTK} \
+	         -D CMAKE_INSTALL_PREFIX=/usr        \
+	     -D CMAKE_SKIP_INSTALL_RPATH=ON      \
+	     -D PORT=GTK                         \
+	     -D LIB_INSTALL_DIR=/usr/lib         \
+	     -D USE_LIBBACKTRACE=OFF             \
+	     -D USE_LIBHYPHEN=OFF                \
+	     -D ENABLE_GAMEPAD=OFF               \
+	     -D ENABLE_MINIBROWSER=ON            \
+	     -D ENABLE_DOCUMENTATION=OFF         \
+	     -D USE_WOFF2=OFF                    \
+	     -D USE_GTK4=ON                      \
+	     -D ENABLE_BUBBLEWRAP_SANDBOX=ON     \
+	     -D USE_SYSPROF_CAPTURE=NO           \
+	     -W no-dev
+
+	CFLAGS+=' -fcf-protection=none'
+	CXXFLAGS+=' -fcf-protection=none'
+
+	 cmake --build build || return 1
+	 DESTDIR="$PKG" cmake --install build || return 1
+	 rm -rf "$PKG/usr/share/locale"
+}

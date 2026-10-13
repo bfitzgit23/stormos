@@ -1,0 +1,27 @@
+# description : Core database of common MIME types
+# homepage    : https://freedesktop.org/Software/shared-mime-info
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib libxml2 xmlto
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=shared-mime-info
+version=2.5.1
+release=4
+source="https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/$version/shared-mime-info-$version.tar.gz https://anduin.linuxfromscratch.org/BLFS/xdgmime/xdgmime.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	if [ -d "$SRC/xdgmime" ]; then
+	    cp -a "$SRC/xdgmime" .
+	    make -C xdgmime || return 1
+	fi
+	meson setup build --prefix=/usr --buildtype=release -Dupdate-mimedb=true || return 1
+	meson compile -C build -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" meson install -C build || return 1
+}

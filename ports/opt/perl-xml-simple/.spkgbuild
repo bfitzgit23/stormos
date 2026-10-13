@@ -1,0 +1,25 @@
+# description : perl-xml-simple
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=perl-xml-simple
+version=2.25
+release=1
+source="https://www.cpan.org/authors/id/G/GR/GRANTM/XML-Simple-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cd $SRC/XML-Simple-$version
+	perl Makefile.PL &&
+	make             &&
+	make test
+	make DESTDIR=$PKG install
+}

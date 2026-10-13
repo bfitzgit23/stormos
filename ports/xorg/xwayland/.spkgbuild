@@ -1,0 +1,32 @@
+# description : X compat server to be used with wayland
+# homepage    : https://wayland.freedesktop.org/xserver.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxcvt pixman wayland-protocols xorg-apps xorg-fonts libepoxy libtirpc
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xwayland
+version=24.1.13
+release=2
+source="https://xorg.freedesktop.org/archive/individual/xserver/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	sed -i '/install_man/,$d' meson.build &&
+	mkdir build &&
+	cd    build &&
+	meson setup --prefix=$XORG_PREFIX         \
+	           --buildtype=release           \
+	           -Dxkb_output_dir=/var/lib/xkb \
+	           ..                            &&
+	ninja
+	DESTDIR=$PKG ninja install
+	rm -f $PKG/usr/lib/xorg/protocol.txt
+	rm -f $PKG/usr/share/man/man1/Xserver.1
+}

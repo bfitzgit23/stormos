@@ -1,0 +1,34 @@
+# description : Brotli compression library
+# homepage    : https://github.com/google/brotli
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=brotli
+version=1.2.0
+release=2
+source="https://github.com/google/$name/archive/v$version/$name-v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	  mkdir build &&
+	cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DCMAKE_BUILD_TYPE=Release  \
+	      ..  &&
+	make
+	  make DESTDIR=$PKG install
+
+	  cd $SRC/$name-$version
+
+	    /usr/bin/python3 setup.py build
+	  /usr/bin/python3 setup.py install \
+	    --prefix=/usr --root=$PKG --optimize=1
+}

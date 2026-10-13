@@ -1,0 +1,32 @@
+# description : The PCRE package contains Perl Compatible Regular Expression libraries. These are useful for implementing regular expression pattern matching using the same syntax and semantics as Perl 5.
+# homepage    : https://sourceforge.net/projects/pcre/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=pcre
+version=8.45
+release=1
+source="https://sourceforge.net/projects/$name/files/$name/$version/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure --prefix=/usr                     \
+	            --docdir=/usr/share/doc/$name-$version \
+	            --enable-unicode-properties       \
+	            --enable-pcre16                   \
+	            --enable-pcre32                   \
+	            --enable-pcregrep-libz            \
+	            --enable-pcregrep-libbz2          \
+	            --enable-pcretest-libreadline     \
+	            --disable-static                 &&
+	make
+		make DESTDIR=$PKG install
+}

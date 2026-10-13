@@ -1,0 +1,52 @@
+# description : LLVM compiler infrastructure with Clang and compiler-rt
+# homepage    : https://llvm.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake libffi ninja python3
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=llvm
+version=23.1.1
+release=2
+source="https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/llvm-project-$version.src.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	# Keep LLVM/Clang/LLD/compiler-rt in one coherent monorepo build.
+	mkdir -p llvm/build
+	cd llvm/build
+
+	CC=gcc CXX=g++ cmake \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_SKIP_INSTALL_RPATH=ON \
+	    -DLLVM_ENABLE_FFI=ON \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DLLVM_BUILD_LLVM_DYLIB=ON \
+	    -DLLVM_LINK_LLVM_DYLIB=ON \
+	    -DLLVM_ENABLE_RTTI=ON \
+	    -DLLVM_TARGETS_TO_BUILD='host;AMDGPU;BPF' \
+	    -DLLVM_ENABLE_PROJECTS='clang;lld' \
+	    -DLLVM_ENABLE_RUNTIMES=compiler-rt \
+	    -DLLVM_BINUTILS_INCDIR=/usr/include \
+	    -DLLVM_INCLUDE_UTILS=ON \
+	    -DLLVM_BUILD_UTILS=ON \
+	    -DLLVM_INSTALL_UTILS=ON \
+	    -DLLVM_INCLUDE_BENCHMARKS=OFF \
+	    -DCLANG_DEFAULT_PIE_ON_LINUX=ON \
+	    -DCLANG_CONFIG_FILE_SYSTEM_DIR=/etc/clang \
+	    -Wno-author -G Ninja ..
+
+	ninja -j "${JOBS:-1}"
+	DESTDIR="$PKG" ninja install
+
+	install -d "$PKG/etc/clang"
+	printf '%s\n' '-fstack-protector-strong' > "$PKG/etc/clang/clang.cfg"
+	printf '%s\n' '-fstack-protector-strong' > "$PKG/etc/clang/clang++.cfg"
+}

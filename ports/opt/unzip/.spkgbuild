@@ -1,0 +1,32 @@
+# description : Decompress utility for zipfiles
+# homepage    : https://infozip.sourceforge.net/UnZip.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=unzip
+version=6.0
+release=9
+source="https://downloads.sourceforge.net/sourceforge/infozip/${name}${version//./}.tar.gz cumulative.patch gcc15.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i 's/-O3//' unix/configure
+
+	make -f unix/Makefile \
+	    LOCAL_UNZIP="$CFLAGS -std=gnu17" \
+	    unzips
+
+	make -f unix/Makefile \
+	    prefix="$PKG/usr" \
+	    MANDIR="$PKG/usr/share/man/man1" \
+	    install
+
+	ln -sf unzip "$PKG/usr/bin/zipinfo"
+}

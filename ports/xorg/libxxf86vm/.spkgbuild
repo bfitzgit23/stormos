@@ -1,0 +1,26 @@
+# description : X11 XFree86 video mode extension library
+# homepage    : https://xorg.freedesktop.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxext
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# the CRUX recipe called this package libXxf86vm
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libxxf86vm
+version=1.1.7
+release=3
+source="https://xorg.freedesktop.org/archive/individual/lib/libXxf86vm-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	 ./configure $XORG_CONFIG --docdir=/usr/share/doc/$name-$version
+
+	make
+	make DESTDIR=$PKG install
+}

@@ -1,0 +1,65 @@
+# description : Password quality checking library and PAM module
+# homepage    : https://github.com/libpwquality/libpwquality
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cracklib linux-pam python3-pip
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libpwquality
+version=1.4.5
+release=2
+source="https://github.com/libpwquality/libpwquality/releases/download/libpwquality-$version/libpwquality-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure \
+	    --prefix=/usr \
+	    --disable-static \
+	    --with-securedir=/usr/lib/security \
+	    --disable-python-bindings || return 1
+
+	make || return 1
+
+	python3 -m pip wheel \
+	    -w dist \
+	    --no-build-isolation \
+	    --no-deps \
+	    --no-cache-dir \
+	    "$PWD/python" || return 1
+
+	make DESTDIR="$PKG" install || return 1
+
+	PIP_CONFIG_FILE=/dev/null python3 -m pip install \
+	    --isolated \
+	    --root="$PKG" \
+	    --ignore-installed \
+	    --no-index \
+	    --find-links=dist \
+	    --no-deps \
+	    pwquality || return 1
+
+	install -d "$PKG/etc/security" || return 1
+	cat > "$PKG/etc/security/pwquality.conf" <<'EOF'
+# BFSOS password-quality baseline.
+#
+# Keep the default policy conservative for a general-purpose distribution.
+# Sites that need stricter rules can adjust this file after installation.
+minlen = 8
+difok = 1
+minclass = 1
+dictcheck = 1
+dictpath = /usr/lib/cracklib/pw_dict
+usercheck = 1
+enforcing = 1
+EOF
+
+	test -f "$PKG/usr/lib/security/pam_pwquality.so" || {
+	    echo "libpwquality: pam_pwquality.so was not staged" >&2
+	    return 1
+	}
+}

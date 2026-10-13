@@ -1,0 +1,23 @@
+# description : Xfce applications meta package
+# homepage    : https://xfce.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : parole xfce4-terminal ristretto xfce4-dev-tools xfce4-notifyd xfce4-pulseaudio-plugin xfburn
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xfce4-apps-meta
+version=4.20.0
+release=2
+source=""
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	mkdir -p "$PKG/usr/share/bfsos/meta-packages"
+	printf '%s
+' 'BFSOS xfce4-apps-meta meta package' \
+	    > "$PKG/usr/share/bfsos/meta-packages/xfce4-apps-meta"
+}

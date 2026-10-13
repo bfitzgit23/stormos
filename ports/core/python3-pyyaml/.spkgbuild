@@ -1,0 +1,23 @@
+# description : Python bindings for YAML with optional LibYAML acceleration
+# homepage    : https://pyyaml.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libyaml python3-build python3-cython python3-installer python3-setuptools python3-wheel
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-pyyaml
+version=6.0.3
+release=3
+source="https://files.pythonhosted.org/packages/source/p/pyyaml/pyyaml-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	PYYAML_FORCE_CYTHON=1 \
+	    python3 -m build --wheel --skip-dependency-check --no-isolation || return $?
+	python3 -m installer --compile-bytecode 2 --destdir="$PKG" dist/*.whl || return $?
+}

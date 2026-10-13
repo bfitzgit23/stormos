@@ -1,0 +1,32 @@
+# description : The libmusicbrainz package contains a library which allows you to access the data held on the MusicBrainz server.
+# homepage    : https://github.com/metabrainz/libmusicbrainz/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake libxml2 neon doxygen
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libmusicbrainz5
+version=5.1.0
+release=1
+skip_patch=1
+source="https://github.com/metabrainz/libmusicbrainz/releases/download/release-$version/libmusicbrainz-$version.tar.gz https://www.linuxfromscratch.org/patches/blfs/svn/libmusicbrainz-$version-cmake_fixes-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	patch -Np1 -i ../libmusicbrainz-$version-cmake_fixes-1.patch
+		mkdir build &&
+	cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. &&
+	make
+	doxygen ../Doxyfile
+		make DESTDIR=$PKG install
+	rm -rf $PKG/usr/share/doc/libmusicbrainz-$version &&
+	mkdir -p $PKG/usr/share/doc/libmusicbrainz-$version
+	cp -vr docs/ $PKG/usr/share/doc/libmusicbrainz-$version
+}

@@ -1,0 +1,27 @@
+# description : The libao package contains a cross-platform audio library. This is useful to output audio on a wide variety of platforms. It currently supports WAV files, OSS (Open Sound System), ESD (Enlighten Sound Daemon), ALSA (Advanced Linux Sound Architecture), NAS (Network Audio system), aRTS (analog Real-Time Synthesizer), and PulseAudio (next generation GNOME sound architecture).
+# homepage    : https://downloads.xiph.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libao
+version=1.2.2
+release=1
+source="https://github.com/xiph/${name}/archive/${version}/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	CFLAGS+=' -Wno-error=implicit-function-declaration'
+		autoreconf -fiv
+		./configure --prefix=/usr --enable-alsa-mmap
+		make -j1
+		make DESTDIR="${PKG}" install
+
+		rm -r "${PKG}"/usr/share/doc
+}

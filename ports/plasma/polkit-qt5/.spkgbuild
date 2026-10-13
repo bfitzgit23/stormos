@@ -1,0 +1,29 @@
+# description : A library that allows developers to access PolicyKit API with a Qt-style API
+# homepage    : https://www.kde.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake polkit qt5
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=polkit-qt5
+version=0.201.1
+release=1
+source="https://download.kde.org/stable/polkit-qt-1/polkit-qt-1-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_PREFIX_PATH=/opt/qt5 \
+	    -DQT_MAJOR_VERSION=5 \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DBUILD_TESTING=OFF \
+	    -Wno-dev || return 1
+	cmake --build build -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}

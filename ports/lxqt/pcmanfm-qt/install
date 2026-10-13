@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	pre-install)
+		if [   -e /opt/kf6/lib/libLayerShellQtInterface.so -a \
+		     ! -e /usr/lib/libLayerShellQtInterface.so ]; then
+
+		    ln -sv /opt/kf6/lib/libLayerShellQtInterface.so \
+		           /usr/lib/libLayerShellQtInterface.so
+		fi
+		;;
+	post-install)
+		sed -e '/Categories=/s/=/=System;FileTools;/' \
+		    -e '/Name=/s/=.*/=File Manager PCManFM-Qt'/ \
+		    -i /usr/share/applications/pcmanfm-qt.desktop
+		;;
+esac

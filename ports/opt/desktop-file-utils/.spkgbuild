@@ -1,0 +1,27 @@
+# description : The Desktop File Utils package contains command line utilities for working with Desktop entries. These utilities are used by Desktop Environments and other applications to manipulate the MIME-types application databases and help adhere to the Desktop Entry Specification.
+# homepage    : https://www.freedesktop.org/software/$name
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=desktop-file-utils
+version=0.28
+release=1
+source="https://www.freedesktop.org/software/$name/releases/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		mkdir build &&
+		cd    build &&
+
+	meson setup --prefix=/usr --buildtype=release .. &&
+	ninja
+	DESTDIR=$PKG ninja install
+}

@@ -1,0 +1,23 @@
+# description : Qt 6 client library for accessing the online accounts database
+# homepage    : https://gitlab.com/accounts-sso/libaccounts-qt
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libaccounts-glib qt6
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libaccounts-qt
+version=1.17
+release=1
+source="https://gitlab.com/accounts-sso/$name/-/archive/VERSION_$version/$name-VERSION_$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	"$QT6DIR/bin/qmake" PREFIX=/usr LIBDIR=/usr/lib CONFIG+=release || return 1
+	make -j${JOBS:-1} || return 1
+	make INSTALL_ROOT="$PKG" install || return 1
+}

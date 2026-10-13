@@ -1,0 +1,30 @@
+# description : Sandboxed desktop utilities (xdg-open, portals) for Flatpak containers
+# homepage    : https://github.com/flatpak/flatpak-xdg-utils
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib json-glib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=flatpak-xdg-utils
+version=1.0.6
+release=1
+source="https://github.com/flatpak/flatpak-xdg-utils/releases/download/${version}/flatpak-xdg-utils-${version}.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir -p build && cd build || return 1
+
+	meson setup \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -D tests=false \
+	    .. || return 1
+
+	ninja -j "${JOBS:-1}" || return 1
+	DESTDIR="$PKG" ninja install || return 1
+}

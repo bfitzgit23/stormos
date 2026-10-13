@@ -1,0 +1,25 @@
+# description : Command line tools for desktop integration tasks.
+# homepage    : https://www.freedesktop.org/wiki/Software/xdg-utils/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xmlto links
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xdg-utils
+version=v1.2.1
+release=1
+source="https://gitlab.freedesktop.org/xdg/$name/-/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+
+	  ./configure --prefix=/usr --mandir=/usr/share/man &&
+	make
+	  make DESTDIR=$PKG install
+}

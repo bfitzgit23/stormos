@@ -1,0 +1,43 @@
+# description : Yet Another JSON Library
+# homepage    : https://github.com/lloyd/yajl
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=yajl
+version=2.1.0
+release=1
+build_opt=(
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_INSTALL_LIBDIR=lib
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    -DBUILD_SHARED_LIBS=ON
+)
+source="https://github.com/lloyd/yajl/archive/refs/tags/$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	cmake -S . -B build "${build_opt[@]}" || return 1
+	cmake --build build || return 1
+	DESTDIR="$PKG" cmake --install build || return 1
+}
+
+pre_build() {
+    sed -i \
+        -e '/GET_TARGET_PROPERTY(binPath json_reformat LOCATION)/d' \
+        -e 's|${binPath}|$<TARGET_FILE:json_reformat>|g' \
+        reformatter/CMakeLists.txt || return 1
+
+    sed -i \
+        -e '/GET_TARGET_PROPERTY(binPath json_verify LOCATION)/d' \
+        -e 's|${binPath}|$<TARGET_FILE:json_verify>|g' \
+        verify/CMakeLists.txt || return 1
+}

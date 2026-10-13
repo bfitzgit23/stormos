@@ -1,0 +1,32 @@
+# description : TPM 1.2/2.0 software emulation library
+# homepage    : https://github.com/stefanberger/libtpms
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : autoconf automake libtool openssl
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libtpms
+version=0.10.2
+release=2
+build_opt=(
+    --with-openssl
+    --with-tpm2
+)
+source="https://github.com/stefanberger/libtpms/archive/refs/tags/v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	./autogen.sh --prefix=/usr --libdir=/usr/lib "${build_opt[@]}"
+	make
+	make DESTDIR="$PKG" install
+}
+
+pre_build() {
+    sed -i 's/^    char \*start, \*end;$/    const char *start, *end;/' src/tpm_library.c
+}

@@ -1,0 +1,30 @@
+# description : Gstreamer is a streaming media framework that enables applications to share a common set of plugins for tasks such as video encoding and decoding, audio encoding and decoding, audio and video filters, audio visualisation, web streaming and anything else that streams in real-time or otherwise. This package only provides base functionality and libraries. You may need at least gst-plugins-base-1.22.6 and one of Good, Bad, Ugly or Libav plugins.
+# homepage    : https://gstreamer.freedesktop.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : glib gobject-introspection
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=gstreamer
+version=1.28.7
+release=1
+source="https://$name.freedesktop.org/src/$name/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		mkdir build &&
+	cd    build &&
+
+	meson  setup ..            \
+	             --prefix=/usr       \
+	      --buildtype=release \
+	      -D gst_debug=false  &&
+	ninja
+		DESTDIR=$PKG ninja install
+}

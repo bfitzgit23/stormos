@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: libjpeg-turbo lcms2
-
-name=libmng
-version=2.0.3
-release=1
-source=(https://downloads.sourceforge.net/${name}/${name}-${version}.tar.xz)

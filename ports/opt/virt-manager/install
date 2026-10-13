@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		# Refresh desktop integration caches after virt-manager is installed.
+
+		if command -v gtk-update-icon-cache >/dev/null 2>&1 &&
+		   [ -d /usr/share/icons/hicolor ]; then
+		    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+		fi
+
+		if command -v glib-compile-schemas >/dev/null 2>&1 &&
+		   [ -d /usr/share/glib-2.0/schemas ]; then
+		    glib-compile-schemas /usr/share/glib-2.0/schemas || true
+		fi
+
+		exit 0
+		;;
+esac

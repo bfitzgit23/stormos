@@ -1,0 +1,74 @@
+# description : Firefox binary
+# homepage    : http://www.mozilla.com
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : gtk3 glib dbus libx11 libxcomposite libxcursor libxdamage libxext libxfixes libxi libxrandr libxtst alsa-lib pulseaudio
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=firefox-bin
+version=155.0.1
+release=4
+source="https://archive.mozilla.org/pub/firefox/releases/$version/linux-x86_64/en-US/firefox-$version.tar.xz \ policies.json firefox.desktop firefox-bin"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	install -d "$PKG/usr/lib" "$PKG/usr/bin" || return 1
+	mv "$SRC/firefox" "$PKG/usr/lib/firefox-bin" || return 1
+
+	[ -x "$PKG/usr/lib/firefox-bin/firefox" ] || {
+	    echo "firefox-bin: staged Firefox executable is missing" >&2
+	    return 1
+	}
+	[ -f "$PKG/usr/lib/firefox-bin/application.ini" ] || {
+	    echo "firefox-bin: Mozilla application.ini is missing" >&2
+	    return 1
+	}
+
+	# Mozilla's browser application.ini is normally compiled into the binary.
+	# A browser-specific copy invoked with -app is the supported override path.
+	# Give the binary package its own remoting and profile namespace so it can
+	# coexist safely with BFSOS firefox and firefox-esr.
+	install -Dm644 "$PKG/usr/lib/firefox-bin/application.ini" \
+	    "$PKG/usr/lib/firefox-bin/browser/application.ini" || return 1
+	sed -i \
+	    -e 's/^RemotingName=.*/RemotingName=firefox-bin/' \
+	    "$PKG/usr/lib/firefox-bin/browser/application.ini" || return 1
+	if grep -q '^Profile=' "$PKG/usr/lib/firefox-bin/browser/application.ini"; then
+	    sed -i 's/^Profile=.*/Profile=firefox-bin/' \
+	        "$PKG/usr/lib/firefox-bin/browser/application.ini" || return 1
+	else
+	    sed -i '/^RemotingName=/a Profile=firefox-bin' \
+	        "$PKG/usr/lib/firefox-bin/browser/application.ini" || return 1
+	fi
+
+	install -Dm755 "$SRC/firefox-bin" "$PKG/usr/bin/firefox-bin" || return 1
+
+	install -d "$PKG/etc/revdep.d" || return 1
+	printf '%s\n' '/usr/lib/firefox-bin' > "$PKG/etc/revdep.d/firefox-bin" || return 1
+
+	# Remove Mozilla-bundled optional system features BFSOS does not ship.
+	rm -rf "$PKG/usr/lib/firefox-bin/browser/features" || return 1
+
+	# Disable Mozilla self-update; BFSOS owns package updates.
+	install -d "$PKG/usr/lib/firefox-bin/distribution" || return 1
+	install -m644 "$SRC/policies.json" \
+	    "$PKG/usr/lib/firefox-bin/distribution/policies.json" || return 1
+
+	install -Dm644 "$SRC/firefox.desktop" \
+	    "$PKG/usr/share/applications/firefox-bin.desktop" || return 1
+
+	sed -i \
+	    -e 's/^Name=.*/Name=Firefox BIN/' \
+	    -e 's/^Name\[en_US\]=.*/Name[en_US]=Firefox BIN/' \
+	    -e 's/^Exec=firefox/Exec=firefox-bin/' \
+	    -e 's/^Icon=firefox$/Icon=firefox-bin/' \
+	    "$PKG/usr/share/applications/firefox-bin.desktop" || return 1
+	install -d "$PKG/usr/share/pixmaps" || return 1
+	ln -s /usr/lib/firefox-bin/browser/chrome/icons/default/default32.png \
+	    "$PKG/usr/share/pixmaps/firefox-bin.png" || return 1
+}

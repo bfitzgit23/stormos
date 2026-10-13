@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-name=zstd
-version=1.5.7
-release=1
-source=(https://github.com/facebook/zstd/releases/download/v$version/zstd-$version.tar.gz)
-keep_static=1
-

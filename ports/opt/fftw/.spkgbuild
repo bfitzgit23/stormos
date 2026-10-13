@@ -1,0 +1,52 @@
+# description : FFTW is a C subroutine library for computing the discrete Fourier transform (DFT) in one or more dimensions, of arbitrary input size, and of both real and complex data (as well as of even/odd data, i.e. the discrete cosine/sine transforms or DCT/DST).
+# homepage    : https://www.fftw.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=fftw
+version=3.3.11
+release=2
+source="https://www.$name.org/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure --prefix=/usr    \
+	            --enable-shared  \
+	            --disable-static \
+	            --enable-threads \
+	            --enable-sse2    \
+	            --enable-avx     \
+	            --enable-avx2    &&
+	make
+		make DESTDIR=$PKG install
+	make clean &&
+
+	./configure --prefix=/usr    \
+	            --enable-shared  \
+	            --disable-static \
+	            --enable-threads \
+	            --enable-sse2    \
+	            --enable-avx     \
+	            --enable-avx2    \
+	            --enable-float   &&
+	make
+	make DESTDIR=$PKG install
+	make clean &&
+
+	./configure --prefix=/usr    \
+	            --enable-shared  \
+	            --disable-static \
+	            --enable-threads \
+	            --enable-long-double &&
+	make
+	make DESTDIR=$PKG install
+	rm -rf $PKG/usr/share/info/
+}

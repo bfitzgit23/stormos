@@ -1,0 +1,22 @@
+# description : python3-setuptools-scm
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-vcs-versioning
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-setuptools-scm
+version=10.3.4
+release=1
+source="https://pypi.io/packages/source/s/setuptools_scm/setuptools_scm-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	python3 -m build --wheel --skip-dependency-check --no-isolation
+	python3 -m installer --destdir="$PKG" dist/*.whl
+}

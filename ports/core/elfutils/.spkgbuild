@@ -1,0 +1,35 @@
+# description : A collection of utilities to handle ELF objects.
+# homepage    : https://sourceware.org/elfutils/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : bzip2 xz zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=elfutils
+version=0.196
+release=1
+source="https://sourceware.org/ftp/elfutils/$version/elfutils-$version.tar.bz2 libeu.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -e 's/run-backtrace-native.sh//g' -i tests/Makefile.am
+	autoreconf -vfi
+
+	CPPFLAGS="-D_FORTIFY_SOURCE=-0"\
+	./configure \
+		--prefix=/usr \
+		--program-prefix=eu- \
+		--sysconfdir=/etc    \
+		--enable-deterministic-archives \
+		--disable-hardening \
+		 --enable-maintainer-mode
+
+	make
+	make DESTDIR=$PKG install
+}

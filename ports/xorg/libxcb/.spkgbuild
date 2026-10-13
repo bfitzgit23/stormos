@@ -1,0 +1,27 @@
+# description : X11 client-side library
+# homepage    : https://xcb.freedesktop.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxau libxdmcp xcb-proto
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libxcb
+version=1.17.0
+release=1
+source="https://xorg.freedesktop.org/archive/individual/lib/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure $XORG_CONFIG      \
+	            --without-doxygen \
+	            --docdir='${datadir}'/doc/libxcb-$version &&
+		make
+		make DESTDIR=$PKG install
+	chown -Rv root:root $PKG$XORG_PREFIX/share/doc/libxcb-$version
+}

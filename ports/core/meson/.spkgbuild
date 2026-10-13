@@ -1,0 +1,30 @@
+# description : High productivity build system.
+# homepage    : https://mesonbuild.com/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : ninja python3-pip python3-setuptools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=meson
+version=1.12.1
+release=1
+source="https://github.com/mesonbuild/meson/releases/download/$version/$name-$version.tar.gz lib32"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	PIP_CONFIG_FILE=/dev/null /usr/bin/pip3 wheel \
+	    -w dist --no-cache-dir --no-build-isolation --no-deps .
+	PIP_CONFIG_FILE=/dev/null /usr/bin/pip3 install \
+	    --no-index --find-links dist --root="$PKG" --ignore-installed --no-deps meson
+
+	install -Dm644 data/shell-completions/bash/meson \
+	    "$PKG/usr/share/bash-completion/completions/meson"
+	install -Dm644 data/shell-completions/zsh/_meson \
+	    "$PKG/usr/share/zsh/site-functions/_meson"
+	install -Dm644 "$SRC/lib32" "$PKG/usr/share/meson/cross/lib32"
+}

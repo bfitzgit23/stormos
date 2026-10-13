@@ -1,0 +1,28 @@
+# description : D-Bus GLib bindings
+# homepage    : https://freedesktop.org/wiki/Software/DBusBindings
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dbus glib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=dbus-glib
+version=0.114
+release=3
+source="https://ftp.debian.org/debian/pool/main/d/dbus-glib/dbus-glib_${version}.orig.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		prt-get isinst bash-completion || PKGMK_DBUSGLIB+=' --enable-bash-completion=no'
+
+		./configure --prefix=/usr     \
+	            --sysconfdir=/etc \
+	            --disable-static &&
+	make
+		make DESTDIR=$PKG install
+}

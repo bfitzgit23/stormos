@@ -1,0 +1,26 @@
+# description : library providing a standalone version of the X server implementation of the VESA CVT standard timing modelines generator
+# homepage    : https://gitlab.freedesktop.org/xorg/lib/libxcvt
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : meson ninja
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libxcvt
+version=0.1.3
+release=1
+source="https://xorg.freedesktop.org/archive/individual/lib/libxcvt-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	mkdir build &&
+	cd    build &&
+
+	meson setup  --prefix=$XORG_PREFIX --buildtype=release .. &&
+	ninja
+		DESTDIR=$PKG ninja install
+}

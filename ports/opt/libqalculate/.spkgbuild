@@ -1,0 +1,26 @@
+# description : The libqalculate package contains a library that provides functions for a multi-purpose calculator.
+# homepage    : https://github.com/Qalculate/libqalculate/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : curl icu libxml2
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libqalculate
+version=5.12.0
+release=2
+build_opt=" --prefix=/usr
+            --disable-static
+            --docdir=/usr/share/doc/$name-$version"
+source="https://github.com/Qalculate/$name/releases/download/v$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

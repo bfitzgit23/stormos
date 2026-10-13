@@ -1,0 +1,28 @@
+# description : Tools for managing software RAID arrays
+# homepage    : https://www.kernel.org/pub/linux/utils/raid/mdadm/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mdadm
+version=4.6
+release=2
+source="https://github.com/md-raid-utilities/mdadm/archive/refs/tags/mdadm-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make \
+	    BINDIR=/usr/sbin \
+	    CWFLAGS="-Wall -Wstrict-prototypes -Wextra -Wno-unused-parameter -Wimplicit-fallthrough=0 -O2"
+
+	make \
+	    DESTDIR=$PKG \
+	    BINDIR=/usr/sbin \
+	    install
+}

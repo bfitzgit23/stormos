@@ -1,0 +1,58 @@
+# description : QEMU machine emulator and KVM virtualizer
+# homepage    : https://www.qemu.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : dtc alsa-lib glib gtk3 libaio libcap-ng libepoxy libseccomp libslirp liburing libusb spice spice-protocol usbredir libxml2 ncurses pixman sdl2 virglrenderer zlib zstd
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=qemu
+version=11.1.1
+release=7
+build_work=disk
+configure_out_of_tree=yes
+configure_build_tool=ninja
+build_opt=(
+    --libexecdir=/usr/lib/qemu
+    --target-list=x86_64-softmmu,i386-softmmu
+    --disable-download
+    --enable-tools
+    --enable-guest-agent
+    --enable-kvm
+    --enable-linux-aio
+    --enable-linux-io-uring
+    --enable-slirp
+    --enable-gtk
+    --enable-sdl
+    --enable-opengl
+    --enable-virglrenderer
+    --enable-vnc
+    --enable-spice
+    --enable-seccomp
+    --enable-cap-ng
+    --enable-libusb
+    --enable-usb-redir
+    --disable-werror
+)
+source="https://download.qemu.org/qemu-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	rm -rf _bfs_qemu_build
+	mkdir _bfs_qemu_build
+	cd _bfs_qemu_build || return 1
+
+	../configure \
+	    --prefix=/usr \
+	    --libdir=/usr/lib \
+	    --sysconfdir=/etc \
+	    --localstatedir=/var \
+	    "${build_opt[@]}" || return 1
+
+	ninja || return 1
+	DESTDIR="$PKG" ninja install || return 1
+}

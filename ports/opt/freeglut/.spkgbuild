@@ -1,0 +1,32 @@
+# description : Freeglut is intended to be a 100% compatible, completely opensourced clone of the GLUT library. GLUT is a window system independent toolkit for writing OpenGL programs, implementing a simple windowing API, which makes learning about and exploring OpenGL programming very easy.
+# homepage    : https://downloads.sourceforge.net/freeglut/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cmake mesa glu
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=freeglut
+version=3.8.0
+release=2
+source="https://downloads.sourceforge.net/$name/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		mkdir build &&
+		cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr       \
+	      -DCMAKE_BUILD_TYPE=Release        \
+	      -DFREEGLUT_BUILD_DEMOS=OFF        \
+	      -DFREEGLUT_BUILD_STATIC_LIBS=OFF  \
+	      -Wno-dev .. &&
+
+	make
+		make DESTDIR=$PKG install
+}

@@ -1,0 +1,22 @@
+# description : xdotool
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=xdotool
+version=4.20260303.1
+release=1
+source="https://github.com/jordansissel/${name}/releases/download/v${version}/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make WITHOUT_RPATH_FIX=1
+	make PREFIX=/usr INSTALLMAN=/usr/share/man DESTDIR=$PKG install
+}

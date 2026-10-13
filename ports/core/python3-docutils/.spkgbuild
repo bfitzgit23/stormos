@@ -1,0 +1,25 @@
+# description : Docutils is an open-source text processing system for processing plaintext documentation into useful formats
+# homepage    : https://docutils.sourceforge.io/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : python3-setuptools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=python3-docutils
+version=0.23
+release=1
+source="https://downloads.sourceforge.net/docutils/docutils-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	/usr/bin/python3 -m build --wheel --skip-dependency-check --no-isolation
+	/usr/bin/python3 -m installer --compile-bytecode 2 --destdir=$PKG dist/*.whl
+
+	find $PKG -iname "*README*" -delete
+}

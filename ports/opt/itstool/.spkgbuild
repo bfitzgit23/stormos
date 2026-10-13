@@ -1,0 +1,24 @@
+# description : XML to PO and back again
+# homepage    : https://itstool.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : docbook-xml python3-lxml
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=itstool
+version=2.0.7
+release=4
+source="https://github.com/itstool/itstool/archive/$version/$name-$version.tar.gz itstool-2.0.7-lxml-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	PYTHON=/usr/bin/python3 \
+	./autogen.sh --prefix=/usr
+	make
+	make DESTDIR=$PKG install
+}

@@ -1,0 +1,23 @@
+# description : Commandline MP3 player
+# homepage    : https://www.mpg123.de
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=mpg123
+version=1.33.7
+release=1
+source="https://sourceforge.net/projects/mpg123/files/mpg123/$version/$name-$version.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		./configure --prefix=/usr &&
+	make
+		make DESTDIR=$PKG install
+}

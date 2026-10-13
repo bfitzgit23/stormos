@@ -1,0 +1,30 @@
+# description : Library for manipulation of TIFF (Tag Image File Format) images
+# homepage    : http://www.simplesystems.org/libtiff
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libjpeg-turbo zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libtiff
+version=4.7.2
+release=3
+source="https://download.osgeo.org/libtiff/tiff-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		mkdir -p libtiff-build &&
+		cd       libtiff-build &&
+
+	cmake \
+	      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+	      -DCMAKE_INSTALL_DOCDIR=/usr/share/doc/libtiff-$version \
+	      -DCMAKE_INSTALL_PREFIX=/usr \
+	      -G Ninja .. &&
+	ninja
+		DESTDIR=$PKG ninja install
+}

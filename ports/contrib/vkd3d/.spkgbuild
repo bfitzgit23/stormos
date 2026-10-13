@@ -1,0 +1,24 @@
+# description : Direct3D 12 to Vulkan translation library by WineHQ
+# homepage    : https://wiki.winehq.org/Vkd3d
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : p5-json spirv-tools vulkan-loader xcb-util-keysyms
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=vkd3d
+version=2.1
+release=1
+build_opt="--with-spirv-tools"
+source="https://dl.winehq.org/vkd3d/source/vkd3d-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

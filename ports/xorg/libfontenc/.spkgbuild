@@ -1,0 +1,25 @@
+# description : xorg lib libfontenc
+# homepage    : https://xorg.freedesktop.org
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : xorgproto zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libfontenc
+version=1.1.9
+release=3
+source="https://xorg.freedesktop.org/archive/individual/lib/libfontenc-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+	./configure $XORG_CONFIG --docdir=/usr/share/doc/$name-$version
+
+	make
+	make DESTDIR=$PKG install
+}

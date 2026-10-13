@@ -1,0 +1,62 @@
+# description : util-linux
+# homepage    : https://www.kernel.org/pub/linux/utils/util-linux/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=util-linux
+version=2.42.4
+release=1
+build_type=configure_build
+build_opt="
+    --bindir=/usr/bin
+    --libdir=/usr/lib
+    --runstatedir=/run
+    --sbindir=/usr/sbin
+    --disable-chfn-chsh
+    --disable-login
+    --disable-nologin
+    --disable-su
+    --disable-setpriv
+    --disable-runuser
+    --disable-pylibmount
+    --disable-liblastlog2
+    --disable-static
+    --without-python
+    --docdir=/usr/share/doc/$name-$version
+    ADJTIME_PATH=/var/lib/hwclock/adjtime
+"
+source="https://www.kernel.org/pub/linux/utils/util-linux/v${version%.*}/util-linux-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# bootstrap.sh calls bootstrap_build() with TOOLS pointing at the
+	# toolchain root; a package build stages into $PKG instead.
+	TOOLS="${TOOLS:-$PKG}"
+	bootstrap_build || return 1
+}
+
+bootstrap_build() {
+    ./configure \
+        --prefix="$TOOLS" \
+        --libdir="$TOOLS/lib" \
+        --disable-static \
+        --disable-all-programs \
+        --enable-libuuid \
+        --enable-libblkid \
+        --enable-libmount \
+        --without-systemd \
+        --without-systemdsystemunitdir \
+        --disable-makeinstall-chown \
+        --disable-makeinstall-setuid \
+        --disable-makeinstall-tty-setgid
+
+    make -j"${JOBS:-$(nproc)}"
+    make install
+}

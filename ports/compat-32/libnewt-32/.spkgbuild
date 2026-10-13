@@ -1,0 +1,50 @@
+# description : a programming library for color text mode
+# homepage    : https://pagure.io/newt
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : newt popt-32 slang-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libnewt-32
+version=0.52.25
+release=3
+build_opt="--without-python --disable-nls"
+source="https://releases.pagure.org/newt/newt-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+	if prt-get isinst tcl-32; then
+		sed -i "s:tcl8.4:tcl8.6:" Makefile.in
+		echo '#define USE_INTERP_RESULT 1' >> config.h
+	fi
+
+	NOCONFIGURE=1 ./autogen.sh || return 1
+}
+
+post_build() {
+	rm -r $PKG/usr/{bin,include,share
+}

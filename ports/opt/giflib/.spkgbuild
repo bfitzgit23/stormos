@@ -1,0 +1,28 @@
+# description : GIF image library and utilities
+# homepage    : https://giflib.sourceforge.net/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=giflib
+version=6.1.3
+release=2
+source="https://sourceforge.net/projects/giflib/files/giflib-6.x/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	make -j "${JOBS:-1}"
+	make PREFIX=/usr DESTDIR="$PKG" install
+	rm -f "$PKG/usr/lib/libgif.a"
+	if [[ -d doc ]]; then
+	    find doc \( -name 'Makefile*' -o -name '*.1' -o -name '*.xml' \) -delete
+	    install -d "$PKG/usr/share/doc/giflib-$version"
+	    cp -a doc/. "$PKG/usr/share/doc/giflib-$version/"
+	fi
+}

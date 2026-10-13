@@ -1,0 +1,67 @@
+# description : API and commands for processing SPIR-V modules
+# homepage    : https://www.khronos.org/vulkan/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : spirv-tools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=spirv-tools-32
+version=1.4.357.0
+release=3
+source="https://github.com/KhronosGroup/SPIRV-Tools/archive/vulkan-sdk-$version/SPIRV-Tools-v$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	      PKGMK_SPIRV_TOOLS+=" -G Ninja"
+	      PKGMK_SPIRV_TOOLS+=" -S ."
+	      PKGMK_SPIRV_TOOLS+=" -D CMAKE_INSTALL_PREFIX=/usr"
+	      PKGMK_SPIRV_TOOLS+=" -D CMAKE_INSTALL_LIBDIR=lib32"
+	      PKGMK_SPIRV_TOOLS+=" -D CMAKE_BUILD_TYPE=Release"
+	      PKGMK_SPIRV_TOOLS+=" -D SPIRV_WERROR=OFF"
+	      PKGMK_SPIRV_TOOLS+=" -D SPIRV-Headers_SOURCE_DIR=/usr"
+	      PKGMK_SPIRV_TOOLS+=" -D SPIRV_TOOLS_BUILD_STATIC=OFF"
+	      PKGMK_SPIRV_TOOLS+=" -Wno-author"
+
+	      cmake -B build-static $PKGMK_SPIRV_TOOLS \
+	              -D CMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+	              -D CMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+	              -D BUILD_SHARED_LIBS=OFF || return 1
+
+	      cmake --build build-static || return 1
+
+	      cmake -B build-shared $PKGMK_SPIRV_TOOLS \
+	              -D CMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+	              -D CMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+	              -D BUILD_SHARED_LIBS=ON || return 1
+
+	      cmake --build build-shared || return 1
+
+	      DESTDIR="$PKG" \
+	              cmake --build build-static --target install || return 1
+
+	      DESTDIR="$PKG" \
+	              cmake --build build-shared --target install || return 1
+
+	      # Native spirv-tools owns the executables and headers.
+	      # This compat port supplies only the 32-bit libraries/pkg-config data.
+	      rm -rf "$PKG/usr/bin" "$PKG/usr/include"
+	)
+}

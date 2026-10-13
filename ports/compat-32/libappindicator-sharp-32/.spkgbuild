@@ -1,0 +1,53 @@
+# description : Allow applications to extend a menu via Ayatana indicators in Unity, KDE or Systray
+# homepage    : https://launchpad.net/libappindicator
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libappindicator-gtk2-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libappindicator-sharp-32
+version=12.10
+release=3
+source="http://archive.ubuntu.com/ubuntu/pool/universe/liba/libappindicator/libappindicator_12.10.1+20.10.20200706.1.orig.tar.gz 0001-Glib.Timeout-fix.patch 0002-Fix-mono-nunit-pkgconfig-name.patch 0003-Fix-Mono-assemblies-directory.patch badfunction.patch improved-plasma-support.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	(
+	  set -e
+	sed -i -e 's/ -Werror//' src/Makefile.am
+	export CSC='/usr/bin/mcs'
+	export PKG_CONFIG_LIBDIR='/usr/lib32/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig'
+	NOCONFIGURE=1 ./autogen.sh
+
+	CXXFLAGS="$CXXFLAGS -std=c++11" \
+	./configure --prefix=/usr \
+	  --libdir=/usr/lib32 \
+	  --localstatedir=/var \
+	  --disable-{gtk-doc-html,python,mono-test,static,tests} \
+	  --with-gtk=2
+
+	sed -e 's/DIST_SUBDIRS = vala python mono/DIST_SUBDIRS = vala mono/g' \
+	  -e 's/am__append_1 = python//g' \
+	  -i bindings/Makefile
+
+	make
+	make DESTDIR=$PKG -C bindings/mono -j1 install
+	mv $PKG/usr/lib/mono $PKG/usr/lib32/mono
+	)
+}

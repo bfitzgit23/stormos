@@ -1,0 +1,37 @@
+# description : KDE Plasma screenshot and screen recording utility
+# homepage    : https://apps.kde.org/spectacle/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : kconfig kconfigwidgets kcoreaddons kcrash kdbusaddons kglobalaccel kguiaddons ki18n kio kirigami kjobwidgets knotifications kpipewire kquickimageeditor kservice kstatusnotifieritem kwidgetsaddons kwindowsystem kxmlgui layer-shell-qt opencv prison purpose qt6 plasma-wayland-protocols tesseract wayland xcb-util xcb-util-cursor xcb-util-image
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=spectacle
+version=6.7.5
+release=2
+build_opt="-DCMAKE_INSTALL_PREFIX=/opt/kf6
+-DCMAKE_PREFIX_PATH=/opt/kf6;/opt/qt6
+-DBUILD_TESTING=OFF"
+source="https://download.kde.org/stable/plasma/$version/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+    sed -i 's/find_package(OpenCV 4\.7/find_package(OpenCV/' CMakeLists.txt
+}
+
+post_build() {
+    install -d "$PKG/usr/bin" || return 1
+    ln -sf /opt/kf6/bin/spectacle "$PKG/usr/bin/spectacle" || return 1
+}

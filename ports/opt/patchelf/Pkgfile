@@ -1,7 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on:
-
-name=patchelf
-version=0.19.1
-release=2
-source=(https://github.com/NixOS/${name}/releases/download/${version}/${name}-${version}.tar.gz)

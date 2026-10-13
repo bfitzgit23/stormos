@@ -1,0 +1,28 @@
+# description : D-Bus service for power-device enumeration and statistics
+# homepage    : https://gitlab.freedesktop.org/upower/upower
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libgudev libusb glib meson ninja
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=upower
+version=1.91.3
+release=2
+source="https://gitlab.freedesktop.org/${name}/${name}/-/archive/v${version}/${name}-v${version}.tar.bz2"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build \
+	    --prefix=/usr \
+	    --buildtype=release \
+	    -Dgtk-doc=false \
+	    -Dman=false \
+	    -Dudevrulesdir=/usr/lib/udev/rules.d || return 1
+	meson compile -C build || return 1
+	DESTDIR="$PKG" meson install --no-rebuild -C build || return 1
+}

@@ -1,8 +1,0 @@
-# Description: SPICE protocol headers
-# URL: https://www.spice-space.org/
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-
-name=spice-protocol
-version=0.14.5
-release=1
-source=(https://www.spice-space.org/download/releases/spice-protocol-$version.tar.xz)

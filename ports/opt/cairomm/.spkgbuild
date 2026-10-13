@@ -1,0 +1,28 @@
+# description : C++ wrapper for the cairo graphics library.
+# homepage    : https://cairographics.org/cairomm/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : cairo libsigc++
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=cairomm
+version=1.18.1
+release=3
+source="https://cairographics.org/releases/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup build . \
+		--prefix=/usr \
+		--buildtype=plain \
+		-D b_lto=true \
+		-D b_pie=true
+
+	ninja -C build -j ${JOBS:-1}
+	DESTDIR=$PKG ninja -C build install
+}

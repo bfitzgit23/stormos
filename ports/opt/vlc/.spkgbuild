@@ -1,0 +1,42 @@
+# description : VLC media player
+# homepage    : https://www.videolan.org/vlc/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib desktop-file-utils ffmpeg liba52 libgcrypt libmad lua52 dbus libidn libssh2 libarchive libcddb libdv libdvdcss libdvdread libdvdnav opencv v4l-utils libcdio libogg faad2 flac libaom libass libmpeg2 libpng libva libvorbis opus speex libvpx x264 aalib fontconfig freetype fribidi librsvg libvdpau sdl12-compat pulseaudio libsamplerate qt6 gnutls libnotify libxml2 protobuf taglib xdg-utils
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=vlc
+version=3.0.23
+release=4
+build_opt="--enable-lua
+           --enable-wayland
+           --enable-qt
+           --disable-libplacebo"
+source="https://download.videolan.org/$name/$version/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}
+
+pre_build() {
+  # BLFS compatibility fix for GStreamer 1.28+
+  sed -i 's/gstvideopool.h/video.h/' \
+    modules/codec/gstreamer/gstvlcvideopool.h || return 1
+
+  # VLC 3.0.23 Qt6 support looks for qmake6.
+  # Qt6 is installed under /opt/qt6 on BFSOS.
+  export PATH="/opt/qt6/bin:$PATH"
+  export QMAKE=/opt/qt6/bin/qmake6
+
+  # VLC needs the Lua 5.2 bytecode compiler.
+  export LUAC=/usr/bin/luac5.2
+}

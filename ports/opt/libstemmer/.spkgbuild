@@ -1,0 +1,29 @@
+# description : Snowball stemming algorithms C library
+# homepage    : https://snowballstem.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+# keep_static is implicit here: scratchpkg keeps *.a files.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libstemmer
+version=3.1.1
+release=1
+source="https://snowballstem.org/dist/libstemmer_c-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# The upstream libstemmer_c distribution intentionally has no install
+	# target. Build the generated C library, then stage its public API and
+	# static archive explicitly for consumers such as TinySPARQL.
+	make -j "${JOBS:-1}" CFLAGS="$CFLAGS -fPIC" || return 1
+
+	install -d "$PKG/usr/lib" "$PKG/usr/include" || return 1
+	install -m644 libstemmer.a "$PKG/usr/lib/libstemmer.a" || return 1
+	install -m644 include/libstemmer.h "$PKG/usr/include/libstemmer.h" || return 1
+}

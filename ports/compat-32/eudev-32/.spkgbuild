@@ -1,0 +1,46 @@
+# description : Userspace device management daemon
+# homepage    : https://github.com/eudev-project/eudev
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : systemd kmod-32
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+# compat-32: build and stage 32-bit objects against /usr/lib32.
+export BFS_PKG_LIBDIR="/usr/lib32"
+export BFS_PKG_LIBDIR_NAME="lib32"
+export BFS_MULTILIB_HOST="${BFS_MULTILIB_HOST:-i686-pc-linux-gnu}"
+export PKG_CONFIG_LIBDIR="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
+export CFLAGS="${CFLAGS:--O2 -march=x86-64 -pipe} -m32"
+export CXXFLAGS="${CXXFLAGS:-$CFLAGS}"
+export CC="${CC:-gcc} -m32"
+export CXX="${CXX:-g++} -m32"
+export LDFLAGS="${LDFLAGS:-} -L/usr/lib32"
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=eudev-32
+version=3.2.14
+release=2
+build_opt="--sbindir=/sbin --bindir=/sbin --with-rootprefix= --with-rootlibdir=/usr/lib32 --disable-introspection --disable-manpages --enable-split-usr"
+source="https://github.com/eudev-project/eudev/releases/download/v$version/eudev-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	pre_build || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+pre_build() {
+  sed -i '/^Libs:/s/-ludev/-ludev -lrt/' src/libudev/libudev.pc.in || return 1
+  CFLAGS+=" -D_GNU_SOURCE"
+}
+
+post_build() {
+  rm -rf "$PKG/etc" "$PKG/sbin" "$PKG/usr/include" "$PKG/usr/lib32/udev" "$PKG/usr/share"
+}

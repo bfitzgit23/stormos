@@ -1,0 +1,29 @@
+# description : Bidirectional translation between LLVM IR and SPIR-V
+# homepage    : https://github.com/KhronosGroup/SPIRV-LLVM-Translator
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libxml2 llvm spirv-headers spirv-tools
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=spirv-llvm-translator
+version=23.1.1
+release=1
+source="https://github.com/KhronosGroup/SPIRV-LLVM-Translator/archive/v${version}/SPIRV-LLVM-Translator-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	cmake -S . -B build \
+	    -DCMAKE_INSTALL_PREFIX=/usr \
+	    -DCMAKE_BUILD_TYPE=Release \
+	    -DBUILD_SHARED_LIBS=ON \
+	    -DCMAKE_SKIP_INSTALL_RPATH=ON \
+	    -DLLVM_EXTERNAL_SPIRV_HEADERS_SOURCE_DIR=/usr \
+	    -G Ninja || return $?
+	cmake --build build -j "${JOBS:-1}" || return $?
+	DESTDIR="$PKG" cmake --install build || return $?
+}

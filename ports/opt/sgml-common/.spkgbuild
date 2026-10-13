@@ -1,0 +1,38 @@
+# description : The SGML Common package contains install-catalog. This is useful for creating and maintaining centralized SGML catalogs.
+# homepage    : https://sourceware.org/ftp/docbook-tools/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=sgml-common
+version=0.6.3
+release=1
+skip_patch=1
+source="ftp://sourceware.org/pub/docbook-tools/new-trials/SOURCES/$name-$version.tgz https://www.linuxfromscratch.org/patches/blfs/svn/$name-$version-manpage-1.patch"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		patch -Np1 -i ../sgml-common-0.6.3-manpage-1.patch &&
+	autoreconf -f -i
+		./configure --prefix=/usr --sysconfdir=/etc &&
+	make
+		make DESTDIR=$PKG install
+	make docdir=$PKG/usr/share/doc install &&
+
+	install-catalog --add $PKG/etc/sgml/sgml-ent.cat \
+	    $PKG/usr/share/sgml/sgml-iso-entities-8879.1986/catalog &&
+
+	install-catalog --add $PKG/etc/sgml/sgml-docbook.cat \
+	    $PKG/etc/sgml/sgml-ent.cat
+	#rm -rf $PKG/etc/sgml/sgml.conf
+	#rm -rf $PKG/usr/bin/install-catalog
+	#rm -rf $PKG/usr/bin/sgmlwhich
+	#rm -rf $PKG/usr/share/sgml/xml.dcl
+	#rm -rf $PKG/usr/share/sgml/xml-iso-entities-8879.1986/*
+}

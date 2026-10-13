@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# BFSOS scratchpkg install script, generated from the CRUX scripts by scripts/bfs-ports-to-spkgbuild.py.
+# scratchpkg calls this with $1 = pre-install|post-install|pre-upgrade|
+# post-upgrade|pre-remove|post-remove, $2 = new version, $3 = old version.
+
+case $1 in
+	post-install)
+		set -eu
+		KF6_PREFIX=/opt/kf6
+
+		# Canonical KF6/Qt6 environment is owned by aaa_filesystem.  This package only
+		# materializes the standard shared integration paths needed below /opt/kf6.
+		install -v -dm755 "$KF6_PREFIX"/{etc,share}
+		ln -sfv /etc/dbus-1 "$KF6_PREFIX/etc"
+		ln -sfv /usr/share/dbus-1 "$KF6_PREFIX/share"
+		ln -sfv /usr/share/polkit-1 "$KF6_PREFIX/share"
+		install -v -dm755 "$KF6_PREFIX/share/icons"
+		ln -sfv /usr/share/icons/hicolor "$KF6_PREFIX/share/icons"
+		;;
+esac

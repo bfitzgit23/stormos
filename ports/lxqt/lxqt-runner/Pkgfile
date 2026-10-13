@@ -1,9 +1,0 @@
-# Description: Lxqt Runner component for LXQt
-# URL: https://github.com/lxqt/lxqt-runner
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: lxqt-globalkeys kwindowsystem muparser
-
-name=lxqt-runner
-version=2.4.0
-release=2
-source=(https://github.com/lxqt/${name}/releases/download/${version}/${name}-${version}.tar.xz)

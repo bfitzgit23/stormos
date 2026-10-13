@@ -1,0 +1,26 @@
+# description : Utility for removing preprocessor conditionals from code
+# homepage    : https://dotat.at/prog/unifdef/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=unifdef
+version=2.12
+release=3
+source="https://ftp2.osuosl.org/pub/blfs/svn/u/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	sed -i 's/constexpr/unifdef_&/g' unifdef.c
+	sed -i 's/ln -s/ln -sf/' Makefile
+
+	make
+
+	make prefix=/usr DESTDIR="$PKG" install
+}

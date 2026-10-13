@@ -1,0 +1,50 @@
+# description : Tools for managing logical volumes and device mappings.
+# homepage    : https://sourceware.org/lvm2/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=lvm2
+version=2.03.42
+release=2
+build_opt=(
+    --prefix=/usr
+    --sbindir=/usr/bin
+    --libdir=/usr/lib
+    --sysconfdir=/etc
+    --localstatedir=/var
+    --runstatedir=/run
+    --enable-cmdlib
+    --enable-pkgconfig
+    --enable-systemd
+    --enable-dmeventd
+    --enable-udev_sync
+)
+source="https://sourceware.org/pub/lvm2/LVM2.$version.tgz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure "${build_opt[@]}"
+
+	make
+	make DESTDIR="$PKG" install
+	post_build || return 1
+}
+
+post_build() {
+    if [[ -f "$PKG/etc/lvm/lvm.conf" ]]; then
+        sed -i \
+            -e '/locking_dir =/{s/#//;s@/var/run@@}' \
+            "$PKG/etc/lvm/lvm.conf"
+    fi
+
+    find "$PKG" -type f -name '*.la' -delete
+
+    rm -rf "$PKG/usr/share/doc"
+}

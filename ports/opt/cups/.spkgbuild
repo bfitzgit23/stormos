@@ -1,0 +1,40 @@
+# description : CUPS - Common UNIX Printing System
+# homepage    : https://openprinting.github.io/cups/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : acl zlib linux-pam gnutls dbus libusb xdg-utils colord
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=cups
+version=2.4.19
+release=2
+source="https://github.com/OpenPrinting/cups/releases/download/v$version/$name-$version-source.tar.gz cups.service cups.socket cups.path"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	./configure --libdir=/usr/lib \
+	    --with-rundir=/run/cups \
+	    --with-system-groups=lpadmin \
+	    --with-docdir=/usr/share/cups/doc-$version
+	make
+	make BUILDROOT="$PKG" install
+
+	install -d "$PKG/usr/share/doc" "$PKG/usr/lib/systemd/system"
+	ln -sfn "../cups/doc-$version" "$PKG/usr/share/doc/$name-$version"
+	printf '%s\n' 'ServerName /run/cups/cups.sock' > "$PKG/etc/cups/client.conf"
+
+	install -m644 "$SRC/cups.service" "$SRC/cups.socket" "$SRC/cups.path" \
+	    "$PKG/usr/lib/systemd/system/"
+
+	install -d "$PKG/etc/pam.d"
+	cat > "$PKG/etc/pam.d/cups" <<'PAM'
+auth    include system-auth
+account include system-account
+session include system-session
+PAM
+}

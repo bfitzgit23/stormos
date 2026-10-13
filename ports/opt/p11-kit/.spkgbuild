@@ -1,0 +1,81 @@
+# description : Provides a way to load and enumerate PKCS #11 modules.
+# homepage    : https://p11-glue.github.io/p11-glue/p11-kit.html
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libtasn1 meson
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=p11-kit
+version=0.26.5
+release=4
+build_opt=(
+    --prefix=/usr
+    --libdir=/usr/lib
+    --libexecdir=/usr/libexec
+    --sysconfdir=/etc
+    --buildtype=release
+    -Dtrust_module=enabled
+    -Dtrust_paths=/etc/pki/anchors:/usr/share/pki/anchors
+    -Dsystemd=disabled
+    -Dbash_completion=disabled
+    -Dzsh_completion=disabled
+    -Dgtk_doc=false
+    -Dman=false
+    -Dtest=false
+    -Dpost_install_test=false
+)
+source="https://github.com/p11-glue/$name/releases/download/$version/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	meson setup \
+	    p11-build \
+	    "${build_opt[@]}" || return 1
+
+	meson compile -C p11-build -j "${JOBS:-1}" || return 1
+
+	DESTDIR="$PKG" \
+	    meson install -C p11-build || return 1
+	post_build || return 1
+}
+
+post_build() {
+    local compat_script="$PKG/usr/libexec/p11-kit/trust-extract-compat"
+
+    # Replace the upstream compatibility helper with the BFS make-ca workflow.
+    install -Dm755 /dev/stdin "$compat_script" <<'EOF'
+#!/bin/sh
+set -e
+
+# Copy locally added and removed trust anchors.
+/usr/libexec/make-ca/copy-trust-modifications
+
+# Rebuild the system certificate stores.
+/usr/sbin/make-ca -r
+EOF
+
+    # Compatibility command expected by some software.
+    mkdir -p "$PKG/usr/bin"
+
+    ln -sfn \
+        ../libexec/p11-kit/trust-extract-compat \
+        "$PKG/usr/bin/update-ca-certificates"
+
+    # Allow NSS-based applications to use the p11-kit trust module.
+    mkdir -p "$PKG/usr/lib"
+
+    ln -sfn \
+        ./pkcs11/p11-kit-trust.so \
+        "$PKG/usr/lib/libnssckbi.so"
+
+    find "$PKG" -type f -name '*.la' -delete
+
+    rm -rf \
+        "$PKG/usr/share/doc" \
+        "$PKG/usr/share/gtk-doc"
+}

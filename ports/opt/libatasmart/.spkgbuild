@@ -1,0 +1,25 @@
+# description : The libatasmart package is a disk reporting library. It only supports a subset of the ATA S.M.A.R.T. functionality.
+# homepage    : https://0pointer.de/public/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : 
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=libatasmart
+version=0.19
+release=1
+source="https://0pointer.de/public/$name-$version.tar.xz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+
+		./configure --prefix=/usr --disable-static &&
+	make
+
+		make docdir=/usr/share/doc/$name-$version DESTDIR=$PKG install
+}

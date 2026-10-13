@@ -1,9 +1,0 @@
-# Description: USB traffic redirection library for virtualization
-# URL: https://gitlab.freedesktop.org/spice/usbredir
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: glib libusb
-name=usbredir
-version=0.15.0
-release=1
-source=(https://gitlab.freedesktop.org/spice/usbredir/-/archive/usbredir-$version/usbredir-usbredir-$version.tar.bz2)
-build_opt=(-Dtools=enabled -Dtests=disabled)

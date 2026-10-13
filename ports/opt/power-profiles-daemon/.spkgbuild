@@ -1,0 +1,27 @@
+# description : power-profiles-daemon
+# homepage    : 
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : polkit python3-gobject upower
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=power-profiles-daemon
+version=0.30
+release=1
+build_opt="--prefix=/usr
+      --buildtype=release
+      -Dgtk_doc=false
+      -Dtests=false"
+source="https://gitlab.freedesktop.org/upower/${name}/-/archive/${version}/${name}-${version}.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+}

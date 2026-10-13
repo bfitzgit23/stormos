@@ -1,5 +1,0 @@
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-name=libpipeline
-version=1.5.8
-release=1
-source=(https://nongnu.uib.no/libpipeline/libpipeline-$version.tar.gz)

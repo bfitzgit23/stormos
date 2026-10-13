@@ -1,9 +1,0 @@
-# Description: Specifications of extended Wayland protocols
-# URL: https://wayland.freedesktop.org/
-# Maintainer: Brian Madonna <bmadonnaster@gmail.com>
-# Depends on: wayland
-
-name=wayland-protocols
-version=1.49
-release=2
-source=(https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/$version/downloads/$name-$version.tar.xz)

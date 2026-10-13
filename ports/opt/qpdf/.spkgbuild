@@ -1,0 +1,30 @@
+# description : Utility that does structural, content-preserving transformations on PDF files
+# homepage    : http://qpdf.sourceforge.net/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : libjpeg-turbo openssl zlib
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=qpdf
+version=12.4.1
+release=1
+source="https://github.com/$name/$name/releases/download/v$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+		mkdir build &&
+	cd    build &&
+
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DCMAKE_BUILD_TYPE=Release  \
+	      -DBUILD_STATIC_LIBS=OFF     \
+	      -DCMAKE_INSTALL_DOCDIR=/usr/share/doc/qpdf-11.6.1 \
+	      .. &&
+	make
+		make DESTDIR=$PKG install
+}

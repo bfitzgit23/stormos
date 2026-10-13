@@ -1,0 +1,40 @@
+# description : Server and userspace API for handling audio and video multimedia pipelines
+# homepage    : https://pipewire.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : alsa-lib alsa-ucm-conf bluez gstreamer gst-plugins-base pulseaudio sbc v4l-utils
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=pipewire
+version=1.6.8
+release=5
+build_opt="-Dtests=disabled \
+-Dinstalled_tests=disabled \
+-Dexamples=disabled \
+-Dsession-managers=[] \
+-Dsystemd-user-service=enabled \
+-Dalsa=enabled"
+source="https://github.com/PipeWire/$name/archive/$version/$name-$version.tar.gz"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# No custom build steps in the CRUX recipe: run the build system
+	# the pkgmk extension would have detected.
+	bfs_standard_build
+	post_build || return 1
+}
+
+post_build() {
+    install -d "$PKG/etc/alsa/conf.d" || return 1
+
+    ln -s /usr/share/alsa/alsa.conf.d/50-pipewire.conf \
+        "$PKG/etc/alsa/conf.d/50-pipewire.conf" || return 1
+
+    ln -s /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf \
+        "$PKG/etc/alsa/conf.d/99-pipewire-default.conf" || return 1
+}

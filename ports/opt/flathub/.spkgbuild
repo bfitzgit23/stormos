@@ -1,0 +1,61 @@
+# description : Flathub repository enablement for Flatpak
+# homepage    : https://flathub.org/
+# maintainer  : Brian Madonna <bmadonnaster@gmail.com>
+# depends     : flatpak
+#
+# BFSOS scratchpkg recipe, converted from the CRUX Pkgfile by scripts/bfs-ports-to-spkgbuild.py.
+# Build it with `pkgbuild` (or `scratch install <port>`) from this directory.
+
+. /usr/libexec/bfs/spkgbuild-lib.sh
+
+name=flathub
+version=2026.09
+release=1
+source="flathub.flatpakrepo"
+
+build() {
+	# scratchpkg calls build() from $SRC; enter the unpacked source tree.
+	bfs_enter_srcdir || return 1
+	bfs_apply_patches || return 1
+	# Ship the official Flathub repository file (including its GPG key) so
+	# the remote can be enabled offline at post-install time.
+	install -d -m 0755 "$PKG/usr/share/flatpak/remotes" || return 1
+	install -m 0644 "$SRC/flathub.flatpakrepo" \
+	    "$PKG/usr/share/flatpak/remotes/flathub.flatpakrepo" || return 1
+
+	install -d -m 0755 "$PKG/usr/share/doc/flathub" || return 1
+	cat > "$PKG/usr/share/doc/flathub/README" <<'EOF'
+Flathub for BFSOS
+=================
+
+This package ships the official Flathub repository file. The post-install
+script registers it as the system-wide "flathub" remote for Flatpak.
+
+Verify the remote after installation:
+
+    flatpak remotes
+
+Install your first application:
+
+    flatpak install flathub org.gnome.Weather
+
+Run it:
+
+    flatpak run org.gnome.Weather
+
+Applications installed from Flathub appear in the application menu and in
+gnome-software. See the BFSOS README for a user-friendly introduction.
+EOF
+}
+
+post_install() {
+    # Register Flathub as a system-wide remote. --if-not-exists keeps this
+    # idempotent across upgrades, and the shipped .flatpakrepo carries the
+    # GPG key so no trust prompt or network fetch is required.
+    if command -v flatpak >/dev/null 2>&1; then
+        flatpak remote-add --if-not-exists --system flathub \
+            /usr/share/flatpak/remotes/flathub.flatpakrepo >/dev/null 2>&1 || \
+        echo "WARNING: could not register the flathub remote automatically." \
+             "Run: flatpak remote-add --if-not-exists flathub /usr/share/flatpak/remotes/flathub.flatpakrepo"
+    fi
+}
