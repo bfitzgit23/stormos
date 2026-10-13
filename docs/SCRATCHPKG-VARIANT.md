@@ -211,6 +211,13 @@ pre/post-install scripts have an `install` counterpart).
   for installs on this variant.
 - `.footprint` files (CRUX installed-file lists) are kept for reference;
   scratchpkg tracks files in `/var/lib/scratchpkg/db` and uses `.pkgfiles`.
+- `profiles/init/overlays/{openrc,sysvinit}/**` still hold 118 generated CRUX
+  `Pkgfile` variants (plus 16 `Pkgfile.before-*` backups inside the tree). They
+  belong to the bootstrap's init-profile flow, which this branch leaves on
+  pkgutils: they are overlay recipes applied *over* the ports tree by
+  `bootstrap.sh`, and scratchpkg has no equivalent step, so converting them to
+  `.spkgbuild` would produce recipes nothing consumes. The ports tree itself
+  contains no `Pkgfile` at all.
 
 ### Known gaps
 
