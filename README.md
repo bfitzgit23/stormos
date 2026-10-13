@@ -48,7 +48,7 @@ Most Linux distros (Ubuntu, Fedora, Mint…) hand you pre-built programs that so
 - **Flathub apps** run in a security *sandbox* (see below) and work on any Linux distro. This is the closest experience to the macOS App Store.
 - **Native BFSOS packages** are built from source on your machine. The store lists them through a local AppStream catalog that BFSOS generates from the ports tree with `prt-get`/`pkgutils` (see *How gnome-software sees native packages* below).
 
-**Way 2 — the terminal (faster, more precise).** Three commands cover 95% of daily use:
+**Way 2 — the terminal (faster, more precise).**
 
 ```sh
 bfsos sync              # refresh the ports tree + pacman repositories
@@ -318,7 +318,7 @@ Build a single port manually the way pkgutils does it:
 cd /usr/ports/opt/flatpak && pkgmk -d && pkgadd flatpak#*.pkg.tar.zst
 ```
 
-BFSOS uses `python3` as the Python 3 package name; Python module ports use the `python3-*` naming convention. On the `scratchpkg` branch the same tree is driven by `scratch install <port>`, `scratch upgrade`, `scratch search <pattern>` and `portsync` — see *The scratchpkg variant* below.
+BFSOS uses `python3` as the Python 3 package name; Python module ports use the `python3-*` naming convention. On the `scratchpkg` branch the same tree is driven by `scratch install <port>`, `scratch sysup`, `scratch search <pattern>` and `portsync` — see *The scratchpkg variant* below.
 
 ### Package-management roles
 
@@ -327,6 +327,8 @@ BFSOS uses `python3` as the Python 3 package name; Python module ports use the `
 - `prt-get` is the dependency-aware frontend used for `depinst`, `sysup`, and related operations.
 - `prt-utils` provides maintenance helpers such as `revdep`.
 - `bfsos` (with `bfs-build`, `bfs-deps`, `bfs-repo-add`) builds the same ports into a local pacman repository, so `pacman`/`bfsos install` work on a system that has never used `pkgmk` directly.
+
+The layers map onto each other: `bfsos sync` = `ports -u` (or `portsync` on the `scratchpkg` branch), `bfsos install` = `prt-get depinst` (or `scratch install`), and `bfsos upgrade` = `prt-get sysup` (or `scratch sysup`). Bootstrap stages 1–5 use `pkgutils`; daily package management on an installed system uses the `bfsos`/pacman layer.
 
 BFSOS-maintained collections use the Git-backed monorepo definition `/etc/ports/bfsos.git`.
 
